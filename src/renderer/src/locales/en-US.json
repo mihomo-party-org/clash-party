@@ -179,6 +179,8 @@
   "webdav.dir": "WebDAV Backup Directory",
   "webdav.username": "WebDAV Username",
   "webdav.password": "WebDAV Password",
+  "webdav.maxBackups": "Max Backups",
+  "webdav.noLimit": "No Limit",
   "webdav.backup": "Backup",
   "webdav.restore.title": "Restore Backup",
   "webdav.restore.noBackups": "No backups available",

@@ -179,6 +179,8 @@
   "webdav.dir": "WebDAV 备份目录",
   "webdav.username": "WebDAV 用户名",
   "webdav.password": "WebDAV 密码",
+  "webdav.maxBackups": "最大备份数",
+  "webdav.noLimit": "不限制",
   "webdav.backup": "备份",
   "webdav.restore.title": "恢复备份",
   "webdav.restore.noBackups": "还没有备份",

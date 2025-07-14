@@ -179,6 +179,8 @@
   "webdav.dir": "Каталог резервных копий WebDAV",
   "webdav.username": "Имя пользователя WebDAV",
   "webdav.password": "Пароль WebDAV",
+  "webdav.maxBackups": "Максимум резервных копий",
+  "webdav.noLimit": "Без ограничений",
   "webdav.backup": "Резервное копирование",
   "webdav.restore.title": "Восстановление резервной копии",
   "webdav.restore.noBackups": "Нет доступных резервных копий",

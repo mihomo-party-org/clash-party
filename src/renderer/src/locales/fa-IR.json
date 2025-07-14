@@ -179,6 +179,8 @@
   "webdav.dir": "پوشه پشتیبان‌گیری WebDAV",
   "webdav.username": "نام کاربری WebDAV",
   "webdav.password": "رمز عبور WebDAV",
+  "webdav.maxBackups": "حداکثر نسخه پشتیبان",
+  "webdav.noLimit": "بدون محدودیت",
   "webdav.backup": "پشتیبان‌گیری",
   "webdav.restore.title": "بازیابی پشتیبان",
   "webdav.restore.noBackups": "هیچ پشتیبانی موجود نیست",

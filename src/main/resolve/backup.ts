@@ -19,7 +19,8 @@ export async function webdavBackup(): Promise<boolean> {
     webdavUrl = '',
     webdavUsername = '',
     webdavPassword = '',
-    webdavDir = 'mihomo-party'
+    webdavDir = 'mihomo-party',
+    webdavMaxBackups = 0
   } = await getAppConfig()
   const zip = new AdmZip()
 
@@ -44,7 +45,41 @@ export async function webdavBackup(): Promise<boolean> {
     // ignore
   }
 
-  return await client.putFileContents(`${webdavDir}/${zipFileName}`, zip.toBuffer())
+  const result = await client.putFileContents(`${webdavDir}/${zipFileName}`, zip.toBuffer())
+
+  if (webdavMaxBackups > 0) {
+    try {
+      const files = await client.getDirectoryContents(webdavDir, { glob: '*.zip' })
+      const fileList = Array.isArray(files) ? files : files.data
+
+      const currentPlatformFiles = fileList.filter((file) => {
+        return file.basename.startsWith(`${process.platform}_`)
+      })
+
+      currentPlatformFiles.sort((a, b) => {
+        const timeA = a.basename.match(/_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})\.zip$/)?.[1] || ''
+        const timeB = b.basename.match(/_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})\.zip$/)?.[1] || ''
+        return timeB.localeCompare(timeA)
+      })
+
+      if (currentPlatformFiles.length > webdavMaxBackups) {
+        const filesToDelete = currentPlatformFiles.slice(webdavMaxBackups)
+
+        for (let i = 0; i < filesToDelete.length; i++) {
+          const file = filesToDelete[i]
+          await client.deleteFile(`${webdavDir}/${file.basename}`)
+
+          if (i < filesToDelete.length - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 500))
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to clean up old backup files:', error)
+    }
+  }
+
+  return result
 }
 
 export async function webdavRestore(filename: string): Promise<void> {
