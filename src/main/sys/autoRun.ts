@@ -84,7 +84,7 @@ export async function enableAutoRun(): Promise<void> {
     const taskFilePath = path.join(tmpdir(), `${appName}.xml`)
     await writeFile(taskFilePath, Buffer.from(`\ufeff${getTaskXml()}`, 'utf-16le'))
     await execPromise(
-      `%SystemRoot%\\System32\\schtasks.exe /create /tn "${appName}" /xml "${taskFilePath}" /f`
+      `powershell Start-Process schtasks -Verb RunAs -ArgumentList '/create', '/tn', '${appName}', '/xml', '${taskFilePath}', '/f'`
     )
   }
   if (process.platform === 'darwin') {
@@ -121,7 +121,7 @@ Categories=Utility;
 export async function disableAutoRun(): Promise<void> {
   if (process.platform === 'win32') {
     const execPromise = promisify(exec)
-    await execPromise(`%SystemRoot%\\System32\\schtasks.exe /delete /tn "${appName}" /f`)
+    await execPromise(`powershell Start-Process schtasks -Verb RunAs -ArgumentList '/delete', '/tn', '${appName}', '/f'`)
   }
   if (process.platform === 'darwin') {
     const execPromise = promisify(exec)
