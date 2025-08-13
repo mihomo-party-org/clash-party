@@ -1,4 +1,4 @@
-import { ChildProcess, exec, execFile, spawn } from 'child_process'
+import { ChildProcess, exec, execSync, execFile, spawn } from 'child_process'
 import {
   dataDir,
   coreLogPath,
@@ -76,7 +76,17 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
   if (existsSync(path.join(dataDir(), 'core.pid'))) {
     const pid = parseInt(await readFile(path.join(dataDir(), 'core.pid'), 'utf-8'))
     try {
-      process.kill(pid, 'SIGINT')
+      if (process.platform === 'win32') {
+        try {
+          execSync(`taskkill /PID ${pid} /F`)
+        } catch {
+          execSync(
+            `powershell Start-Process -Verb RunAs -FilePath taskkill -ArgumentList "/F", "/PID", "${pid}"`
+          )
+        }
+      } else {
+        process.kill(pid, 'SIGINT')
+      }
     } catch {
       // ignore
     } finally {
