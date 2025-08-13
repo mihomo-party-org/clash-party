@@ -80,9 +80,7 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
         try {
           execSync(`taskkill /PID ${pid} /F`)
         } catch {
-          execSync(
-            `powershell Start-Process -Verb RunAs -FilePath taskkill -ArgumentList "/F", "/PID", "${pid}"`
-          )
+          execSync(`powershell Start-Process -Verb RunAs -FilePath taskkill -ArgumentList "/F", "/PID", "${pid}"`)
         }
       } else {
         process.kill(pid, 'SIGINT')
