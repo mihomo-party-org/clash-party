@@ -518,7 +518,14 @@ async function checkHighPrivilegeMihomoProcess(): Promise<boolean> {
               if (parts.length >= 2) {
                 const pid = parts[1].replace(/"/g, '').trim()
                 try {
-                  const { stdout: processInfo } = await execPromise(`wmic process where "ProcessId=${pid}" get Name,ProcessId,ExecutablePath,CommandLine /format:csv`)
+                  let processInfo
+                  let hasWMIC = true
+                  await execPromise('where wmic').catch(() => (hasWMIC = false))
+                  if (hasWMIC) {
+                    ({ stdout: processInfo } = await execPromise(`wmic process where "ProcessId=${pid}" get Name,ProcessId,ExecutablePath,CommandLine /format:csv`))
+                  } else {
+                    ({ stdout: processInfo } = await execPromise(`powershell -Command "Get-Process -Id ${pid} | Select-Object Name,Id,Path,CommandLine | ConvertTo-Json"`))
+                  }
                   await managerLogger.info(`Process ${pid} info: ${processInfo.substring(0, 200)}`)
 
                   if (processInfo.includes('mihomo')) {
