@@ -48,6 +48,7 @@
   "settings.darkMode": "Dark Mode",
   "settings.lightMode": "Light Mode",
   "settings.autoStart": "Auto Start",
+  "settings.autoStart.permissions": "Configuring scheduled tasks with administrator privileges, please click 'Yes' in the UAC dialog...",
   "settings.autoCheckUpdate": "Auto Check Update",
   "settings.silentStart": "Silent Start",
   "settings.autoQuitWithoutCore": "Auto Enable Light Mode",

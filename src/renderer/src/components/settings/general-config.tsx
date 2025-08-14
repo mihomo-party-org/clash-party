@@ -104,6 +104,14 @@ const GeneralConfig: React.FC = () => {
             isSelected={enable}
             onValueChange={async (v) => {
               try {
+                // 检查管理员权限
+                const hasAdminPrivileges = await window.electron.ipcRenderer.invoke('checkAdminPrivileges')
+
+                if (!hasAdminPrivileges) {
+                  const notification = new Notification(t('settings.autoStart.permissions'))
+                  notification.close()
+                }
+
                 if (v) {
                   await enableAutoRun()
                 } else {
