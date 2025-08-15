@@ -522,7 +522,7 @@ async function checkHighPrivilegeMihomoProcess(): Promise<boolean> {
                   const processJson  = JSON.parse(processInfo)
                   await managerLogger.info(`Process ${pid} info: ${processInfo.substring(0, 200)}`)
 
-                  if (processJson.Name === "mihomo" && processJson.Path === null) {
+                  if (processJson.Name.includes('mihomo') && processJson.Path === null) {
                     return true
                   }
                 } catch (error) {
