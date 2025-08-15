@@ -205,7 +205,10 @@ export async function setProfileStr(id: string, content: string): Promise<void> 
 
 export async function getProfile(id: string | undefined): Promise<IMihomoConfig> {
   const profile = await getProfileStr(id)
-  let result = yaml.parse(profile, { merge: true }) || {}
+  
+  // 替换 防止错误使用科学记数法解析
+  const patchedProfile = profile.replace(/(\w+:\s*)(\d+E\d+)(\s|$)/gi, '$1"$2"$3')
+  let result = yaml.parse(patchedProfile, { merge: true }) || {}
   if (typeof result !== 'object') result = {}
   return result
 }
