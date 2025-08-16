@@ -164,23 +164,25 @@ const GeneralConfig: React.FC = () => {
         </SettingItem>
         {autoQuitWithoutCore && (
           <SettingItem title={t('settings.autoQuitWithoutCoreDelay')} divider>
-            <Input
-              size="sm"
-              className="w-[100px]"
-              type="number"
-              endContent={t('common.seconds')}
-              value={autoQuitWithoutCoreDelay.toString()}
-              onValueChange={async (v: string) => {
-                let num = parseInt(v)
-                await patchAppConfig({ autoQuitWithoutCoreDelay: num })
-              }}
-              onBlur={async (e) => {
-                let num = parseInt(e.target.value)
-                if (isNaN(num)) num = 5
-                if (num < 5) num = 5
-                await patchAppConfig({ autoQuitWithoutCoreDelay: num })
-              }}
-            />
+            <div className="flex items-center gap-2">
+              <Input
+                size="sm"
+                className="w-[100px]"
+                type="number"
+                value={autoQuitWithoutCoreDelay.toString()}
+                onValueChange={async (v: string) => {
+                  let num = parseInt(v)
+                  await patchAppConfig({ autoQuitWithoutCoreDelay: num })
+                }}
+                onBlur={async (e) => {
+                  let num = parseInt(e.target.value)
+                  if (isNaN(num)) num = 5
+                  if (num < 5) num = 5
+                  await patchAppConfig({ autoQuitWithoutCoreDelay: num })
+                }}
+              />
+              <span className="text-default-500">{t('common.seconds')}</span>
+            </div>
           </SettingItem>
         )}
         <SettingItem
