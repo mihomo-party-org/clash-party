@@ -172,6 +172,10 @@ const GeneralConfig: React.FC = () => {
               value={autoQuitWithoutCoreDelay.toString()}
               onValueChange={async (v: string) => {
                 let num = parseInt(v)
+                await patchAppConfig({ autoQuitWithoutCoreDelay: num })
+              }}
+              onBlur={async (e) => {
+                let num = parseInt(e.target.value)
                 if (isNaN(num)) num = 5
                 if (num < 5) num = 5
                 await patchAppConfig({ autoQuitWithoutCoreDelay: num })
