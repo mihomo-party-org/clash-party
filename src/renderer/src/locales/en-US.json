@@ -374,7 +374,7 @@
   "profiles.editInfo.name": "Name",
   "profiles.editInfo.url": "Subscription URL",
   "profiles.editInfo.useProxy": "Use Proxy to Update",
-  "profiles.editInfo.interval": "Upd. Interval (min)",
+  "profiles.editInfo.interval": "Upd. Interval",
   "profiles.editInfo.fixedInterval": "Fixed Update Interval",
   "profiles.editInfo.override.title": "Override",
   "profiles.editInfo.override.global": "Global",

@@ -20,6 +20,7 @@ import { restartCore, addProfileUpdater } from '@renderer/utils/ipc'
 import { MdDeleteForever } from 'react-icons/md'
 import { FaPlus } from 'react-icons/fa6'
 import { useTranslation } from 'react-i18next'
+import { isValidCron } from 'cron-validator';
 
 interface Props {
   item: IProfileItem
@@ -100,15 +101,57 @@ const EditInfoModal: React.FC<Props> = (props) => {
                 />
               </SettingItem>
               <SettingItem title={t('profiles.editInfo.interval')}>
-                <Input
-                  size="sm"
-                  type="number"
-                  className={cn(inputWidth)}
-                  value={values.interval?.toString() ?? ''}
-                  onValueChange={(v) => {
-                    setValues({ ...values, interval: parseInt(v) })
-                  }}
-                />
+                <div className="flex flex-col gap-2">
+                  <Input
+                    size="sm"
+                    type="text"
+                    className={cn(
+                      inputWidth,
+                      // 不合法
+                      typeof values.interval === 'string' && 
+                      !/^\d+$/.test(values.interval) && 
+                      !isValidCron(values.interval, { seconds: false }) && 
+                      'border-red-500'
+                    )}
+                    value={values.interval?.toString() ?? ''}
+                    onValueChange={(v) => {
+                      // 输入限制
+                      if (/^[\d\s*\-,\/]*$/.test(v)) {
+                        // 纯数字
+                        if (/^\d+$/.test(v)) {
+                          setValues({ ...values, interval: parseInt(v, 10) || 0 });
+                          return;
+                        }
+                        // 非纯数字
+                        try {
+                          setValues({ ...values, interval: v });
+                        } catch (e) {
+                          // ignore
+                        }
+                      }
+                    }}
+                    placeholder="例如：30 或 '0 * * * *'"
+                  />
+
+                  {/* 动态提示信息 */}
+                  <div className="text-xs" style={{
+                    color: typeof values.interval === 'string' && 
+                          !/^\d+$/.test(values.interval) &&
+                          !isValidCron(values.interval, { seconds: false }) 
+                          ? '#ef4444'
+                          : '#6b7280'
+                  }}>
+                    {typeof values.interval === 'number' ? (
+                      '以分钟为单位的定时间隔'
+                    ) : /^\d+$/.test(values.interval?.toString() || '') ? (
+                      '以分钟为单位的定时间隔'
+                    ) : isValidCron(values.interval?.toString() || '', { seconds: false }) ? (
+                      '有效的Cron表达式'
+                    ) : (
+                      '请输入数字或合法的Cron表达式（如：0 * * * *）'
+                    )}
+                  </div>
+                </div>
               </SettingItem>
               <SettingItem title={t('profiles.editInfo.fixedInterval')}>
                 <Switch

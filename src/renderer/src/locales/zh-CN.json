@@ -379,7 +379,7 @@
   "profiles.editInfo.name": "名称",
   "profiles.editInfo.url": "订阅地址",
   "profiles.editInfo.useProxy": "使用代理更新",
-  "profiles.editInfo.interval": "更新间隔（分钟）",
+  "profiles.editInfo.interval": "更新间隔",
   "profiles.editInfo.fixedInterval": "固定更新间隔",
   "profiles.editInfo.override.title": "覆写",
   "profiles.editInfo.override.global": "全局",

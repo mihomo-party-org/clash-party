@@ -461,7 +461,7 @@ interface IProfileItem {
   name: string
   url?: string // remote
   file?: string // local
-  interval?: number
+  interval?: number | string
   home?: string
   updated?: number
   override?: string[]

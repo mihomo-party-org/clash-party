@@ -364,7 +364,7 @@
   "profiles.editInfo.name": "نام",
   "profiles.editInfo.url": "آدرس اشتراک",
   "profiles.editInfo.useProxy": "استفاده از پراکسی برای به‌روزرسانی",
-  "profiles.editInfo.interval": "فاصله به‌روزرسانی (دقیقه)",
+  "profiles.editInfo.interval": "فاصله به‌روزرسانی",
   "profiles.editInfo.fixedInterval": "فاصله به‌روزرسانی ثابت",
   "profiles.editInfo.override.title": "جایگزینی",
   "profiles.editInfo.override.global": "جهانی",

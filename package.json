@@ -33,6 +33,7 @@
     "axios": "^1.11.0",
     "chart.js": "^4.5.0",
     "chokidar": "^4.0.3",
+    "croner": "^9.1.0",
     "crypto-js": "^4.2.0",
     "dayjs": "^1.11.13",
     "express": "^5.1.0",
