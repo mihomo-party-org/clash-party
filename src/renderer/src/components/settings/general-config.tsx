@@ -272,22 +272,22 @@ const GeneralConfig: React.FC = () => {
                 </Tooltip>
               </div>
             </SettingItem>
-            <SettingItem title={t('settings.disableTray')} divider>
-              <Switch
-                size="sm"
-                isSelected={disableTray}
-                onValueChange={async (v) => {
-                  await patchAppConfig({ disableTray: v })
-                  if (v) {
-                    closeTrayIcon()
-                  } else {
-                    showTrayIcon()
-                  }
-                }}
-              />
-            </SettingItem>
           </>
         )}
+          <SettingItem title={t('settings.disableTray')} divider>
+            <Switch
+              size="sm"
+              isSelected={disableTray}
+              onValueChange={async (v) => {
+                await patchAppConfig({ disableTray: v })
+                if (v) {
+                  closeTrayIcon()
+                } else {
+                  showTrayIcon()
+                }
+              }}
+            />
+          </SettingItem>
         {platform !== 'linux' && (
           <>
             <SettingItem title={t('settings.proxyInTray')} divider>
