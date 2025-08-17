@@ -113,7 +113,7 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
     corePath,
     ['-d', diffWorkDir ? mihomoProfileWorkDir(current) : mihomoWorkDir(), ctlParam, mihomoIpcPath],
     {
-      detached: detached,
+      detached: true,
       stdio: detached ? 'ignore' : undefined,
       env: env
     }
@@ -218,7 +218,7 @@ export async function restartCore(): Promise<void> {
 
 export async function keepCoreAlive(): Promise<void> {
   try {
-    await startCore(true)
+    if (!child) await startCore(true)
     if (child && child.pid) {
       await writeFile(path.join(dataDir(), 'core.pid'), child.pid.toString())
     }
