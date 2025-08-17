@@ -234,7 +234,7 @@ const Profiles: React.FC = () => {
             endContent={
               <>
                 <Button
-                  size="sm"
+                  size="md"
                   isIconOnly
                   variant="light"
                   onPress={() => {
@@ -242,6 +242,7 @@ const Profiles: React.FC = () => {
                       setUrl(text)
                     })
                   }}
+                  className="mr-2"
                 >
                   <MdContentPaste className="text-lg" />
                 </Button>
