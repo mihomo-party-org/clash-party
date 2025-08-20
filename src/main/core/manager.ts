@@ -290,13 +290,7 @@ export async function checkTunPermissions(): Promise<boolean> {
 
   try {
     if (process.platform === 'win32') {
-      const execPromise = promisify(exec)
-      try {
-        await execPromise('net session')
-        return true
-      } catch {
-        return false
-      }
+      return await checkAdminPrivileges()
     }
 
     if (process.platform === 'darwin' || process.platform === 'linux') {
@@ -341,12 +335,25 @@ export async function checkAdminPrivileges(): Promise<boolean> {
     return true
   }
 
+  const execPromise = promisify(exec)
+  
   try {
-    const execPromise = promisify(exec)
-    await execPromise('net session')
+    // 首先尝试 fltmc 命令检测管理员权限
+    await execPromise('fltmc')
+    await managerLogger.info('Admin privileges confirmed via fltmc')
     return true
-  } catch {
-    return false
+  } catch (fltmcError) {
+    await managerLogger.info('fltmc failed, trying net session as fallback', fltmcError)
+    
+    try {
+      // 如果 fltmc 失败，尝试 net session 命令作为备用检测方法
+      await execPromise('net session')
+      await managerLogger.info('Admin privileges confirmed via net session')
+      return true
+    } catch (netSessionError) {
+      await managerLogger.info('Both fltmc and net session failed, no admin privileges', netSessionError)
+      return false
+    }
   }
 }
 
@@ -604,6 +611,13 @@ export async function checkAdminRestartForTun(): Promise<void> {
         const hasAdminPrivileges = await checkAdminPrivileges()
         if (hasAdminPrivileges) {
           await patchControledMihomoConfig({ tun: { enable: true }, dns: { enable: true } })
+
+          const { checkAutoRun, enableAutoRun } = await import('../sys/autoRun')
+          const autoRunEnabled = await checkAutoRun()
+          if (autoRunEnabled) {
+            await enableAutoRun()
+          }
+
           await restartCore()
 
           await managerLogger.info('TUN mode auto-enabled after admin restart')
@@ -635,8 +649,16 @@ export async function validateTunPermissionsOnStartup(): Promise<void> {
     const hasPermissions = await checkMihomoCorePermissions()
 
     if (!hasPermissions) {
-      await managerLogger.warn('TUN is enabled but insufficient permissions detected, auto-disabling TUN...')
+      await managerLogger.warn(
+        'TUN is enabled but insufficient permissions detected, prompting user...'
+      )
+      const confirmed = await showTunPermissionDialog()
+      if (confirmed) {
+        await restartAsAdmin()
+        return
+      }
 
+      await managerLogger.warn('User declined admin restart, auto-disabling TUN...')
       await patchControledMihomoConfig({ tun: { enable: false } })
 
       const { mainWindow } = await import('../index')

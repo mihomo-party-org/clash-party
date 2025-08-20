@@ -9,7 +9,8 @@ import { managerLogger } from '../utils/logger'
 
 const appName = 'mihomo-party'
 
-function getTaskXml(): string {
+function getTaskXml(asAdmin: boolean): string {
+  const runLevel = asAdmin ? 'HighestAvailable' : 'LeastPrivilege'
   return `<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
   <Triggers>
@@ -21,7 +22,7 @@ function getTaskXml(): string {
   <Principals>
     <Principal id="Author">
       <LogonType>InteractiveToken</LogonType>
-      <RunLevel>LeastPrivilege</RunLevel>
+      <RunLevel>${runLevel}</RunLevel>
     </Principal>
   </Principals>
   <Settings>
@@ -83,9 +84,9 @@ export async function enableAutoRun(): Promise<void> {
   if (process.platform === 'win32') {
     const execPromise = promisify(exec)
     const taskFilePath = path.join(tmpdir(), `${appName}.xml`)
-    await writeFile(taskFilePath, Buffer.from(`\ufeff${getTaskXml()}`, 'utf-16le'))
     const { checkAdminPrivileges } = await import('../core/manager')
     const isAdmin = await checkAdminPrivileges()
+    await writeFile(taskFilePath, Buffer.from(`\ufeff${getTaskXml(isAdmin)}`, 'utf-16le'))
     if (isAdmin) {
       await execPromise(`%SystemRoot%\\System32\\schtasks.exe /create /tn "${appName}" /xml "${taskFilePath}" /f`)
     } else {

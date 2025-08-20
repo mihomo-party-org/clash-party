@@ -75,6 +75,9 @@ const TunSwitcher: React.FC<Props> = (props) => {
       }
 
       await patchControledMihomoConfig({ tun: { enable }, dns: { enable: true } })
+      if (enable && appConfig?.silentStart) {
+        await window.electron.ipcRenderer.invoke('enableAutoRun')
+      }
     } else {
       await patchControledMihomoConfig({ tun: { enable } })
     }
