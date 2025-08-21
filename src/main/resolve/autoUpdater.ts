@@ -26,11 +26,29 @@ export async function checkUpdate(): Promise<IAppVersion | undefined> {
   )
   const latest = yaml.parse(res.data, { merge: true }) as IAppVersion
   const currentVersion = app.getVersion()
-  if (latest.version !== currentVersion) {
+  if (compareVersions(latest.version, currentVersion) > 0) {
     return latest
   } else {
     return undefined
   }
+}
+
+// 1:新 -1:旧 0:相同
+function compareVersions(a: string, b: string): number {
+  const parsePart = (part: string) => {
+    const numPart = part.split('-')[0]
+    const num = parseInt(numPart, 10)
+    return isNaN(num) ? 0 : num
+  }
+  const v1 = a.replace(/^v/, '').split('.').map(parsePart)
+  const v2 = b.replace(/^v/, '').split('.').map(parsePart)
+  for (let i = 0; i < Math.max(v1.length, v2.length); i++) {
+    const num1 = v1[i] || 0
+    const num2 = v2[i] || 0
+    if (num1 > num2) return 1
+    if (num1 < num2) return -1
+  }
+  return 0
 }
 
 export async function downloadAndInstallUpdate(version: string): Promise<void> {
