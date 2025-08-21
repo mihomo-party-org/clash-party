@@ -18,6 +18,12 @@
     "artifact": "node scripts/artifact.mjs",
     "dev": "electron-vite dev",
     "postinstall": "electron-builder install-app-deps",
+    "prebuild:win": "node scripts/version.js",
+    "prebuild:mac": "node scripts/version.js",
+    "prebuild:linux": "node scripts/version.js",
+    "postbuild:win": "node scripts/restore-version.js",
+    "postbuild:mac": "node scripts/restore-version.js",
+    "postbuild:linux": "node scripts/restore-version.js",
     "build:win": "electron-vite build && electron-builder --publish never --win",
     "build:mac": "electron-vite build && electron-builder --publish never --mac",
     "build:linux": "electron-vite build && electron-builder --publish never --linux"
