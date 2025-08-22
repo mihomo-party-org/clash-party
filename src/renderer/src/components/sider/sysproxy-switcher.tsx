@@ -2,7 +2,7 @@ import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
 import BorderSwitch from '@renderer/components/base/border-swtich'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { triggerSysProxy } from '@renderer/utils/ipc'
+import { triggerSysProxy, updateTrayIcon } from '@renderer/utils/ipc'
 import { AiOutlineGlobal } from 'react-icons/ai'
 import React from 'react'
 import { useSortable } from '@dnd-kit/sortable'
@@ -43,6 +43,7 @@ const SysproxySwitcher: React.FC<Props> = (props) => {
       
       window.electron.ipcRenderer.send('updateFloatingWindow')
       window.electron.ipcRenderer.send('updateTrayMenu')
+      await updateTrayIcon()
     } catch (e) {
       await patchAppConfig({ sysProxy: { enable: previousState } })
       alert(e)

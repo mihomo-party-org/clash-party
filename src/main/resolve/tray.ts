@@ -7,14 +7,14 @@ import {
   patchControledMihomoConfig
 } from '../config'
 import icoIcon from '../../../resources/icon.ico?asset'
+import icoIconBlue from '../../../resources/icon_blue.ico?asset'
+import icoIconRed from '../../../resources/icon_red.ico?asset'
+import icoIconGreen from '../../../resources/icon_green.ico?asset'
 import pngIcon from '../../../resources/icon.png?asset'
-import templateIcon from '../../../resources/iconTemplate.png?asset'
-import {
-  mihomoChangeProxy,
-  mihomoCloseAllConnections,
-  mihomoGroups,
-  patchMihomoConfig
-} from '../core/mihomoApi'
+import pngIconBlue from '../../../resources/icon_blue.png?asset'
+import pngIconRed from '../../../resources/icon_red.png?asset'
+import pngIconGreen from '../../../resources/icon_green.png?asset'
+import { mihomoChangeProxy, mihomoCloseAllConnections, mihomoGroups, patchMihomoConfig, getTrayIconStatus } from '../core/mihomoApi'
 import { mainWindow, showMainWindow, triggerMainWindow } from '..'
 import { app, clipboard, ipcMain, Menu, nativeImage, shell, Tray } from 'electron'
 import { dataDir, logDir, mihomoCoreDir, mihomoWorkDir } from '../utils/dirs'
@@ -328,7 +328,8 @@ export async function createTray(): Promise<void> {
     tray.setContextMenu(menu)
   }
   if (process.platform === 'darwin') {
-    const icon = nativeImage.createFromPath(templateIcon).resize({ height: 16 })
+    const iconPaths = getIconPaths()
+    const icon = nativeImage.createFromPath(iconPaths.white).resize({ height: 16 })
     icon.setTemplateImage(true)
     tray = new Tray(icon)
   }
@@ -337,6 +338,9 @@ export async function createTray(): Promise<void> {
   }
   tray?.setToolTip('Mihomo Party')
   tray?.setIgnoreDoubleClickEvents(true)
+
+  await updateTrayIcon()
+
   if (process.platform === 'darwin') {
     if (!useDockIcon) {
       hideDockIcon()
@@ -377,6 +381,7 @@ async function updateTrayMenu(): Promise<void> {
   if (process.platform === 'linux') {
     tray?.setContextMenu(menu)
   }
+  await updateTrayIcon()
 }
 
 export async function copyEnv(type: 'bash' | 'cmd' | 'powershell'): Promise<void> {
@@ -427,5 +432,45 @@ export async function showDockIcon(): Promise<void> {
 export async function hideDockIcon(): Promise<void> {
   if (process.platform === 'darwin' && app.dock && app.dock.isVisible()) {
     app.dock.hide()
+  }
+}
+
+const getIconPaths = () => {
+  if (process.platform === 'win32') {
+    return {
+      white: icoIcon,
+      blue: icoIconBlue,
+      green: icoIconGreen,
+      red: icoIconRed
+    }
+  } else {
+    return {
+      white: pngIcon,
+      blue: pngIconBlue,
+      green: pngIconGreen,
+      red: pngIconRed
+    }
+  }
+}
+
+export async function updateTrayIcon(): Promise<void> {
+  if (!tray) return
+
+  const status = await getTrayIconStatus()
+  const iconPaths = getIconPaths()
+  const iconPath = iconPaths[status]
+
+  try {
+    if (process.platform === 'darwin') {
+      const icon = nativeImage.createFromPath(iconPath).resize({ height: 16 })
+      icon.setTemplateImage(true)
+      tray.setImage(icon)
+    } else if (process.platform === 'win32') {
+      tray.setImage(iconPath)
+    } else if (process.platform === 'linux') {
+      tray.setImage(iconPath)
+    }
+  } catch (error) {
+    console.error('更新托盘图标失败:', error)
   }
 }

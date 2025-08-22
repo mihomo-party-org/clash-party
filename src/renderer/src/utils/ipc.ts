@@ -402,6 +402,10 @@ export async function closeTrayIcon(): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('closeTrayIcon'))
 }
 
+export async function updateTrayIcon(): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('updateTrayIcon'))
+}
+
 export async function showMainWindow(): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('showMainWindow'))
 }

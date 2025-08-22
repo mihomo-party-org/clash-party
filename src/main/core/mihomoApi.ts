@@ -169,7 +169,9 @@ export const mihomoUpgrade = async (): Promise<void> => {
 }
 
 // Smart 内核 API
-export const mihomoSmartGroupWeights = async (groupName: string): Promise<Record<string, number>> => {
+export const mihomoSmartGroupWeights = async (
+  groupName: string
+): Promise<Record<string, number>> => {
   const instance = await getAxios()
   return await instance.get(`/group/${encodeURIComponent(groupName)}/weights`)
 }
@@ -360,5 +362,29 @@ const mihomoConnections = async (): Promise<void> => {
       mihomoConnectionsWs.close()
       mihomoConnectionsWs = null
     }
+  }
+}
+
+export async function SysProxyStatus(): Promise<boolean> {
+  const appConfig = await getAppConfig()
+  return appConfig.sysProxy.enable
+}
+
+export const TunStatus = async (): Promise<boolean> => {
+  const config = await getControledMihomoConfig()
+  return config?.tun?.enable === true
+}
+
+export async function getTrayIconStatus(): Promise<'white' | 'blue' | 'green' | 'red'> {
+  const [sysProxyEnabled, tunEnabled] = await Promise.all([SysProxyStatus(), TunStatus()])
+  
+  if (sysProxyEnabled && tunEnabled) {
+    return 'red' // 系统代理 + TUN 同时启用（警告状态）
+  } else if (sysProxyEnabled) {
+    return 'blue' // 仅系统代理启用
+  } else if (tunEnabled) {
+    return 'green' // 仅 TUN 启用
+  } else {
+    return 'white' // 全关
   }
 }

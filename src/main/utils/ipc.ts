@@ -84,7 +84,7 @@ import {
 import { getRuntimeConfig, getRuntimeConfigStr } from '../core/factory'
 import { listWebdavBackups, webdavBackup, webdavDelete, webdavRestore } from '../resolve/backup'
 import { getInterfaces } from '../sys/interface'
-import { closeTrayIcon, copyEnv, showTrayIcon } from '../resolve/tray'
+import { closeTrayIcon, copyEnv, showTrayIcon, updateTrayIcon } from '../resolve/tray'
 import { registerShortcut } from '../resolve/shortcut'
 import { closeMainWindow, mainWindow, showMainWindow, triggerMainWindow } from '..'
 import {
@@ -259,6 +259,7 @@ export function registerIpcMainHandlers(): void {
   })
   ipcMain.handle('showTrayIcon', () => ipcErrorWrapper(showTrayIcon)())
   ipcMain.handle('closeTrayIcon', () => ipcErrorWrapper(closeTrayIcon)())
+  ipcMain.handle('updateTrayIcon', () => ipcErrorWrapper(updateTrayIcon)())
   ipcMain.handle('showMainWindow', showMainWindow)
   ipcMain.handle('closeMainWindow', closeMainWindow)
   ipcMain.handle('triggerMainWindow', triggerMainWindow)
