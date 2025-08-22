@@ -82,6 +82,7 @@
 *:focus {
   outline: none;
   outline-color: transparent;
+  outline-width: 0;
 }
 
 .flag-emoji {
