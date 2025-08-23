@@ -14,6 +14,7 @@ import pngIcon from '../../../resources/icon.png?asset'
 import pngIconBlue from '../../../resources/icon_blue.png?asset'
 import pngIconRed from '../../../resources/icon_red.png?asset'
 import pngIconGreen from '../../../resources/icon_green.png?asset'
+import templateIcon from '../../../resources/iconTemplate.png?asset'
 import { mihomoChangeProxy, mihomoCloseAllConnections, mihomoGroups, patchMihomoConfig, getTrayIconStatus } from '../core/mihomoApi'
 import { mainWindow, showMainWindow, triggerMainWindow } from '..'
 import { app, clipboard, ipcMain, Menu, nativeImage, shell, Tray } from 'electron'
@@ -328,8 +329,7 @@ export async function createTray(): Promise<void> {
     tray.setContextMenu(menu)
   }
   if (process.platform === 'darwin') {
-    const iconPaths = getIconPaths()
-    const icon = nativeImage.createFromPath(iconPaths.white).resize({ height: 16 })
+    const icon = nativeImage.createFromPath(templateIcon).resize({ height: 16 })
     icon.setTemplateImage(true)
     tray = new Tray(icon)
   }
@@ -463,7 +463,6 @@ export async function updateTrayIcon(): Promise<void> {
   try {
     if (process.platform === 'darwin') {
       const icon = nativeImage.createFromPath(iconPath).resize({ height: 16 })
-      icon.setTemplateImage(true)
       tray.setImage(icon)
     } else if (process.platform === 'win32') {
       tray.setImage(iconPath)
