@@ -185,7 +185,7 @@ async function initFiles(): Promise<void> {
     copy('geoip.dat'),
     copy('geosite.dat'),
     copy('ASN.mmdb'),
-    copy('sub-store.bundle.js'),
+    copy('sub-store.bundle.cjs'),
     copy('sub-store-frontend')
   ])
 }

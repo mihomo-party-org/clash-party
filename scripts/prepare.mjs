@@ -351,7 +351,7 @@ const resolve7zip = () =>
   })
 const resolveSubstore = () =>
   resolveResource({
-    file: 'sub-store.bundle.js',
+    file: 'sub-store.bundle.cjs',
     downloadURL:
       'https://github.com/sub-store-org/Sub-Store/releases/latest/download/sub-store.bundle.js'
   })

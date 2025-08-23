@@ -119,7 +119,7 @@ export async function startSubStoreBackendServer(): Promise<void> {
       SUB_STORE_MMDB_COUNTRY_PATH: path.join(mihomoWorkDir(), 'country.mmdb'),
       SUB_STORE_MMDB_ASN_PATH: path.join(mihomoWorkDir(), 'ASN.mmdb')
     }
-    subStoreBackendWorker = new Worker(path.join(mihomoWorkDir(), 'sub-store.bundle.js'), {
+    subStoreBackendWorker = new Worker(path.join(mihomoWorkDir(), 'sub-store.bundle.cjs'), {
       env: useProxyInSubStore
         ? {
             ...env,
@@ -143,7 +143,7 @@ export async function stopSubStoreBackendServer(): Promise<void> {
 export async function downloadSubStore(): Promise<void> {
   const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
   const frontendDir = path.join(mihomoWorkDir(), 'sub-store-frontend')
-  const backendPath = path.join(mihomoWorkDir(), 'sub-store.bundle.js')
+  const backendPath = path.join(mihomoWorkDir(), 'sub-store.bundle.cjs')
   const tempDir = path.join(dataDir(), 'temp')
 
   try {
@@ -154,7 +154,7 @@ export async function downloadSubStore(): Promise<void> {
     mkdirSync(tempDir, { recursive: true })
 
     // 下载后端文件
-    const tempBackendPath = path.join(tempDir, 'sub-store.bundle.js')
+    const tempBackendPath = path.join(tempDir, 'sub-store.bundle.cjs')
     const backendRes = await axios.get(
       'https://github.com/sub-store-org/Sub-Store/releases/latest/download/sub-store.bundle.js',
       {
