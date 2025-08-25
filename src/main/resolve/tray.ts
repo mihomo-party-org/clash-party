@@ -120,6 +120,7 @@ export const buildContextMenu = async (): Promise<Menu> => {
         mainWindow?.webContents.send('controledMihomoConfigUpdated')
         mainWindow?.webContents.send('groupsUpdated')
         ipcMain.emit('updateTrayMenu')
+        await updateTrayIcon()
       }
     },
     {
@@ -134,6 +135,7 @@ export const buildContextMenu = async (): Promise<Menu> => {
         mainWindow?.webContents.send('controledMihomoConfigUpdated')
         mainWindow?.webContents.send('groupsUpdated')
         ipcMain.emit('updateTrayMenu')
+        await updateTrayIcon()
       }
     },
     {
@@ -148,6 +150,7 @@ export const buildContextMenu = async (): Promise<Menu> => {
         mainWindow?.webContents.send('controledMihomoConfigUpdated')
         mainWindow?.webContents.send('groupsUpdated')
         ipcMain.emit('updateTrayMenu')
+        await updateTrayIcon()
       }
     },
     { type: 'separator' },
@@ -167,6 +170,7 @@ export const buildContextMenu = async (): Promise<Menu> => {
           // ignore
         } finally {
           ipcMain.emit('updateTrayMenu')
+          await updateTrayIcon()
         }
       }
     },
@@ -219,6 +223,7 @@ export const buildContextMenu = async (): Promise<Menu> => {
           // ignore
         } finally {
           ipcMain.emit('updateTrayMenu')
+          await updateTrayIcon()
         }
       }
     },
@@ -237,6 +242,7 @@ export const buildContextMenu = async (): Promise<Menu> => {
             await changeCurrentProfile(item.id)
             mainWindow?.webContents.send('profileConfigUpdated')
             ipcMain.emit('updateTrayMenu')
+            await updateTrayIcon()
           }
         }
       })
@@ -381,7 +387,6 @@ async function updateTrayMenu(): Promise<void> {
   if (process.platform === 'linux') {
     tray?.setContextMenu(menu)
   }
-  await updateTrayIcon()
 }
 
 export async function copyEnv(type: 'bash' | 'cmd' | 'powershell'): Promise<void> {
