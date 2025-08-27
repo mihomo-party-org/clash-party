@@ -22,7 +22,7 @@ import {
   defaultProfileConfig
 } from './template'
 import yaml from 'yaml'
-import { mkdir, writeFile, rm, readdir, cp, stat } from 'fs/promises'
+import { mkdir, writeFile, rm, readdir, cp, stat, rename } from 'fs/promises'
 import { existsSync } from 'fs'
 import { exec } from 'child_process'
 import { promisify } from 'util'
@@ -218,6 +218,19 @@ async function cleanup(): Promise<void> {
   }
 }
 
+async function migrateSubStoreFiles(): Promise<void> {
+  const oldJsPath = path.join(mihomoWorkDir(), 'sub-store.bundle.js')
+  const newCjsPath = path.join(mihomoWorkDir(), 'sub-store.bundle.cjs')
+  
+  if (existsSync(oldJsPath) && !existsSync(newCjsPath)) {
+    try {
+      await rename(oldJsPath, newCjsPath)
+    } catch (error) {
+      await initLogger.error('Failed to rename sub-store.bundle.js to sub-store.bundle.cjs', error)
+    }
+  }
+}
+
 async function migration(): Promise<void> {
   const {
     siderOrder = [
@@ -334,6 +347,7 @@ export async function initBasic(): Promise<void> {
   await initDirs()
   await initConfig()
   await migration()
+  await migrateSubStoreFiles()
   await initFiles()
   await cleanup()
 }
