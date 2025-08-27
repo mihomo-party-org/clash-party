@@ -375,9 +375,7 @@ export const TunStatus = async (): Promise<boolean> => {
   return config?.tun?.enable === true
 }
 
-export async function getTrayIconStatus(): Promise<'white' | 'blue' | 'green' | 'red'> {
-  const [sysProxyEnabled, tunEnabled] = await Promise.all([SysProxyStatus(), TunStatus()])
-  
+export function calculateTrayIconStatus(sysProxyEnabled: boolean, tunEnabled: boolean): 'white' | 'blue' | 'green' | 'red' {
   if (sysProxyEnabled && tunEnabled) {
     return 'red' // 系统代理 + TUN 同时启用（警告状态）
   } else if (sysProxyEnabled) {
@@ -387,4 +385,9 @@ export async function getTrayIconStatus(): Promise<'white' | 'blue' | 'green' | 
   } else {
     return 'white' // 全关
   }
+}
+
+export async function getTrayIconStatus(): Promise<'white' | 'blue' | 'green' | 'red'> {
+  const [sysProxyEnabled, tunEnabled] = await Promise.all([SysProxyStatus(), TunStatus()])
+  return calculateTrayIconStatus(sysProxyEnabled, tunEnabled)
 }

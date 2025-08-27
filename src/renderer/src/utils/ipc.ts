@@ -406,6 +406,10 @@ export async function updateTrayIcon(): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('updateTrayIcon'))
 }
 
+export function updateTrayIconImmediate(sysProxyEnabled: boolean, tunEnabled: boolean): void {
+  window.electron.ipcRenderer.invoke('updateTrayIconImmediate', sysProxyEnabled, tunEnabled)
+}
+
 export async function showMainWindow(): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('showMainWindow'))
 }

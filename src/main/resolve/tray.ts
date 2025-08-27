@@ -15,7 +15,7 @@ import pngIconBlue from '../../../resources/icon_blue.png?asset'
 import pngIconRed from '../../../resources/icon_red.png?asset'
 import pngIconGreen from '../../../resources/icon_green.png?asset'
 import templateIcon from '../../../resources/iconTemplate.png?asset'
-import { mihomoChangeProxy, mihomoCloseAllConnections, mihomoGroups, patchMihomoConfig, getTrayIconStatus } from '../core/mihomoApi'
+import { mihomoChangeProxy, mihomoCloseAllConnections, mihomoGroups, patchMihomoConfig, getTrayIconStatus, calculateTrayIconStatus } from '../core/mihomoApi'
 import { mainWindow, showMainWindow, triggerMainWindow } from '..'
 import { app, clipboard, ipcMain, Menu, nativeImage, shell, Tray } from 'electron'
 import { dataDir, logDir, mihomoCoreDir, mihomoWorkDir } from '../utils/dirs'
@@ -455,6 +455,27 @@ const getIconPaths = () => {
       green: pngIconGreen,
       red: pngIconRed
     }
+  }
+}
+
+export function updateTrayIconImmediate(sysProxyEnabled: boolean, tunEnabled: boolean): void {
+  if (!tray) return
+
+  const status = calculateTrayIconStatus(sysProxyEnabled, tunEnabled)
+  const iconPaths = getIconPaths()
+  const iconPath = iconPaths[status]
+
+  try {
+    if (process.platform === 'darwin') {
+      const icon = nativeImage.createFromPath(iconPath).resize({ height: 16 })
+      tray.setImage(icon)
+    } else if (process.platform === 'win32') {
+      tray.setImage(iconPath)
+    } else if (process.platform === 'linux') {
+      tray.setImage(iconPath)
+    }
+  } catch (error) {
+    console.error('更新托盘图标失败:', error)
   }
 }
 
