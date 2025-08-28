@@ -10,6 +10,7 @@ import { triggerSysProxy } from '../sys/sysproxy'
 import { patchMihomoConfig } from '../core/mihomoApi'
 import { quitWithoutCore, restartCore } from '../core/manager'
 import { floatingWindow, triggerFloatingWindow } from './floatingWindow'
+import { updateTrayIcon } from './tray'
 import i18next from '../../shared/i18n'
 
 export async function registerShortcut(
@@ -51,6 +52,7 @@ export async function registerShortcut(
           // ignore
         } finally {
           ipcMain.emit('updateTrayMenu')
+          await updateTrayIcon()
         }
       })
     }
@@ -74,6 +76,7 @@ export async function registerShortcut(
           // ignore
         } finally {
           ipcMain.emit('updateTrayMenu')
+          await updateTrayIcon()
         }
       })
     }
@@ -86,6 +89,7 @@ export async function registerShortcut(
         }).show()
         mainWindow?.webContents.send('controledMihomoConfigUpdated')
         ipcMain.emit('updateTrayMenu')
+        await updateTrayIcon()
       })
     }
     case 'globalModeShortcut': {
@@ -97,6 +101,7 @@ export async function registerShortcut(
         }).show()
         mainWindow?.webContents.send('controledMihomoConfigUpdated')
         ipcMain.emit('updateTrayMenu')
+        await updateTrayIcon()
       })
     }
     case 'directModeShortcut': {
@@ -108,6 +113,7 @@ export async function registerShortcut(
         }).show()
         mainWindow?.webContents.send('controledMihomoConfigUpdated')
         ipcMain.emit('updateTrayMenu')
+        await updateTrayIcon()
       })
     }
     case 'quitWithoutCoreShortcut': {
