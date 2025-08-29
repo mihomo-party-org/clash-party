@@ -287,6 +287,7 @@ interface IAppConfig {
   controlSniff?: boolean
   useDockIcon?: boolean
   showTraffic?: boolean
+  disableTrayIconColor?: boolean
   webdavUrl?: string
   webdavDir?: string
   webdavUsername?: string

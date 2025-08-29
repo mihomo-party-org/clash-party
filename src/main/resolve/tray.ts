@@ -463,28 +463,32 @@ export function updateTrayIconImmediate(sysProxyEnabled: boolean, tunEnabled: bo
 
   const status = calculateTrayIconStatus(sysProxyEnabled, tunEnabled)
   const iconPaths = getIconPaths()
-  const iconPath = iconPaths[status]
-
-  try {
-    if (process.platform === 'darwin') {
-      const icon = nativeImage.createFromPath(iconPath).resize({ height: 16 })
-      tray.setImage(icon)
-    } else if (process.platform === 'win32') {
-      tray.setImage(iconPath)
-    } else if (process.platform === 'linux') {
-      tray.setImage(iconPath)
+  
+  getAppConfig().then(({ disableTrayIconColor = false }) => {
+    if (!tray) return
+    const iconPath = disableTrayIconColor ? iconPaths.white : iconPaths[status]
+    try {
+      if (process.platform === 'darwin') {
+        const icon = nativeImage.createFromPath(iconPath).resize({ height: 16 })
+        tray.setImage(icon)
+      } else if (process.platform === 'win32') {
+        tray.setImage(iconPath)
+      } else if (process.platform === 'linux') {
+        tray.setImage(iconPath)
+      }
+    } catch (error) {
+      console.error('更新托盘图标失败:', error)
     }
-  } catch (error) {
-    console.error('更新托盘图标失败:', error)
-  }
+  })
 }
 
 export async function updateTrayIcon(): Promise<void> {
   if (!tray) return
 
+  const { disableTrayIconColor = false } = await getAppConfig()
   const status = await getTrayIconStatus()
   const iconPaths = getIconPaths()
-  const iconPath = iconPaths[status]
+  const iconPath = disableTrayIconColor ? iconPaths.white : iconPaths[status]
 
   try {
     if (process.platform === 'darwin') {

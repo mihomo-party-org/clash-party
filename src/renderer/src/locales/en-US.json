@@ -61,6 +61,7 @@
   "settings.floatingWindowCompatModeTooltip": "Disables transparency effects to prevent crashes on some Windows systems. Recommended to keep enabled for stability",
   "settings.disableTray": "Disable Tray Icon",
   "settings.proxyInTray": "Show Proxy Info in Tray Menu",
+  "settings.disableTrayIconColor": "Disable Tray Icon Color Changes",
   "settings.showTraffic_windows": "Show Network Speed in Taskbar",
   "settings.showTraffic_mac": "Show Network Speed in Status Bar",
   "settings.showDockIcon": "Show Dock Icon",
