@@ -48,7 +48,7 @@ const Mihomo: React.FC = () => {
     'external-controller': externalController = '',
     secret,
     authentication = [],
-    'skip-auth-prefixes': skipAuthPrefixes = ['127.0.0.1/32'],
+    'skip-auth-prefixes': skipAuthPrefixes = ['127.0.0.1/32', '::1/128'],
     'log-level': logLevel = 'info',
     'find-process-mode': findProcessMode = 'strict',
     'allow-lan': allowLan,
@@ -743,7 +743,7 @@ const Mihomo: React.FC = () => {
               return (
                 <div key={index} className="flex mb-2">
                   <Input
-                    disabled={index === 0}
+                    disabled={index === 0 || index === 1}
                     size="sm"
                     fullWidth
                     placeholder={t('mihomo.ipSegment.placeholder')}
@@ -758,7 +758,7 @@ const Mihomo: React.FC = () => {
                       }
                     }}
                   />
-                  {index < skipAuthPrefixesInput.length && index !== 0 && (
+                  {index < skipAuthPrefixesInput.length && index !== 0 && index !== 1 && (
                     <Button
                       className="ml-2"
                       size="sm"

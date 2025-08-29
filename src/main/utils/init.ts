@@ -272,7 +272,13 @@ async function migration(): Promise<void> {
   }
   // add default skip auth prefix
   if (!skipAuthPrefixes) {
-    await patchControledMihomoConfig({ 'skip-auth-prefixes': ['127.0.0.1/32'] })
+    await patchControledMihomoConfig({ 'skip-auth-prefixes': ['127.0.0.1/32', '::1/128'] })
+  } else if (skipAuthPrefixes.length >= 1 && skipAuthPrefixes[0] === '127.0.0.1/32') {
+    const filteredPrefixes = skipAuthPrefixes.filter(ip => ip !== '::1/128')
+    const newPrefixes = [filteredPrefixes[0], '::1/128', ...filteredPrefixes.slice(1)]
+    if (JSON.stringify(newPrefixes) !== JSON.stringify(skipAuthPrefixes)) {
+      await patchControledMihomoConfig({ 'skip-auth-prefixes': newPrefixes })
+    }
   }
   // add default authentication
   if (!authentication) {

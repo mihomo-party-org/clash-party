@@ -65,7 +65,7 @@ export const defaultControledMihomoConfig: Partial<IMihomoConfig> = {
   'lan-allowed-ips': ['0.0.0.0/0', '::/0'],
   'lan-disallowed-ips': [],
   authentication: [],
-  'skip-auth-prefixes': ['127.0.0.1/32'],
+  'skip-auth-prefixes': ['127.0.0.1/32', '::1/128'],
   tun: {
     enable: false,
     device: process.platform === 'darwin' ? 'utun1500' : 'Mihomo',
