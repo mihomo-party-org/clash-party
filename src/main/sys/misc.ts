@@ -34,8 +34,20 @@ export function openFile(type: 'profile' | 'override', id: string, ext?: 'yaml' 
 }
 
 export async function openUWPTool(): Promise<void> {
+  const execPromise = promisify(exec)
   const execFilePromise = promisify(execFile)
   const uwpToolPath = path.join(resourcesDir(), 'files', 'enableLoopback.exe')
+
+  const { checkAdminPrivileges } = await import('../core/manager')
+  const isAdmin = await checkAdminPrivileges()
+
+  if (!isAdmin) {
+    const escapedPath = uwpToolPath.replace(/'/g, "''")
+    const command = `powershell -Command "Start-Process -FilePath '${escapedPath}' -Verb RunAs -Wait"`
+
+    await execPromise(command, { windowsHide: true })
+    return
+  }
   await execFilePromise(uwpToolPath)
 }
 
