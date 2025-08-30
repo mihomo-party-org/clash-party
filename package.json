@@ -1,7 +1,7 @@
 {
   "name": "mihomo-party",
   "version": "1.8.6-dev",
-  "description": "Mihomo Party",
+  "description": "Clash Party",
   "main": "./out/main/index.js",
   "author": "mihomo-party-org",
   "homepage": "https://mihomo.party",

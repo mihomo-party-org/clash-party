@@ -25,7 +25,7 @@ pkgver() {
 
 prepare(){
     cd $srcdir/${_pkgname}
-    sed -i "s/productName: Mihomo Party/productName: mihomo-party/" electron-builder.yml
+    sed -i "s/productName: Mihomo Party/productName: clash-party/" electron-builder.yml
     pnpm install
 }
 

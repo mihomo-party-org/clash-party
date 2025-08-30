@@ -112,7 +112,7 @@ export async function startSubStoreBackendServer(): Promise<void> {
       SUB_STORE_BACKEND_API_HOST: subStoreHost,
       SUB_STORE_DATA_BASE_PATH: subStoreDir(),
       SUB_STORE_BACKEND_CUSTOM_ICON: icon.toDataURL(),
-      SUB_STORE_BACKEND_CUSTOM_NAME: 'Mihomo Party',
+      SUB_STORE_BACKEND_CUSTOM_NAME: 'Clash Party',
       SUB_STORE_BACKEND_SYNC_CRON: subStoreBackendSyncCron,
       SUB_STORE_BACKEND_DOWNLOAD_CRON: subStoreBackendDownloadCron,
       SUB_STORE_BACKEND_UPLOAD_CRON: subStoreBackendUploadCron,

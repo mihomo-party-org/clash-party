@@ -1,5 +1,5 @@
 appId: party.mihomo.app
-productName: Mihomo Party
+productName: Clash Party
 directories:
   buildResources: build
 files:
@@ -19,7 +19,7 @@ extraResources:
   - from: './extra/'
     to: ''
 protocols:
-  name: 'Mihomo Party URI Scheme'
+  name: 'Clash Party URI Scheme'
   schemes:
     - 'clash'
     - 'mihomo'
@@ -57,7 +57,7 @@ pkg:
 linux:
   desktop:
     entry:
-      Name: Mihomo Party
+      Name: Clash Party
       MimeType: 'x-scheme-handler/clash;x-scheme-handler/mihomo'
   target:
     - deb

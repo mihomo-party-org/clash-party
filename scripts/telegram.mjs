@@ -46,7 +46,7 @@ if (isDevRelease) {
   const commitSha = process.env.GITHUB_SHA || 'unknown'
   const shortCommitSha = commitSha.substring(0, 7)
   
-  content = `<b>🚧 <a href="https://github.com/mihomo-party-org/mihomo-party/releases/tag/dev">Mihomo Party Dev Build</a> 开发版本发布</b>\n\n`
+  content = `<b>🚧 <a href="https://github.com/mihomo-party-org/mihomo-party/releases/tag/dev">Clash Party Dev Build</a> 开发版本发布</b>\n\n`
   content += `<b>基于版本:</b> ${version}\n`
   content += `<b>提交哈希:</b> <a href="https://github.com/mihomo-party-org/mihomo-party/commit/${commitSha}">${shortCommitSha}</a>\n\n`
   content += `<b>更新日志:</b>\n`
@@ -54,7 +54,7 @@ if (isDevRelease) {
   content += '\n\n<b>⚠️ 注意：这是开发版本，可能存在不稳定性，仅供测试使用</b>\n'
 } else {
   // 正式版本通知
-  content = `<b>🌟 <a href="https://github.com/mihomo-party-org/mihomo-party/releases/tag/v${version}">Mihomo Party v${version}</a> 正式发布</b>\n\n`
+  content = `<b>🌟 <a href="https://github.com/mihomo-party-org/mihomo-party/releases/tag/v${version}">Clash Party v${version}</a> 正式发布</b>\n\n`
   content += convertMarkdownToTelegramHTML(changelog)
 }
 

@@ -15,7 +15,7 @@ const WebdavConfig: React.FC = () => {
     webdavUrl,
     webdavUsername,
     webdavPassword,
-    webdavDir = 'mihomo-party',
+    webdavDir = 'clash-party',
     webdavMaxBackups = 0
   } = appConfig || {}
   const [backuping, setBackuping] = useState(false)

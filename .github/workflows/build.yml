@@ -227,7 +227,7 @@ jobs:
         run: |
           pnpm install
           pnpm add @mihomo-party/sysproxy-linux-${{ matrix.arch }}-gnu
-          sed -i "s/productName: Mihomo Party/productName: mihomo-party/" electron-builder.yml
+          sed -i "s/productName: Clash Party/productName: mihomo-party/" electron-builder.yml
           pnpm prepare --${{ matrix.arch }}
       - name: Build
         env:

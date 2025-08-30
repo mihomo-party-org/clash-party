@@ -19,7 +19,7 @@ fi
 if [[ $2 == *".app" ]]; then
     APP_PATH="$2"
 else
-    APP_PATH="$2/Mihomo Party.app"
+    APP_PATH="$2/Clash Party.app"
 fi
 
 HELPER_PATH="/Library/PrivilegedHelperTools/party.mihomo.helper"

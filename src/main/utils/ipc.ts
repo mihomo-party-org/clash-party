@@ -285,7 +285,7 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('applyTheme', (_e, theme) => ipcErrorWrapper(applyTheme)(theme))
   ipcMain.handle('copyEnv', (_e, type) => ipcErrorWrapper(copyEnv)(type))
   ipcMain.handle('alert', (_e, msg) => {
-    dialog.showErrorBox('Mihomo Party', msg)
+    dialog.showErrorBox('Clash Party', msg)
   })
   ipcMain.handle('showDetailedError', (_e, title, message) => {
     dialog.showErrorBox(title, message)
