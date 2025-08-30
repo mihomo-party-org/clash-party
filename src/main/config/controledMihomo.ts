@@ -12,6 +12,9 @@ export async function getControledMihomoConfig(force = false): Promise<Partial<I
   if (force || !controledMihomoConfig) {
     const data = await readFile(controledMihomoConfigPath(), 'utf-8')
     controledMihomoConfig = yaml.parse(data, { merge: true }) || defaultControledMihomoConfig
+    
+    // 确保配置包含所有必要的默认字段，处理升级场景
+    controledMihomoConfig = deepMerge(defaultControledMihomoConfig, controledMihomoConfig)
   }
   if (typeof controledMihomoConfig !== 'object')
     controledMihomoConfig = defaultControledMihomoConfig
@@ -31,8 +34,12 @@ export async function patchControledMihomoConfig(patch: Partial<IMihomoConfig>):
   controledMihomoConfig = deepMerge(controledMihomoConfig, patch)
 
   // 从不接管状态恢复
-  if (controlDns && controledMihomoConfig.dns?.ipv6 === undefined) {
-    controledMihomoConfig.dns = defaultControledMihomoConfig.dns
+  if (controlDns) {
+    // 确保DNS配置包含所有必要的默认字段，特别是新增的fallback等
+    controledMihomoConfig.dns = deepMerge(
+      defaultControledMihomoConfig.dns || {},
+      controledMihomoConfig.dns || {}
+    )
   }
   if (controlSniff && !controledMihomoConfig.sniffer) {
     controledMihomoConfig.sniffer = defaultControledMihomoConfig.sniffer
