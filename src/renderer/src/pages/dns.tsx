@@ -244,22 +244,22 @@ const DNS: React.FC = () => {
         </SettingItem>
 
         <div className="flex flex-col items-stretch">
-          <h3>{t('dns.defaultNameserver')}</h3>
+          <h3>{t('dns.defaultNameserver')} (default-nameserver)</h3>
           {renderListInputs('defaultNameserver', t('dns.defaultNameserverPlaceholder'))}
         </div>
         <Divider className="my-2" />
         <div className="flex flex-col items-stretch">
-          <h3>{t('dns.proxyServerNameserver')}</h3>
+          <h3>{t('dns.proxyServerNameserver')} (proxy-server-nameserver)</h3>
           {renderListInputs('proxyServerNameserver', t('dns.proxyServerNameserverPlaceholder'))}
         </div>
         <Divider className="my-2" />
         <div className="flex flex-col items-stretch">
-          <h3>{t('dns.nameserver')}</h3>
+          <h3>{t('dns.nameserver')} (nameserver)</h3>
           {renderListInputs('nameserver', t('dns.nameserverPlaceholder'))}
         </div>
         <Divider className="my-2" />
         <div className="flex flex-col items-stretch">
-          <h3>{t('dns.directNameserver')}</h3>
+          <h3>{t('dns.directNameserver')} (direct-nameserver)</h3>
           {renderListInputs('directNameserver', t('dns.directNameserverPlaceholder'))}
         </div>
         <Divider className="my-2" />
