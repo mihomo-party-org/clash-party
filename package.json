@@ -1,7 +1,7 @@
 {
   "name": "mihomo-party",
-  "version": "1.8.6-dev",
-  "description": "Mihomo Party",
+  "version": "1.8.6",
+  "description": "Clash Party",
   "main": "./out/main/index.js",
   "author": "mihomo-party-org",
   "homepage": "https://mihomo.party",
@@ -12,6 +12,7 @@
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "prepare": "node scripts/prepare.mjs",
+    "prepare:dev": "node scripts/update-version.mjs && node scripts/prepare.mjs",
     "updater": "node scripts/updater.mjs",
     "checksum": "node scripts/checksum.mjs",
     "telegram": "node scripts/telegram.mjs release",
@@ -19,15 +20,12 @@
     "artifact": "node scripts/artifact.mjs",
     "dev": "electron-vite dev",
     "postinstall": "electron-builder install-app-deps",
-    "prebuild:win": "node scripts/version.js",
-    "prebuild:mac": "node scripts/version.js",
-    "prebuild:linux": "node scripts/version.js",
-    "postbuild:win": "node scripts/restore-version.js",
-    "postbuild:mac": "node scripts/restore-version.js",
-    "postbuild:linux": "node scripts/restore-version.js",
     "build:win": "electron-vite build && electron-builder --publish never --win",
+    "build:win:dev": "npm run prepare:dev && electron-vite build && electron-builder --publish never --win",
     "build:mac": "electron-vite build && electron-builder --publish never --mac",
-    "build:linux": "electron-vite build && electron-builder --publish never --linux"
+    "build:mac:dev": "npm run prepare:dev && electron-vite build && electron-builder --publish never --mac",
+    "build:linux": "electron-vite build && electron-builder --publish never --linux",
+    "build:linux:dev": "npm run prepare:dev && electron-vite build && electron-builder --publish never --linux"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",

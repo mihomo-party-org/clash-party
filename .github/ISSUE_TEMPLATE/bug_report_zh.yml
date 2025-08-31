@@ -1,5 +1,5 @@
 name: 错误反馈
-description: '提交 mihomo-party 漏洞'
+description: '提交 clash-party 漏洞'
 title: '[Bug] '
 body:
   - type: checkboxes
@@ -34,7 +34,7 @@ body:
       required: true
   - type: input
     attributes:
-      label: 发生问题 mihomo-party 版本
+      label: 发生问题 clash-party 版本
     validations:
       required: true
   - type: textarea

@@ -115,7 +115,7 @@ Terminal=false
 Type=Application
 Icon=mihomo-party
 StartupWMClass=mihomo-party
-Comment=Mihomo Party
+Comment=Clash Party
 Categories=Utility;
 `
 

@@ -113,3 +113,14 @@ export async function addProfileUpdater(item: IProfileItem): Promise<void> {
     }
   }
 }
+
+export async function removeProfileUpdater(id: string): Promise<void> {
+  if (intervalPool[id]) {
+    if (intervalPool[id] instanceof Cron) {
+      (intervalPool[id] as Cron).stop()
+    } else {
+      clearInterval(intervalPool[id] as NodeJS.Timeout)
+    }
+    delete intervalPool[id]
+  }
+}

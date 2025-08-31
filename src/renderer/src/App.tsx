@@ -418,7 +418,7 @@ const App: React.FC = () => {
             >
               <div className="flex ml-1">
                 <MihomoIcon className="h-[32px] leading-[32px] text-lg mx-px" />
-                <h3 className="text-lg font-bold leading-[32px]">ihomo Party</h3>
+                <h3 className="text-lg font-bold leading-[32px]">Clash Party</h3>
               </div>
               <UpdaterButton />
               <Button

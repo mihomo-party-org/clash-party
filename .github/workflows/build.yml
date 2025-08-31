@@ -27,18 +27,41 @@ jobs:
 
           if [ ! -z "$RELEASE_ID" ] && [ "$RELEASE_ID" != "empty" ]; then
             echo "✅ Found dev release with ID: $RELEASE_ID"
+
+            echo "📋 Getting list of assets with pagination..."
+            ALL_ASSETS="[]"
+            PAGE=1
+            PER_PAGE=100
             
-            # Get all assets
-            echo "📋 Getting list of assets..."
-            ASSETS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              "https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets")
+            while true; do
+              echo "📄 Fetching page $PAGE..."
+              ASSETS_PAGE=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                "https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?page=$PAGE&per_page=$PER_PAGE")
+
+              PAGE_COUNT=$(echo "$ASSETS_PAGE" | jq '. | length')
+              echo "📦 Found $PAGE_COUNT assets on page $PAGE"
+              
+              if [ "$PAGE_COUNT" -eq 0 ]; then
+                echo "📋 No more assets found, stopping pagination"
+                break
+              fi
+
+              ALL_ASSETS=$(echo "$ALL_ASSETS" "$ASSETS_PAGE" | jq -s '.[0] + .[1]')
+
+              if [ "$PAGE_COUNT" -lt "$PER_PAGE" ]; then
+                echo "📋 Last page reached (got $PAGE_COUNT < $PER_PAGE), stopping pagination"
+                break
+              fi
+              
+              PAGE=$((PAGE + 1))
+            done
             
-            ASSET_COUNT=$(echo "$ASSETS" | jq '. | length')
-            echo "📦 Found $ASSET_COUNT assets to delete"
+            TOTAL_ASSET_COUNT=$(echo "$ALL_ASSETS" | jq '. | length')
+            echo "📦 Total assets found across all pages: $TOTAL_ASSET_COUNT"
             
-            if [ "$ASSET_COUNT" -gt 0 ]; then
+            if [ "$TOTAL_ASSET_COUNT" -gt 0 ]; then
               # Delete each asset with detailed logging
-              echo "$ASSETS" | jq -r '.[].id' | while read asset_id; do
+              echo "$ALL_ASSETS" | jq -r '.[].id' | while read asset_id; do
                 if [ ! -z "$asset_id" ]; then
                   echo "🗑️  Deleting asset ID: $asset_id"
                   RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" -X DELETE \
@@ -56,7 +79,7 @@ jobs:
                   sleep 0.5
                 fi
               done
-              echo "🎉 Finished deleting assets"
+              echo "🎉 Finished deleting all $TOTAL_ASSET_COUNT assets"
             else
               echo "ℹ️  No assets found to delete"
             fi
@@ -89,7 +112,13 @@ jobs:
         run: |
           pnpm install
           pnpm add @mihomo-party/sysproxy-win32-${{ matrix.arch }}-msvc
-          pnpm prepare --${{ matrix.arch }}
+      - name: Update Version for Dev Build
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GITHUB_EVENT_NAME: workflow_dispatch
+        run: node scripts/update-version.mjs
+      - name: Prepare
+        run: pnpm prepare --${{ matrix.arch }}
       - name: Build
         env:
           npm_config_arch: ${{ matrix.arch }}
@@ -159,7 +188,13 @@ jobs:
           pnpm add @mihomo-party/sysproxy-win32-${{ matrix.arch }}-msvc
           pnpm add -D electron@22.3.27
           (Get-Content electron-builder.yml) -replace 'windows', 'win7' | Set-Content electron-builder.yml
-          pnpm prepare --${{ matrix.arch }}
+      - name: Update Version for Dev Build
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GITHUB_EVENT_NAME: workflow_dispatch
+        run: node scripts/update-version.mjs
+      - name: Prepare
+        run: pnpm prepare --${{ matrix.arch }}
       - name: Build
         env:
           npm_config_arch: ${{ matrix.arch }}
@@ -227,8 +262,14 @@ jobs:
         run: |
           pnpm install
           pnpm add @mihomo-party/sysproxy-linux-${{ matrix.arch }}-gnu
-          sed -i "s/productName: Mihomo Party/productName: mihomo-party/" electron-builder.yml
-          pnpm prepare --${{ matrix.arch }}
+          sed -i "s/productName: Clash Party/productName: mihomo-party/" electron-builder.yml
+      - name: Update Version for Dev Build
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GITHUB_EVENT_NAME: workflow_dispatch
+        run: node scripts/update-version.mjs
+      - name: Prepare
+        run: pnpm prepare --${{ matrix.arch }}
       - name: Build
         env:
           npm_config_arch: ${{ matrix.arch }}
@@ -290,7 +331,13 @@ jobs:
         run: |
           pnpm install
           pnpm add @mihomo-party/sysproxy-darwin-${{ matrix.arch }}
-          pnpm prepare --${{ matrix.arch }}
+      - name: Update Version for Dev Build
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GITHUB_EVENT_NAME: workflow_dispatch
+        run: node scripts/update-version.mjs
+      - name: Prepare
+        run: pnpm prepare --${{ matrix.arch }}
       - name: Build
         env:
           npm_config_arch: ${{ matrix.arch }}
@@ -376,7 +423,13 @@ jobs:
           pnpm install
           pnpm add @mihomo-party/sysproxy-darwin-${{ matrix.arch }}
           pnpm add -D electron@32.2.2
-          pnpm prepare --${{ matrix.arch }}
+      - name: Update Version for Dev Build
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GITHUB_EVENT_NAME: workflow_dispatch
+        run: node scripts/update-version.mjs
+      - name: Prepare
+        run: pnpm prepare --${{ matrix.arch }}
       - name: Build
         env:
           npm_config_arch: ${{ matrix.arch }}
@@ -451,6 +504,11 @@ jobs:
         run: npm install -g pnpm
       - name: Install Dependencies
         run: pnpm install
+      - name: Update Version for Dev Build
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GITHUB_EVENT_NAME: workflow_dispatch
+        run: node scripts/update-version.mjs
       - name: Telegram Notification
         if: startsWith(github.ref, 'refs/tags/v')
         env:
@@ -562,8 +620,8 @@ jobs:
       - name: Submit to Winget
         uses: vedantmgoyal9/winget-releaser@main
         with:
-          identifier: Mihomo-Party.Mihomo-Party
+          identifier: Mihomo-Party.Clash-Party
           version: ${{env.VERSION}}
           release-tag: v${{env.VERSION}}
-          installers-regex: 'mihomo-party-windows-.*setup\.exe$'
+          installers-regex: 'clash-party-windows-.*setup\.exe$'
           token: ${{ secrets.POMPURIN404_TOKEN }}

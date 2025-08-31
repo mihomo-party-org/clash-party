@@ -167,6 +167,10 @@ export async function addProfileUpdater(item: IProfileItem): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('addProfileUpdater', item))
 }
 
+export async function removeProfileUpdater(id: string): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('removeProfileUpdater', id))
+}
+
 export async function getProfileStr(id: string): Promise<string> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getProfileStr', id))
 }

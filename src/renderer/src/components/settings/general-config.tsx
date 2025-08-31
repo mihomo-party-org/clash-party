@@ -20,6 +20,7 @@ import {
   showFloatingWindow,
   showTrayIcon,
   startMonitor,
+  updateTrayIcon,
   writeTheme
 } from '@renderer/utils/ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
@@ -49,6 +50,7 @@ const GeneralConfig: React.FC = () => {
     showTraffic = false,
     proxyInTray = true,
     disableTray = false,
+    disableTrayIconColor = false,
     showFloatingWindow: showFloating = false,
     spinFloatingIcon = true,
     floatingWindowCompatMode = true,
@@ -314,6 +316,18 @@ const GeneralConfig: React.FC = () => {
               }}
             />
           </SettingItem>
+          {!disableTray && (
+            <SettingItem title={t('settings.disableTrayIconColor')} divider>
+              <Switch
+                size="sm"
+                isSelected={disableTrayIconColor}
+                onValueChange={async (v) => {
+                  await patchAppConfig({ disableTrayIconColor: v })
+                  await updateTrayIcon()
+                }}
+              />
+            </SettingItem>
+          )}
         {platform !== 'linux' && (
           <>
             <SettingItem title={t('settings.proxyInTray')} divider>

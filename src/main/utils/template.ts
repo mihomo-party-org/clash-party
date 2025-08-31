@@ -9,6 +9,7 @@ export const defaultConfig: IAppConfig = {
   appTheme: 'system',
   useWindowFrame: false,
   proxyInTray: true,
+  disableTrayIconColor: false,
   maxLogDays: 7,
   proxyCols: 'auto',
   connectionDirection: 'asc',

@@ -1,6 +1,6 @@
 import { getControledMihomoConfig } from './controledMihomo'
 import { mihomoProfileWorkDir, mihomoWorkDir, profileConfigPath, profilePath } from '../utils/dirs'
-import { addProfileUpdater } from '../core/profileUpdater'
+import { addProfileUpdater, removeProfileUpdater } from '../core/profileUpdater'
 import { readFile, rm, writeFile } from 'fs/promises'
 import { restartCore } from '../core/manager'
 import { getAppConfig } from './app'
@@ -82,6 +82,9 @@ export async function addProfileItem(item: Partial<IProfileItem>): Promise<void>
 }
 
 export async function removeProfileItem(id: string): Promise<void> {
+  // 先清理自动更新定时器，防止已删除的订阅重新出现
+  await removeProfileUpdater(id)
+  
   const config = await getProfileConfig()
   config.items = config.items?.filter((item) => item.id !== id)
   let shouldRestart = false
