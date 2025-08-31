@@ -104,7 +104,7 @@ import { getImageDataURL } from './image'
 import { startMonitor } from '../resolve/trafficMonitor'
 import { closeFloatingWindow, showContextMenu, showFloatingWindow } from '../resolve/floatingWindow'
 import i18next from 'i18next'
-import { addProfileUpdater } from '../core/profileUpdater'
+import { addProfileUpdater, removeProfileUpdater } from '../core/profileUpdater'
 
 function ipcErrorWrapper<T>( // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fn: (...args: any[]) => Promise<T> // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -187,6 +187,7 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('addProfileItem', (_e, item) => ipcErrorWrapper(addProfileItem)(item))
   ipcMain.handle('removeProfileItem', (_e, id) => ipcErrorWrapper(removeProfileItem)(id))
   ipcMain.handle('addProfileUpdater', (_e, item) => ipcErrorWrapper(addProfileUpdater)(item))
+  ipcMain.handle('removeProfileUpdater', (_e, id) => ipcErrorWrapper(removeProfileUpdater)(id))
   ipcMain.handle('getOverrideConfig', (_e, force) => ipcErrorWrapper(getOverrideConfig)(force))
   ipcMain.handle('setOverrideConfig', (_e, config) => ipcErrorWrapper(setOverrideConfig)(config))
   ipcMain.handle('getOverrideItem', (_e, id) => ipcErrorWrapper(getOverrideItem)(id))
