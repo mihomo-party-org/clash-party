@@ -19,7 +19,7 @@ interface Props {
 const MihomoCoreCard: React.FC<Props> = (props) => {
   const { appConfig } = useAppConfig()
   const { iconOnly } = props
-  const { mihomoCoreCardStatus = 'col-span-2' } = appConfig || {}
+  const { mihomoCoreCardStatus = 'col-span-2', disableAnimations = false } = appConfig || {}
   const { data: version, mutate } = useSWR('mihomoVersion', mihomoVersion)
   const location = useLocation()
   const navigate = useNavigate()
@@ -87,7 +87,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
           ref={setNodeRef}
           {...attributes}
           {...listeners}
-          className={`${match ? 'bg-primary' : 'hover:bg-primary/30'} ${isDragging ? 'scale-[0.97] tap-highlight-transparent' : ''}`}
+          className={`${match ? 'bg-primary' : 'hover:bg-primary/30'} ${isDragging ? `${disableAnimations ? '' : 'scale-[0.95] tap-highlight-transparent'}` : ''}`}
         >
           <CardBody>
             <div
@@ -138,7 +138,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
           ref={setNodeRef}
           {...attributes}
           {...listeners}
-          className={`${match ? 'bg-primary' : 'hover:bg-primary/30'} ${isDragging ? 'scale-[0.97] tap-highlight-transparent' : ''}`}
+          className={`${match ? 'bg-primary' : 'hover:bg-primary/30'} ${isDragging ? `${disableAnimations ? '' : 'scale-[0.95] tap-highlight-transparent'}` : ''}`}
         >
           <CardBody className="pb-1 pt-0 px-0">
             <div className="flex justify-between">

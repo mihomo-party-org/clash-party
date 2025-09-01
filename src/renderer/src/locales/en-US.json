@@ -62,6 +62,7 @@
   "settings.disableTray": "Disable Tray Icon",
   "settings.proxyInTray": "Show Proxy Info in Tray Menu",
   "settings.disableTrayIconColor": "Disable Tray Icon Color Changes",
+  "settings.disableAnimations": "Disable Animation Effects",
   "settings.showTraffic_windows": "Show Network Speed in Taskbar",
   "settings.showTraffic_mac": "Show Network Speed in Status Bar",
   "settings.showDockIcon": "Show Dock Icon",

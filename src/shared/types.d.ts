@@ -288,6 +288,7 @@ interface IAppConfig {
   useDockIcon?: boolean
   showTraffic?: boolean
   disableTrayIconColor?: boolean
+  disableAnimations?: boolean
   webdavUrl?: string
   webdavDir?: string
   webdavUsername?: string

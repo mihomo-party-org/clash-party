@@ -51,6 +51,7 @@ const GeneralConfig: React.FC = () => {
     proxyInTray = true,
     disableTray = false,
     disableTrayIconColor = false,
+    disableAnimations = false,
     showFloatingWindow: showFloating = false,
     spinFloatingIcon = true,
     floatingWindowCompatMode = true,
@@ -386,6 +387,15 @@ const GeneralConfig: React.FC = () => {
                 setIsRelaunching(false)
               }
             }, 1000)}
+          />
+        </SettingItem>
+        <SettingItem title={t('settings.disableAnimations')} divider>
+          <Switch
+            size="sm"
+            isSelected={disableAnimations}
+            onValueChange={async (v) => {
+              await patchAppConfig({ disableAnimations: v })
+            }}
           />
         </SettingItem>
         <SettingItem

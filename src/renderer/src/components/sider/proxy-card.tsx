@@ -16,7 +16,7 @@ const ProxyCard: React.FC<Props> = (props) => {
   const { t } = useTranslation()
   const { appConfig } = useAppConfig()
   const { iconOnly } = props
-  const { proxyCardStatus = 'col-span-1' } = appConfig || {}
+  const { proxyCardStatus = 'col-span-1', disableAnimations = false } = appConfig || {}
   const location = useLocation()
   const navigate = useNavigate()
   const match = location.pathname.includes('/proxies')
@@ -67,7 +67,7 @@ const ProxyCard: React.FC<Props> = (props) => {
         ref={setNodeRef}
         {...attributes}
         {...listeners}
-        className={`${match ? 'bg-primary' : 'hover:bg-primary/30'} ${isDragging ? 'scale-[0.97] tap-highlight-transparent' : ''}`}
+        className={`${match ? 'bg-primary' : 'hover:bg-primary/30'} ${isDragging ? `${disableAnimations ? '' : 'scale-[0.95] tap-highlight-transparent'}` : ''}`}
       >
         <CardBody className="pb-1 pt-0 px-0">
           <div className="flex justify-between">

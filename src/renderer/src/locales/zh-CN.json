@@ -62,6 +62,7 @@
   "settings.disableTray": "禁用托盘图标",
   "settings.proxyInTray": "在托盘菜单显示代理信息",
   "settings.disableTrayIconColor": "禁用托盘图标颜色变化",
+  "settings.disableAnimations": "禁用动画效果",
   "settings.showTraffic_windows": "在任务栏显示网速",
   "settings.showTraffic_mac": "在状态栏显示网速",
   "settings.showDockIcon": "显示 Dock 图标",

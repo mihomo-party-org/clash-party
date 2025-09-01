@@ -59,6 +59,7 @@
   "settings.disableTray": "Отключить значок в трее",
   "settings.proxyInTray": "Показывать информацию о прокси в трее",
   "settings.disableTrayIconColor": "Отключить смену цвета значка в трее",
+  "settings.disableAnimations": "Отключить анимационные эффекты",
   "settings.showTraffic_windows": "Показывать скорость в панели задач",
   "settings.showTraffic_mac": "Показывать скорость в строке состояния",
   "settings.showDockIcon": "Показывать значок в доке",
