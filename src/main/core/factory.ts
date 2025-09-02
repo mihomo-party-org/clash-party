@@ -44,11 +44,6 @@ export async function generateProfile(): Promise<void> {
   }
 
   const profile = deepMerge(currentProfile, controledMihomoConfig)
-  // 确保可以拿到基础日志信息
-  // 使用 debug 可以调试内核相关问题 `debug/pprof`
-  if (['info', 'debug'].includes(profile['log-level']) === false) {
-    profile['log-level'] = 'info'
-  }
   runtimeConfig = profile
   
   // 先正常生成 YAML 字符串

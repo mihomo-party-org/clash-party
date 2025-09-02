@@ -7,7 +7,8 @@ import {
   mihomoProfileWorkDir,
   mihomoTestDir,
   mihomoWorkConfigPath,
-  mihomoWorkDir
+  mihomoWorkDir,
+  mihomoIpcPath
 } from '../utils/dirs'
 import { generateProfile } from './factory'
 import {
@@ -28,16 +29,14 @@ import {
   stopMihomoTraffic,
   stopMihomoLogs,
   stopMihomoMemory,
-  patchMihomoConfig
+  mihomoVersion
 } from './mihomoApi'
 import chokidar from 'chokidar'
 import { readFile, rm, writeFile } from 'fs/promises'
 import { promisify } from 'util'
-import { mainWindow } from '..'
 import path from 'path'
 import os from 'os'
 import { createWriteStream, existsSync } from 'fs'
-import { uploadRuntimeConfig } from '../resolve/gistApi'
 import { startMonitor } from '../resolve/trafficMonitor'
 import { safeShowErrorBox } from '../utils/init'
 import i18next from '../../shared/i18n'
@@ -52,8 +51,6 @@ chokidar.watch(path.join(mihomoCoreDir(), 'meta-update'), {}).on('unlinkDir', as
   }
 })
 
-export const mihomoIpcPath =
-  process.platform === 'win32' ? '\\\\.\\pipe\\MihomoParty\\mihomo' : '/tmp/mihomo-party.sock'
 const ctlParam = process.platform === 'win32' ? '-ext-ctl-pipe' : '-ext-ctl-unix'
 
 let setPublicDNSTimer: NodeJS.Timeout | null = null
@@ -72,7 +69,6 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
     disableSystemCA = false,
     skipSafePathCheck = false
   } = await getAppConfig()
-  const { 'log-level': logLevel } = await getControledMihomoConfig()
   if (existsSync(path.join(dataDir(), 'core.pid'))) {
     const pid = parseInt(await readFile(path.join(dataDir(), 'core.pid'), 'utf-8'))
     try {
@@ -139,50 +135,42 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
   })
   child.stdout?.pipe(stdout)
   child.stderr?.pipe(stderr)
+  try {
+    await waitForCoreReady()
+    await managerLogger.info('Core API is ready, starting background services.')
+    await startMihomoTraffic()
+    await startMihomoConnections()
+    await startMihomoLogs()
+    await startMihomoMemory()
+    retry = 10
+    return [Promise.resolve()]
+  } catch (error) {
+    await managerLogger.error('Core failed to start or API not responding.', error)
+    await stopCore() // Stop the failed core process
+    throw error // Re-throw the error to be caught by the caller
+  }
+}
+
+async function waitForCoreReady(timeoutMs = 15000): Promise<void> {
+  const startTime = Date.now()
+  const pollInterval = 1000 // ms
+
   return new Promise((resolve, reject) => {
-    child.stdout?.on('data', async (data) => {
-      const str = data.toString()
-      if (str.includes('configure tun interface: operation not permitted')) {
-        patchControledMihomoConfig({ tun: { enable: false } })
-        mainWindow?.webContents.send('controledMihomoConfigUpdated')
-        ipcMain.emit('updateTrayMenu')
-        reject(i18next.t('tun.error.tunPermissionDenied'))
+    const poll = setInterval(async () => {
+      if (Date.now() - startTime > timeoutMs) {
+        clearInterval(poll)
+        reject(new Error(`Core API did not respond within ${timeoutMs / 1000}s.`))
+        return
       }
 
-      if ((process.platform !== 'win32' && str.includes('External controller unix listen error')) ||
-        (process.platform === 'win32' && str.includes('External controller pipe listen error'))
-      ) {
-        reject(i18next.t('mihomo.error.externalControllerListenError'))
+      try {
+        await mihomoVersion()
+        clearInterval(poll)
+        resolve()
+      } catch (error) {
+        // Ignore connection errors and keep polling
       }
-
-      if (
-        (process.platform !== 'win32' && str.includes('RESTful API unix listening at')) ||
-        (process.platform === 'win32' && str.includes('RESTful API pipe listening at'))
-      ) {
-        resolve([
-          new Promise((resolve) => {
-            child.stdout?.on('data', async (data) => {
-              if (data.toString().toLowerCase().includes('start initial compatible provider default')) {
-                try {
-                  mainWindow?.webContents.send('groupsUpdated')
-                  mainWindow?.webContents.send('rulesUpdated')
-                  await uploadRuntimeConfig()
-                } catch {
-                  // ignore
-                }
-                await patchMihomoConfig({ 'log-level': logLevel })
-                resolve()
-              }
-            })
-          })
-        ])
-        await startMihomoTraffic()
-        await startMihomoConnections()
-        await startMihomoLogs()
-        await startMihomoMemory()
-        retry = 10
-      }
-    })
+    }, pollInterval)
   })
 }
 

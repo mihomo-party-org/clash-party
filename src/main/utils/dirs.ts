@@ -158,3 +158,6 @@ export function coreLogPath(): string {
   const name = `core-${year}-${month}-${day}`
   return path.join(logDir(), `${name}.log`)
 }
+
+export const mihomoIpcPath =
+  process.platform === 'win32' ? '\\\\.\\pipe\\MihomoParty\\mihomo' : '/tmp/mihomo-party.sock'

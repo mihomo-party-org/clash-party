@@ -17,25 +17,30 @@ const DNS: React.FC = () => {
   const { dns, hosts } = controledMihomoConfig || {}
   const {
     enable = true,
-    ipv6 = false,
+    ipv6 = true,
     'fake-ip-range': fakeIPRange = '198.18.0.1/16',
     'fake-ip-filter': fakeIPFilter = [
-      '*',
       '+.lan',
       '+.local',
+      '+.arpa',
       'time.*.com',
       'ntp.*.com',
-      '+.market.xiaomi.com'
+      '+.market.xiaomi.com',
+      'localhost.ptlogin2.qq.com',
+      '+.msftncsi.com',
+      'www.msftconnecttest.com'
     ],
+    'fake-ip-filter-mode': fakeIPFilterMode = 'blacklist',
     'enhanced-mode': enhancedMode = 'fake-ip',
     'use-hosts': useHosts = false,
     'use-system-hosts': useSystemHosts = false,
     'respect-rules': respectRules = false,
-    'default-nameserver': defaultNameserver = ['tls://223.5.5.5'],
-    nameserver = ['https://doh.pub/dns-query', 'https://dns.alidns.com/dns-query'],
+    'default-nameserver': defaultNameserver = ['system', '223.6.6.6', '8.8.8.8', '2400:3200::1', '2001:4860:4860::8888'],
+    nameserver = ['8.8.8.8', 'https://doh.pub/dns-query', 'https://dns.alidns.com/dns-query'],
     'proxy-server-nameserver': proxyServerNameserver = [
       'https://doh.pub/dns-query',
-      'https://dns.alidns.com/dns-query'
+      'https://dns.alidns.com/dns-query',
+      'tls://223.5.5.5'
     ],
     'direct-nameserver': directNameserver = [],
     fallback = [],
@@ -54,6 +59,7 @@ const DNS: React.FC = () => {
     enhancedMode,
     fakeIPRange,
     fakeIPFilter,
+    fakeIPFilterMode,
     useSystemHosts,
     respectRules,
     defaultNameserver,
@@ -61,10 +67,10 @@ const DNS: React.FC = () => {
     proxyServerNameserver,
     directNameserver,
     fallback,
-    fallbackGeoip: fallbackFilter?.geoip || true,
-    fallbackGeoipCode: fallbackFilter?.['geoip-code'] || 'CN',
-    fallbackIpcidr: fallbackFilter?.ipcidr || ['240.0.0.0/4', '0.0.0.0/32'],
-    fallbackDomain: fallbackFilter?.domain || ['+.google.com', '+.facebook.com', '+.youtube.com'],
+    fallbackGeoip: fallbackFilter.geoip,
+    fallbackGeoipCode: fallbackFilter['geoip-code'],
+    fallbackIpcidr: fallbackFilter.ipcidr,
+    fallbackDomain: fallbackFilter.domain,
     useNameserverPolicy,
     nameserverPolicy: Object.entries(nameserverPolicy || {}).map(([domain, value]) => ({
       domain,

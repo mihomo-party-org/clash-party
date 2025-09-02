@@ -6,7 +6,7 @@ import { tray } from '../resolve/tray'
 import { calcTraffic } from '../utils/calc'
 import { getRuntimeConfig } from './factory'
 import { floatingWindow } from '../resolve/floatingWindow'
-import { mihomoIpcPath } from './manager'
+import { mihomoIpcPath } from '../utils/dirs'
 
 let axiosIns: AxiosInstance = null!
 let mihomoTrafficWs: WebSocket | null = null

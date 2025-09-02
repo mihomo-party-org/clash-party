@@ -324,9 +324,6 @@ async function migration(): Promise<void> {
       'external-controller-pipe': undefined
     })
   }
-  if (externalController === undefined) {
-    await patchControledMihomoConfig({ 'external-controller': '' })
-  }
   if (!showFloatingWindow && disableTray) {
     await patchAppConfig({ disableTray: false })
   }

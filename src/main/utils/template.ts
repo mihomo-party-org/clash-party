@@ -59,8 +59,8 @@ export const defaultControledMihomoConfig: Partial<IMihomoConfig> = {
   'tproxy-port': 0,
   'allow-lan': false,
   'unified-delay': true,
-  'tcp-concurrent': false,
-  'log-level': 'info',
+  'tcp-concurrent': true,
+  'log-level': 'warning',
   'find-process-mode': 'strict',
   'bind-address': '*',
   'lan-allowed-ips': ['0.0.0.0/0', '::/0'],
@@ -80,16 +80,17 @@ export const defaultControledMihomoConfig: Partial<IMihomoConfig> = {
   },
   dns: {
     enable: true,
-    ipv6: false,
+    ipv6: true,
     'enhanced-mode': 'fake-ip',
     'fake-ip-range': '198.18.0.1/16',
-    'fake-ip-filter': ['*', '+.lan', '+.local', 'time.*.com', 'ntp.*.com', '+.market.xiaomi.com'],
+    'fake-ip-filter': ['+.lan', '+.local', '+.arpa', 'time.*.com', 'ntp.*.com', '+.market.xiaomi.com', 'localhost.ptlogin2.qq.com', '+.msftncsi.com', 'www.msftconnecttest.com'],
+    'fake-ip-filter-mode': 'blacklist',
     'use-hosts': false,
     'use-system-hosts': false,
     'respect-rules': false,
-    'default-nameserver': ['tls://223.5.5.5'],
-    nameserver: ['https://doh.pub/dns-query', 'https://dns.alidns.com/dns-query'],
-    'proxy-server-nameserver': ['https://doh.pub/dns-query', 'https://dns.alidns.com/dns-query'],
+    'default-nameserver': ['system', '223.6.6.6', '8.8.8.8', '2400:3200::1', '2001:4860:4860::8888'],
+    nameserver: ['8.8.8.8', 'https://doh.pub/dns-query', 'https://dns.alidns.com/dns-query'],
+    'proxy-server-nameserver': ['https://doh.pub/dns-query', 'https://dns.alidns.com/dns-query', 'tls://223.5.5.5'],
     'direct-nameserver': [],
     fallback: [],
     'fallback-filter': {
@@ -137,10 +138,10 @@ export const defaultControledMihomoConfig: Partial<IMihomoConfig> = {
   'geo-update-interval': 24,
   'geodata-mode': false,
   'geox-url': {
-    geoip: 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip-lite.dat',
-    geosite: 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat',
-    mmdb: 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb',
-    asn: 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb'
+    geoip: 'https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip-lite.dat',
+    geosite: 'https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat',
+    mmdb: 'https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.metadb',
+    asn: 'https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/GeoLite2-ASN.mmdb'
   }
 }
 
