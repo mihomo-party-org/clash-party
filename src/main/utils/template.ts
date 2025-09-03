@@ -19,6 +19,7 @@ export const defaultConfig: IAppConfig = {
   proxyDisplayOrder: 'default',
   autoCheckUpdate: true,
   autoCloseConnection: true,
+  subscriptionTimeout: 30000,
   useNameserverPolicy: false,
   controlDns: true,
   controlSniff: true,

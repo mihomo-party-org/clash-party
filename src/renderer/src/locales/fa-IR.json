@@ -52,6 +52,7 @@
   "settings.silentStart": "اجرای بی‌صدا",
   "settings.autoQuitWithoutCore": "ورود خودکار به حالت سبک",
   "settings.autoQuitWithoutCoreTooltip": "ورود خودکار به حالت سبک پس از بستن پنجره برای زمان مشخص",
+  "settings.subscriptionTimeout": "زمان انتظار اشتراک",
   "settings.autoQuitWithoutCoreDelay": "تاخیر فعال‌سازی خودکار حالت سبک",
   "settings.envType": "نوع متغیر محیطی",
   "settings.showFloatingWindow": "نمایش پنجره شناور",

@@ -53,6 +53,7 @@
   "settings.silentStart": "静默启动",
   "settings.autoQuitWithoutCore": "自动进入轻量模式",
   "settings.autoQuitWithoutCoreTooltip": "关闭窗口后指定时间自动进入轻量模式",
+  "settings.subscriptionTimeout": "订阅超时时间",
   "settings.autoQuitWithoutCoreDelay": "轻量模式自动启用延迟",
   "settings.envType": "环境变量类型",
   "settings.showFloatingWindow": "显示悬浮窗",

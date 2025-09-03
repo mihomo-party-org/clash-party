@@ -52,6 +52,7 @@
   "settings.silentStart": "Тихий запуск",
   "settings.autoQuitWithoutCore": "Автоматический облегчённый режим",
   "settings.autoQuitWithoutCoreTooltip": "Автоматически переходить в облегчённый режим после закрытия окна",
+  "settings.subscriptionTimeout": "Таймаут подписки",
   "settings.autoQuitWithoutCoreDelay": "Задержка включения облегчённого режима",
   "settings.envType": "Тип переменных окружения",
   "settings.showFloatingWindow": "Показывать плавающее окно",

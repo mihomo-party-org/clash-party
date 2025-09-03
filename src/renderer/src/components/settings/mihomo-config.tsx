@@ -23,6 +23,7 @@ const MihomoConfig: React.FC = () => {
     pauseSSID = [],
     delayTestUrl,
     userAgent,
+    subscriptionTimeout = 30000,
     mihomoCpuPriority = 'PRIORITY_NORMAL',
     proxyCols = 'auto'
   } = appConfig || {}
@@ -48,6 +49,27 @@ const MihomoConfig: React.FC = () => {
             setUaDebounce(v)
           }}
         ></Input>
+      </SettingItem>
+      <SettingItem title={t('settings.subscriptionTimeout')} divider>
+        <div className="flex items-center gap-2">
+          <Input
+            size="sm"
+            className="w-[100px]"
+            type="number"
+            value={(subscriptionTimeout / 1000)?.toString()}
+            onValueChange={async (v: string) => {
+              let num = parseInt(v)
+              await patchAppConfig({ subscriptionTimeout: num * 1000 })
+            }}
+            onBlur={async (e) => {
+              let num = parseInt(e.target.value)
+              if (isNaN(num)) num = 30
+              if (num < 30) num = 30
+              await patchAppConfig({ subscriptionTimeout: num * 1000 })
+            }}
+          />
+          <span className="text-default-500">{t('common.seconds')}</span>
+        </div>
       </SettingItem>
       <SettingItem title={t('mihomo.delayTest.url')} divider>
         <Input

@@ -53,6 +53,7 @@
   "settings.silentStart": "Silent Start",
   "settings.autoQuitWithoutCore": "Auto Enable Light Mode",
   "settings.autoQuitWithoutCoreTooltip": "Automatically enter light mode after closing window for specified time",
+  "settings.subscriptionTimeout": "Subscription Timeout",
   "settings.autoQuitWithoutCoreDelay": "Light Mode Auto Enable Delay",
   "settings.envType": "Environment Variable Type",
   "settings.showFloatingWindow": "Show Floating Window",

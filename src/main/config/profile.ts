@@ -129,7 +129,7 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
   } as IProfileItem
   switch (newItem.type) {
     case 'remote': {
-      const { userAgent } = await getAppConfig()
+      const { userAgent, subscriptionTimeout = 30000 } = await getAppConfig()
       const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
       if (!item.url) throw new Error('Empty URL')
       let res: AxiosResponse
@@ -146,7 +146,8 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
           headers: {
             'User-Agent': userAgent || `mihomo.party/v${app.getVersion()} (clash.meta)`
           },
-          responseType: 'text'
+          responseType: 'text',
+          timeout: subscriptionTimeout
         })
       } else {
         res = await axios.get(item.url, {
@@ -160,7 +161,8 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
           headers: {
             'User-Agent': userAgent || `mihomo.party/v${app.getVersion()} (clash.meta)`
           },
-          responseType: 'text'
+          responseType: 'text',
+          timeout: subscriptionTimeout
         })
       }
 

@@ -282,6 +282,7 @@ interface IAppConfig {
   delayTestConcurrency?: number
   delayTestUrl?: string
   delayTestTimeout?: number
+  subscriptionTimeout?: number
   encryptedPassword?: number[]
   controlDns?: boolean
   controlSniff?: boolean
