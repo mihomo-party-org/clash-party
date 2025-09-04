@@ -12,20 +12,20 @@ depends=('gtk3' 'libnotify' 'nss' 'libxss' 'libxtst' 'xdg-utils' 'at-spi2-core' 
 optdepends=('libappindicator-gtk3: Allow mihomo-party to extend a menu via Ayatana indicators in Unity, KDE or Systray (GTK+ 3 library).')
 install=$_pkgname.install
 source=("${_pkgname}.sh")
-source_x86_64=("${_pkgname}-${pkgver}-x86_64.deb::${url}/releases/download/v${pkgver}/mihomo-party-linux-${pkgver}-amd64.deb")
-source_aarch64=("${_pkgname}-${pkgver}-aarch64.deb::${url}/releases/download/v${pkgver}/mihomo-party-linux-${pkgver}-arm64.deb")
+source_x86_64=("${_pkgname}-${pkgver}-x86_64.deb::${url}/releases/download/v${pkgver}/clash-party-linux-${pkgver}-amd64.deb")
+source_aarch64=("${_pkgname}-${pkgver}-aarch64.deb::${url}/releases/download/v${pkgver}/clash-party-linux-${pkgver}-arm64.deb")
 sha256sums=('f8049c1f26d5a92fbcebd7bebbdedbb3eab53422b21cf6127418251ccd061282')
 sha256sums_x86_64=('b8d166f1134573336aaae1866d25262284b0cbabbf393684226aca0fd8d1bd83')
 sha256sums_aarch64=('8cd7398b8fc1cd70d41e386af9995cbddc1043d9018391c29f056f1435712a10')
 
 package() {
     bsdtar -xf data.tar.xz -C "${pkgdir}/"
-    chmod +x ${pkgdir}/opt/mihomo-party/mihomo-party
-    chmod +sx ${pkgdir}/opt/mihomo-party/resources/sidecar/mihomo
-    chmod +sx ${pkgdir}/opt/mihomo-party/resources/sidecar/mihomo-alpha
-    chmod +sx ${pkgdir}/opt/mihomo-party/resources/sidecar/mihomo-smart
+    chmod +x ${pkgdir}/opt/clash-party/mihomo-party
+    chmod +sx ${pkgdir}/opt/clash-party/resources/sidecar/mihomo
+    chmod +sx ${pkgdir}/opt/clash-party/resources/sidecar/mihomo-alpha
+    chmod +sx ${pkgdir}/opt/clash-party/resources/sidecar/mihomo-smart
     install -Dm755 "${srcdir}/${_pkgname}.sh" "${pkgdir}/usr/bin/${_pkgname}"
-    sed -i '3s!/opt/mihomo-party/mihomo-party!mihomo-party!' "${pkgdir}/usr/share/applications/${_pkgname}.desktop"
+    sed -i '3s!/opt/clash-party/mihomo-party!mihomo-party!' "${pkgdir}/usr/share/applications/${_pkgname}.desktop"
 
     chown -R root:root ${pkgdir}
 }

@@ -12,8 +12,8 @@ optdepends=('libappindicator-gtk3: Allow mihomo-party to extend a menu via Ayata
 makedepends=('asar')
 install=$_pkgname.install
 source=("${_pkgname}.desktop" "${_pkgname}.sh")
-source_x86_64=("${_pkgname}-${pkgver}-x86_64.deb::${url}/releases/download/v${pkgver}/mihomo-party-linux-${pkgver}-amd64.deb")
-source_aarch64=("${_pkgname}-${pkgver}-aarch64.deb::${url}/releases/download/v${pkgver}/mihomo-party-linux-${pkgver}-arm64.deb")
+source_x86_64=("${_pkgname}-${pkgver}-x86_64.deb::${url}/releases/download/v${pkgver}/clash-party-linux-${pkgver}-amd64.deb")
+source_aarch64=("${_pkgname}-${pkgver}-aarch64.deb::${url}/releases/download/v${pkgver}/clash-party-linux-${pkgver}-arm64.deb")
 sha256sums=(
     "96a6250f67517493f839f964c024434dbcf784b25a73f074bb505f1521f52844"
     "560733f0e5bd9b47ff50c849301c8a22ae17a5df26830d8c97033dfcbd392382"
@@ -24,15 +24,15 @@ options=('!lto')
 
 package() {
     bsdtar -xf data.tar.xz -C $srcdir
-    asar extract $srcdir/opt/mihomo-party/resources/app.asar ${pkgdir}/opt/mihomo-party
-    cp -r $srcdir/opt/mihomo-party/resources/sidecar ${pkgdir}/opt/mihomo-party/resources/
-    cp -r $srcdir/opt/mihomo-party/resources/files ${pkgdir}/opt/mihomo-party/resources/
-    chmod +sx ${pkgdir}/opt/mihomo-party/resources/sidecar/mihomo
-    chmod +sx ${pkgdir}/opt/mihomo-party/resources/sidecar/mihomo-alpha
-    chmod +sx ${pkgdir}/opt/mihomo-party/resources/sidecar/mihomo-smart
+    asar extract $srcdir/opt/clash-party/resources/app.asar ${pkgdir}/opt/mihomo-party
+    cp -r $srcdir/opt/clash-party/resources/sidecar ${pkgdir}/opt/mihomo-party/resources/
+    cp -r $srcdir/opt/clash-party/resources/files ${pkgdir}/opt/mihomo-party/resources/
+    chmod +sx ${pkgdir}/opt/clash-party/resources/sidecar/mihomo
+    chmod +sx ${pkgdir}/opt/clash-party/resources/sidecar/mihomo-alpha
+    chmod +sx ${pkgdir}/opt/clash-party/resources/sidecar/mihomo-smart
     install -Dm755 "${srcdir}/${_pkgname}.sh" "${pkgdir}/usr/bin/${_pkgname}"
     install -Dm644 "${_pkgname}.desktop" "${pkgdir}/usr/share/applications/${_pkgname}.desktop"
-    install -Dm644 "${pkgdir}/opt/mihomo-party/resources/icon.png" "${pkgdir}/usr/share/icons/hicolor/512x512/apps/${_pkgname}.png"
+    install -Dm644 "${pkgdir}/opt/clash-party/resources/icon.png" "${pkgdir}/usr/share/icons/hicolor/512x512/apps/${_pkgname}.png"
 
     chown -R root:root ${pkgdir}
 }

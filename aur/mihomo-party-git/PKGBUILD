@@ -25,7 +25,7 @@ pkgver() {
 
 prepare(){
     cd $srcdir/${_pkgname}
-    sed -i "s/productName: Mihomo Party/productName: clash-party/" electron-builder.yml
+    sed -i "s/productName: Clash Party/productName: clash-party/" electron-builder.yml
     pnpm install
 }
 
@@ -36,14 +36,14 @@ build(){
 
 package() {
 	cd $srcdir/${_pkgname}/dist
-    bsdtar -xf mihomo-party-linux-$(jq '.version' $srcdir/${_pkgname}/package.json | tr -d 'v"')*.deb
+    bsdtar -xf clash-party-linux-$(jq '.version' $srcdir/${_pkgname}/package.json | tr -d 'v"')*.deb
     bsdtar -xf data.tar.xz -C "${pkgdir}/"
-    chmod +x ${pkgdir}/opt/mihomo-party/mihomo-party
-    chmod +sx ${pkgdir}/opt/mihomo-party/resources/sidecar/mihomo
-    chmod +sx ${pkgdir}/opt/mihomo-party/resources/sidecar/mihomo-alpha
-    chmod +sx ${pkgdir}/opt/mihomo-party/resources/sidecar/mihomo-smart
+    chmod +x ${pkgdir}/opt/clash-party/mihomo-party
+    chmod +sx ${pkgdir}/opt/clash-party/resources/sidecar/mihomo
+    chmod +sx ${pkgdir}/opt/clash-party/resources/sidecar/mihomo-alpha
+    chmod +sx ${pkgdir}/opt/clash-party/resources/sidecar/mihomo-smart
     install -Dm755 "${srcdir}/../${_pkgname}.sh" "${pkgdir}/usr/bin/${_pkgname}"
-    sed -i '3s!/opt/mihomo-party/mihomo-party!mihomo-party!' "${pkgdir}/usr/share/applications/${_pkgname}.desktop"
+    sed -i '3s!/opt/clash-party/mihomo-party!mihomo-party!' "${pkgdir}/usr/share/applications/${_pkgname}.desktop"
 
     chown -R root:root ${pkgdir}
 }
