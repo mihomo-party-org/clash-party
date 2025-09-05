@@ -12,7 +12,7 @@ optdepends=('libappindicator-gtk3: Allow mihomo-party to extend a menu via Ayata
 makedepends=('nodejs' 'pnpm' 'jq' 'libxcrypt-compat')
 install=$_pkgname.install
 source=("${_pkgname}.sh" "git+$url.git")
-sha256sums=("f8049c1f26d5a92fbcebd7bebbdedbb3eab53422b21cf6127418251ccd061282" "SKIP")
+sha256sums=("242609b1259e999e944b7187f4c03aacba8134a7671ff3a50e2e246b4c4eff48" "SKIP")
 options=('!lto')
 
 pkgver() {

@@ -9,4 +9,4 @@ if [[ -f "${XDG_CONFIG_HOME}/mihomo-party-flags.conf" ]]; then
 fi
 
 # Launch
-exec /opt/mihomo-party/mihomo-party ${MIHOMO_PARTY_USER_FLAGS[@]} "$@"
+exec /opt/clash-party/mihomo-party ${MIHOMO_PARTY_USER_FLAGS[@]} "$@"

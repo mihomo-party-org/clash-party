@@ -15,7 +15,7 @@ source=(
     "${pkgname}.sh"
 )
 sha256sums=("52d761e9432e17477acb8adb5744676df946476e0eb5210fee2b6d45f497f218"
-"f8049c1f26d5a92fbcebd7bebbdedbb3eab53422b21cf6127418251ccd061282")
+"242609b1259e999e944b7187f4c03aacba8134a7671ff3a50e2e246b4c4eff48")
 options=('!lto')
 
 prepare(){
