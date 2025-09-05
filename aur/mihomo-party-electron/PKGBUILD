@@ -23,8 +23,8 @@ sha256sums=("52d761e9432e17477acb8adb5744676df946476e0eb5210fee2b6d45f497f218"
 options=('!lto')
 
 prepare(){
-    cd $srcdir/${_pkgname}-${pkgver}
-    sed -i "s/productName: Mihomo Party/productName: clash-party/" electron-builder.yml
+    cd $srcdir/clash-party-${pkgver}
+    sed -i "s/productName: Clash Party/productName: clash-party/" electron-builder.yml
     pnpm install
 }
 
@@ -37,12 +37,12 @@ package() {
     asar extract $srcdir/${_pkgname}-${pkgver}/dist/linux-unpacked/resources/app.asar ${pkgdir}/opt/mihomo-party
     cp -r $srcdir/${_pkgname}-${pkgver}/extra/sidecar ${pkgdir}/opt/mihomo-party/resources/
     cp -r $srcdir/${_pkgname}-${pkgver}/extra/files ${pkgdir}/opt/mihomo-party/resources/
-    chmod +sx ${pkgdir}/opt/mihomo-party/resources/sidecar/mihomo
-    chmod +sx ${pkgdir}/opt/mihomo-party/resources/sidecar/mihomo-alpha
-    chmod +sx ${pkgdir}/opt/mihomo-party/resources/sidecar/mihomo-smart
+    chmod +sx ${pkgdir}/opt/clash-party/resources/sidecar/mihomo
+    chmod +sx ${pkgdir}/opt/clash-party/resources/sidecar/mihomo-alpha
+    chmod +sx ${pkgdir}/opt/clash-party/resources/sidecar/mihomo-smart
     install -Dm755 "${_pkgname}.sh" "${pkgdir}/usr/bin/${_pkgname}"
     install -Dm644 "${_pkgname}.desktop" "${pkgdir}/usr/share/applications/${_pkgname}.desktop"
-    install -Dm644 "${pkgdir}/opt/mihomo-party/resources/icon.png" "${pkgdir}/usr/share/icons/hicolor/512x512/apps/${_pkgname}.png"
+    install -Dm644 "${pkgdir}/opt/clash-party/resources/icon.png" "${pkgdir}/usr/share/icons/hicolor/512x512/apps/${_pkgname}.png"
 
     chown -R root:root ${pkgdir}
 }

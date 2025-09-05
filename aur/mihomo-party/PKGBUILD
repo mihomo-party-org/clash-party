@@ -19,26 +19,26 @@ sha256sums=("52d761e9432e17477acb8adb5744676df946476e0eb5210fee2b6d45f497f218"
 options=('!lto')
 
 prepare(){
-    cd $srcdir/${pkgname}-${pkgver}
-    sed -i "s/productName: Mihomo Party/productName: clash-party/" electron-builder.yml
+    cd $srcdir/clash-party-${pkgver}
+    sed -i "s/productName: Clash Party/productName: clash-party/" electron-builder.yml
     pnpm install
 }
 
 build(){
-    cd $srcdir/${pkgname}-${pkgver}
+    cd $srcdir/clash-party-${pkgver}
     pnpm build:linux deb
 }
 
 package() {
-	cd $srcdir/${pkgname}-${pkgver}/dist
-    bsdtar -xf mihomo-party-linux-${pkgver}*.deb
+	cd $srcdir/clash-party-${pkgver}/dist
+    bsdtar -xf clash-party-linux-${pkgver}*.deb
     bsdtar -xf data.tar.xz -C "${pkgdir}/"
-    chmod +x ${pkgdir}/opt/mihomo-party/mihomo-party
-    chmod +sx ${pkgdir}/opt/mihomo-party/resources/sidecar/mihomo
-    chmod +sx ${pkgdir}/opt/mihomo-party/resources/sidecar/mihomo-alpha
-    chmod +sx ${pkgdir}/opt/mihomo-party/resources/sidecar/mihomo-smart
+    chmod +x ${pkgdir}/opt/clash-party/mihomo-party
+    chmod +sx ${pkgdir}/opt/clash-party/resources/sidecar/mihomo
+    chmod +sx ${pkgdir}/opt/clash-party/resources/sidecar/mihomo-alpha
+    chmod +sx ${pkgdir}/opt/clash-party/resources/sidecar/mihomo-smart
     install -Dm755 "${srcdir}/../${pkgname}.sh" "${pkgdir}/usr/bin/${pkgname}"
-    sed -i '3s!/opt/mihomo-party/mihomo-party!mihomo-party!' "${pkgdir}/usr/share/applications/${pkgname}.desktop"
+    sed -i '3s!/opt/clash-party/mihomo-party!mihomo-party!' "${pkgdir}/usr/share/applications/${pkgname}.desktop"
 
     chown -R root:root ${pkgdir}
 }
