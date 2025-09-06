@@ -6,7 +6,7 @@ import { restartCore } from '../core/manager'
 import { getAppConfig } from './app'
 import { existsSync } from 'fs'
 import axios, { AxiosResponse } from 'axios'
-import yaml from 'yaml'
+import { parse, stringify } from '../utils/yaml'
 import { defaultProfile } from '../utils/template'
 import { subStorePort } from '../resolve/server'
 import { join } from 'path'
@@ -17,7 +17,7 @@ let profileConfig: IProfileConfig // profile.yaml
 export async function getProfileConfig(force = false): Promise<IProfileConfig> {
   if (force || !profileConfig) {
     const data = await readFile(profileConfigPath(), 'utf-8')
-    profileConfig = yaml.parse(data, { merge: true }) || { items: [] }
+    profileConfig = parse(data) || { items: [] }
   }
   if (typeof profileConfig !== 'object') profileConfig = { items: [] }
   return profileConfig
@@ -25,7 +25,7 @@ export async function getProfileConfig(force = false): Promise<IProfileConfig> {
 
 export async function setProfileConfig(config: IProfileConfig): Promise<void> {
   profileConfig = config
-  await writeFile(profileConfigPath(), yaml.stringify(config), 'utf-8')
+  await writeFile(profileConfigPath(), stringify(config), 'utf-8')
 }
 
 export async function getProfileItem(id: string | undefined): Promise<IProfileItem | undefined> {
@@ -198,7 +198,7 @@ export async function getProfileStr(id: string | undefined): Promise<string> {
   if (existsSync(profilePath(id || 'default'))) {
     return await readFile(profilePath(id || 'default'), 'utf-8')
   } else {
-    return yaml.stringify(defaultProfile)
+    return stringify(defaultProfile)
   }
 }
 
@@ -210,12 +210,9 @@ export async function setProfileStr(id: string, content: string): Promise<void> 
 
 export async function getProfile(id: string | undefined): Promise<IMihomoConfig> {
   const profile = await getProfileStr(id)
-  
-  // 替换 防止错误使用科学记数法解析
-  const patchedProfile = profile.replace(/(\w+:\s*)(\d+E\d+)(\s|$)/gi, '$1"$2"$3')
-  let result = yaml.parse(patchedProfile, { merge: true }) || {}
+  let result = parse(profile)
   if (typeof result !== 'object') result = {}
-  return result
+  return result as IMihomoConfig
 }
 
 // attachment;filename=xxx.yaml; filename*=UTF-8''%xx%xx%xx

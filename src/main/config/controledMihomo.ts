@@ -1,6 +1,6 @@
 import { controledMihomoConfigPath } from '../utils/dirs'
 import { readFile, writeFile } from 'fs/promises'
-import yaml from 'yaml'
+import { parse, stringify } from '../utils/yaml'
 import { generateProfile } from '../core/factory'
 import { getAppConfig } from './app'
 import { defaultControledMihomoConfig } from '../utils/template'
@@ -11,7 +11,7 @@ let controledMihomoConfig: Partial<IMihomoConfig> // mihomo.yaml
 export async function getControledMihomoConfig(force = false): Promise<Partial<IMihomoConfig>> {
   if (force || !controledMihomoConfig) {
     const data = await readFile(controledMihomoConfigPath(), 'utf-8')
-    controledMihomoConfig = yaml.parse(data, { merge: true }) || defaultControledMihomoConfig
+    controledMihomoConfig = parse(data) || defaultControledMihomoConfig
     
     // 确保配置包含所有必要的默认字段，处理升级场景
     controledMihomoConfig = deepMerge(defaultControledMihomoConfig, controledMihomoConfig)
@@ -46,5 +46,5 @@ export async function patchControledMihomoConfig(patch: Partial<IMihomoConfig>):
   }
 
   await generateProfile()
-  await writeFile(controledMihomoConfigPath(), yaml.stringify(controledMihomoConfig), 'utf-8')
+  await writeFile(controledMihomoConfigPath(), stringify(controledMihomoConfig), 'utf-8')
 }

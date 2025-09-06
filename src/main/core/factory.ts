@@ -14,7 +14,7 @@ import {
   mihomoWorkDir,
   overridePath
 } from '../utils/dirs'
-import yaml from 'yaml'
+import { parse, stringify } from '../utils/yaml'
 import { copyFile, mkdir, writeFile } from 'fs/promises'
 import { deepMerge } from '../utils/merge'
 import vm from 'vm'
@@ -50,16 +50,7 @@ export async function generateProfile(): Promise<void> {
     profile['log-level'] = 'info'
   }
   runtimeConfig = profile
-  
-  // 先正常生成 YAML 字符串
-  let yamlStr = yaml.stringify(profile)
-  // 还原科学记数法的引号
-  yamlStr = yamlStr.replace(
-    /(\w+:\s*)"(\d+E\d+)"(\s|$)/gi,
-    '$1$2$3'
-  )
-  runtimeConfigStr = yamlStr
-  
+  runtimeConfigStr = stringify(profile)
   if (diffWorkDir) {
     await prepareProfileWorkDir(current)
   }
@@ -104,7 +95,7 @@ async function overrideProfile(
         profile = runOverrideScript(profile, content, item)
         break
       case 'yaml': {
-        let patch = yaml.parse(content, { merge: true }) || {}
+        let patch = parse(content) || {}
         if (typeof patch !== 'object') patch = {}
         profile = deepMerge(profile, patch)
         break

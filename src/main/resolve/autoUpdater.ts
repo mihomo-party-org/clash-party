@@ -1,5 +1,5 @@
 import axios from 'axios'
-import yaml from 'yaml'
+import { parse } from '../utils/yaml'
 import { app, shell } from 'electron'
 import { getControledMihomoConfig } from '../config'
 import { dataDir, exeDir, exePath, isPortable, resourcesFilesDir } from '../utils/dirs'
@@ -26,7 +26,7 @@ export async function checkUpdate(): Promise<IAppVersion | undefined> {
       responseType: 'text'
     }
   )
-  const latest = yaml.parse(res.data, { merge: true }) as IAppVersion
+  const latest = parse(res.data) as IAppVersion
   const currentVersion = app.getVersion()
   if (compareVersions(latest.version, currentVersion) > 0) {
     return latest

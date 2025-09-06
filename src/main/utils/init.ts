@@ -21,7 +21,7 @@ import {
   defaultProfile,
   defaultProfileConfig
 } from './template'
-import yaml from 'yaml'
+import { stringify } from './yaml'
 import { mkdir, writeFile, rm, readdir, cp, stat, rename } from 'fs/promises'
 import { existsSync } from 'fs'
 import { exec } from 'child_process'
@@ -134,7 +134,7 @@ async function initConfig(): Promise<void> {
   for (const config of configs) {
     try {
       if (!existsSync(config.path)) {
-        await writeFile(config.path, yaml.stringify(config.content))
+        await writeFile(config.path, stringify(config.content))
       }
     } catch (error) {
       await initLogger.error(`Failed to create ${config.name} at ${config.path}`, error)
