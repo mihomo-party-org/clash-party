@@ -107,6 +107,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
                 size="sm"
                 variant="light"
                 color="default"
+                title={t('mihomo.restart')}
                 onPress={async () => {
                   try {
                     await restartCore()
