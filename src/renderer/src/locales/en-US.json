@@ -8,6 +8,8 @@
   "common.save": "Save",
   "common.cancel": "Cancel",
   "common.edit": "Edit",
+  "common.viewer.view": "View",
+  "common.editor.edit": "Edit",
   "common.delete": "Delete",
   "common.seconds": "seconds",
   "common.confirm": "Confirm",

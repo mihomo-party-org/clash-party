@@ -8,6 +8,8 @@
   "common.save": "ذخیره",
   "common.cancel": "لغو",
   "common.edit": "ویرایش",
+  "common.viewer.view": "مشاهده",
+  "common.editor.edit": "ویرایش",
   "common.delete": "حذف",
   "common.seconds": "ثانیه",
   "common.confirm": "تایید",

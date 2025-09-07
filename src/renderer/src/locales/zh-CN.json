@@ -8,6 +8,8 @@
   "common.save": "保存",
   "common.cancel": "取消",
   "common.edit": "编辑",
+  "common.viewer.view": "查看",
+  "common.editor.edit": "编辑",
   "common.delete": "删除",
   "common.seconds": "秒",
   "common.confirm": "确认",

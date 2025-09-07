@@ -8,6 +8,8 @@
   "common.save": "Сохранить",
   "common.cancel": "Отмена",
   "common.edit": "Изменить",
+  "common.viewer.view": "Просмотр",
+  "common.editor.edit": "Изменить",
   "common.delete": "Удалить",
   "common.seconds": "секунд",
   "common.confirm": "Подтвердить",
