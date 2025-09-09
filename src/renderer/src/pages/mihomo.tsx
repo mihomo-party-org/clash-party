@@ -1050,7 +1050,7 @@ const Mihomo: React.FC = () => {
                   <Spinner size="lg" />
                 </div>
               ) : (
-                <div className="max-h-96 overflow-y-auto">
+                <div className="h-full overflow-y-auto">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {filteredTags.map((tag) => (
                       <div
