@@ -216,7 +216,8 @@ interface ISysProxyConfig {
 }
 
 interface IAppConfig {
-  core: 'mihomo' | 'mihomo-alpha' | 'mihomo-smart'
+  core: 'mihomo' | 'mihomo-alpha' | 'mihomo-smart' | 'mihomo-specific'
+  specificVersion?: string
   enableSmartCore: boolean
   enableSmartOverride: boolean
   smartCoreUseLightGBM: boolean

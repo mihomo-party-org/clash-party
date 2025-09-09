@@ -9,6 +9,19 @@ function ipcErrorWrapper(response: any): any {
   }
 }
 
+// GitHub版本管理相关IPC调用
+export async function fetchMihomoTags(forceRefresh = false): Promise<{name: string, zipball_url: string, tarball_url: string}[]> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('fetchMihomoTags', forceRefresh))
+}
+
+export async function installSpecificMihomoCore(version: string): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('installSpecificMihomoCore', version))
+}
+
+export async function clearMihomoVersionCache(): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('clearMihomoVersionCache'))
+}
+
 export async function mihomoVersion(): Promise<IMihomoVersion> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoVersion'))
 }
@@ -230,8 +243,6 @@ export async function startMonitor(): Promise<void> {
 export async function triggerSysProxy(enable: boolean): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('triggerSysProxy', enable))
 }
-
-
 
 export async function checkTunPermissions(): Promise<boolean> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('checkTunPermissions'))

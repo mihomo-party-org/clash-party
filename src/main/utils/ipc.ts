@@ -21,6 +21,7 @@ import {
   mihomoSmartFlushCache
 } from '../core/mihomoApi'
 import { checkAutoRun, disableAutoRun, enableAutoRun } from '../sys/autoRun'
+import { installMihomoCore, getGitHubTags, clearVersionCache } from './github'
 import {
   getAppConfig,
   patchAppConfig,
@@ -128,6 +129,22 @@ function ipcErrorWrapper<T>( // eslint-disable-next-line @typescript-eslint/no-e
     }
   }
 }
+
+// GitHub版本管理相关IPC处理程序
+export async function fetchMihomoTags(forceRefresh = false): Promise<{name: string, zipball_url: string, tarball_url: string}[]> {
+  return await getGitHubTags('MetaCubeX', 'mihomo', forceRefresh)
+}
+
+export async function installSpecificMihomoCore(version: string): Promise<void> {
+  // 安装完成后清除缓存，以便下次获取最新的标签列表
+  clearVersionCache('MetaCubeX', 'mihomo')
+  return await installMihomoCore(version)
+}
+
+export async function clearMihomoVersionCache(): Promise<void> {
+  clearVersionCache('MetaCubeX', 'mihomo')
+}
+
 export function registerIpcMainHandlers(): void {
   ipcMain.handle('mihomoVersion', ipcErrorWrapper(mihomoVersion))
   ipcMain.handle('mihomoCloseConnection', (_e, id) => ipcErrorWrapper(mihomoCloseConnection)(id))
@@ -314,4 +331,13 @@ export function registerIpcMainHandlers(): void {
     // 触发托盘菜单更新
     ipcMain.emit('updateTrayMenu')
   })
+  
+  // 注册获取Mihomo标签的IPC处理程序
+  ipcMain.handle('fetchMihomoTags', (_e, forceRefresh) => ipcErrorWrapper(fetchMihomoTags)(forceRefresh))
+
+  // 注册安装特定版本Mihomo核心的IPC处理程序
+  ipcMain.handle('installSpecificMihomoCore', (_e, version) => ipcErrorWrapper(installSpecificMihomoCore)(version))
+
+  // 注册清除版本缓存的IPC处理程序
+  ipcMain.handle('clearMihomoVersionCache', () => ipcErrorWrapper(clearMihomoVersionCache)())
 }

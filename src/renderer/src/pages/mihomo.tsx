@@ -1,4 +1,4 @@
-import { Button, Divider, Input, Select, SelectItem, Switch, Tooltip } from '@heroui/react'
+import { Button, Divider, Input, Select, SelectItem, Switch, Tooltip, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure, Spinner, Chip } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
@@ -6,16 +6,19 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { platform } from '@renderer/utils/init'
 import { FaNetworkWired } from 'react-icons/fa'
-import { IoMdCloudDownload, IoMdInformationCircleOutline } from 'react-icons/io'
+import { IoMdCloudDownload, IoMdInformationCircleOutline, IoMdRefresh } from 'react-icons/io'
 import PubSub from 'pubsub-js'
 import {
   mihomoUpgrade,
   restartCore,
   startSubStoreBackendServer,
   triggerSysProxy,
-  showDetailedError
+  showDetailedError,
+  fetchMihomoTags,
+  installSpecificMihomoCore,
+  clearMihomoVersionCache
 } from '@renderer/utils/ipc'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import InterfaceModal from '@renderer/components/mihomo/interface-modal'
 import { MdDeleteForever } from 'react-icons/md'
 import { useTranslation } from 'react-i18next'
@@ -23,7 +26,8 @@ import { useTranslation } from 'react-i18next'
 const CoreMap = {
   mihomo: 'mihomo.stableVersion',
   'mihomo-alpha': 'mihomo.alphaVersion',
-  'mihomo-smart': 'mihomo.smartVersion'
+  'mihomo-smart': 'mihomo.smartVersion',
+  'mihomo-specific': 'mihomo.specificVersion'
 }
 
 const Mihomo: React.FC = () => {
@@ -31,6 +35,7 @@ const Mihomo: React.FC = () => {
   const { appConfig, patchAppConfig } = useAppConfig()
   const {
     core = 'mihomo',
+    specificVersion,
     enableSmartCore = true,
     enableSmartOverride = true,
     smartCoreUseLightGBM = false,
@@ -78,7 +83,14 @@ const Mihomo: React.FC = () => {
   const [skipAuthPrefixesInput, setSkipAuthPrefixesInput] = useState(skipAuthPrefixes)
   const [upgrading, setUpgrading] = useState(false)
   const [lanOpen, setLanOpen] = useState(false)
-
+  const { isOpen, onOpen, onClose } = useDisclosure()
+  const [tags, setTags] = useState<{name: string, zipball_url: string, tarball_url: string}[]>([])
+  const [loadingTags, setLoadingTags] = useState(false)
+  const [selectedTag, setSelectedTag] = useState(specificVersion || '')
+  const [installing, setInstalling] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [refreshing, setRefreshing] = useState(false)
+  
   const onChangeNeedRestart = async (patch: Partial<IMihomoConfig>): Promise<void> => {
     await patchControledMihomoConfig(patch)
     await restartCore()
@@ -101,7 +113,90 @@ const Mihomo: React.FC = () => {
       PubSub.publish('mihomo-core-changed')
     }
   }
-
+  
+  // 获取GitHub标签列表（带缓存）
+  const fetchTags = async (forceRefresh = false) => {
+    setLoadingTags(true)
+    try {
+      const data = await fetchMihomoTags(forceRefresh)
+      setTags(data)
+    } catch (error) {
+      console.error('Failed to fetch tags:', error)
+      alert(t('mihomo.error.fetchTagsFailed'))
+    } finally {
+      setLoadingTags(false)
+    }
+  }
+  
+  // 安装特定版本的核心
+  const installSpecificCore = async () => {
+    if (!selectedTag) return
+    
+    setInstalling(true)
+    try {
+      // 下载并安装特定版本的核心
+      await installSpecificMihomoCore(selectedTag)
+      
+      // 更新应用配置
+      await patchAppConfig({ 
+        core: 'mihomo-specific',
+        specificVersion: selectedTag
+      })
+      
+      // 重启核心
+      await restartCore()
+      
+      // 关闭模态框
+      onClose()
+      
+      // 通知用户
+      new Notification(t('mihomo.coreUpgradeSuccess'))
+    } catch (error) {
+      console.error('Failed to install specific core:', error)
+      alert(t('mihomo.error.installCoreFailed'))
+    } finally {
+      setInstalling(false)
+    }
+  }
+  
+  // 刷新标签列表
+  const refreshTags = async () => {
+    setRefreshing(true)
+    try {
+      // 清除缓存并强制刷新
+      await clearMihomoVersionCache()
+      await fetchTags(true)
+    } finally {
+      setRefreshing(false)
+    }
+  }
+  
+  // 打开模态框时获取标签
+  const handleOpenModal = async () => {
+    onOpen()
+    // 先显示缓存的标签（如果有）
+    if (tags.length === 0) {
+      await fetchTags(false) // 使用缓存
+    }
+    
+    // 在后台检查更新
+    setTimeout(() => {
+      fetchTags(true) // 强制刷新
+    }, 100)
+  }
+  
+  // 过滤标签
+  const filteredTags = tags.filter(tag => 
+    tag.name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+  
+  // 当模态框打开时，确保选中当前版本
+  useEffect(() => {
+    if (isOpen && specificVersion) {
+      setSelectedTag(specificVersion)
+    }
+  }, [isOpen, specificVersion])
+  
   return (
     <>
       {lanOpen && <InterfaceModal onClose={() => setLanOpen(false)} />}
@@ -162,39 +257,57 @@ const Mihomo: React.FC = () => {
             )}
 
             <SettingItem
-              title={t('mihomo.coreVersion')}
+              title={
+                <div className="flex items-center gap-2">
+                  <span>{t('mihomo.coreVersion')}</span>
+                  {core === 'mihomo-specific' && specificVersion && (
+                    <Chip size="sm" variant="flat" color="primary">
+                      {specificVersion}
+                    </Chip>
+                  )}
+                </div>
+              }
               actions={
-                <Button
-                  size="sm"
-                  isIconOnly
-                  title={t('mihomo.upgradeCore')}
-                  variant="light"
-                  isLoading={upgrading}
-                  onPress={async () => {
-                    try {
-                      setUpgrading(true)
-                      await mihomoUpgrade()
-                      setTimeout(() => {
-                        PubSub.publish('mihomo-core-changed')
-                      }, 2000)
-                      if (platform !== 'win32') {
-                        new Notification(t('mihomo.coreAuthLost'), {
-                          body: t('mihomo.coreUpgradeSuccess')
-                        })
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    isIconOnly
+                    title={t('mihomo.upgradeCore')}
+                    variant="light"
+                    isLoading={upgrading}
+                    onPress={async () => {
+                      try {
+                        setUpgrading(true)
+                        await mihomoUpgrade()
+                        setTimeout(() => {
+                          PubSub.publish('mihomo-core-changed')
+                        }, 2000)
+                        if (platform !== 'win32') {
+                          new Notification(t('mihomo.coreAuthLost'), {
+                            body: t('mihomo.coreUpgradeSuccess')
+                          })
+                        }
+                      } catch (e) {
+                        if (typeof e === 'string' && e.includes('already using latest version')) {
+                          new Notification(t('mihomo.alreadyLatestVersion'))
+                        } else {
+                          alert(e)
+                        }
+                      } finally {
+                        setUpgrading(false)
                       }
-                    } catch (e) {
-                      if (typeof e === 'string' && e.includes('already using latest version')) {
-                        new Notification(t('mihomo.alreadyLatestVersion'))
-                      } else {
-                        alert(e)
-                      }
-                    } finally {
-                      setUpgrading(false)
-                    }
-                  }}
-                >
-                  <IoMdCloudDownload className="text-lg" />
-                </Button>
+                    }}
+                  >
+                    <IoMdCloudDownload className="text-lg" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="light"
+                    onPress={handleOpenModal}
+                  >
+                    {t('mihomo.selectSpecificVersion')}
+                  </Button>
+                </div>
               }
               divider={enableSmartCore && core === 'mihomo-smart'}
             >
@@ -204,27 +317,29 @@ const Mihomo: React.FC = () => {
                     ? 'data-[hover=true]:bg-blue-100 dark:data-[hover=true]:bg-blue-900/50'
                     : 'data-[hover=true]:bg-default-200'
                 }}
-                className="w-[100px]"
+                className="w-[150px]"
                 size="sm"
                 aria-label={t('mihomo.selectCoreVersion')}
                 selectedKeys={new Set([
-                  enableSmartCore
-                    ? 'mihomo-smart'
-                    : (core === 'mihomo-smart' ? 'mihomo' : core)
+                  core
                 ])}
                 disallowEmptySelection={true}
                 onSelectionChange={async (v) => {
-                  handleConfigChangeWithRestart('core', v.currentKey as 'mihomo' | 'mihomo-alpha' | 'mihomo-smart')
+                  const selectedCore = v.currentKey as 'mihomo' | 'mihomo-alpha' | 'mihomo-smart' | 'mihomo-specific'
+                  // 如果切换到特定版本但没有设置specificVersion，则打开选择模态框
+                  if (selectedCore === 'mihomo-specific' && !specificVersion) {
+                    handleOpenModal()
+                  } else {
+                    handleConfigChangeWithRestart('core', selectedCore)
+                  }
                 }}
               >
+                <SelectItem key="mihomo">{t(CoreMap['mihomo'])}</SelectItem>
+                <SelectItem key="mihomo-alpha">{t(CoreMap['mihomo-alpha'])}</SelectItem>
                 {enableSmartCore ? (
                   <SelectItem key="mihomo-smart">{t(CoreMap['mihomo-smart'])}</SelectItem>
-                ) : (
-                  <>
-                    <SelectItem key="mihomo">{t(CoreMap['mihomo'])}</SelectItem>
-                    <SelectItem key="mihomo-alpha">{t(CoreMap['mihomo-alpha'])}</SelectItem>
-                  </>
-                )}
+                ) : null}
+                <SelectItem key="mihomo-specific">{t(CoreMap['mihomo-specific'])}</SelectItem>
               </Select>
             </SettingItem>
 
@@ -899,6 +1014,82 @@ const Mihomo: React.FC = () => {
           </SettingItem>
         </SettingCard>
       </BasePage>
+      {/* 自定义版本选择模态框 */}
+      <Modal 
+        isOpen={isOpen} 
+        onClose={onClose} 
+        size="5xl"
+        backdrop="blur"
+        classNames={{ backdrop: 'top-[48px]' }}
+        hideCloseButton
+        scrollBehavior="inside"
+      >
+        <ModalContent className="h-full w-[calc(100%-100px)]">
+          <ModalHeader className="flex app-drag">{t('mihomo.selectSpecificVersion')}</ModalHeader>
+          <ModalBody>
+            <div className="flex flex-col gap-4">
+              <div className="flex gap-2">
+                <Input
+                  placeholder={t('mihomo.searchVersion')}
+                  value={searchTerm}
+                  onValueChange={setSearchTerm}
+                  className="flex-1"
+                />
+                <Button
+                  isIconOnly
+                  variant="light"
+                  onPress={refreshTags}
+                  isLoading={refreshing}
+                  title={t('common.refresh')}
+                >
+                  <IoMdRefresh className="text-lg" />
+                </Button>
+              </div>
+              {loadingTags ? (
+                <div className="flex justify-center items-center h-40">
+                  <Spinner size="lg" />
+                </div>
+              ) : (
+                <div className="max-h-96 overflow-y-auto">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {filteredTags.map((tag) => (
+                      <div
+                        key={tag.name}
+                        className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                          selectedTag === tag.name
+                            ? 'bg-primary/20 border-2 border-primary'
+                            : 'bg-default-100 hover:bg-default-200'
+                        }`}
+                        onClick={() => setSelectedTag(tag.name)}
+                      >
+                        <div className="font-medium">{tag.name}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {filteredTags.length === 0 && (
+                    <div className="text-center py-8 text-default-500">
+                      {t('mihomo.noVersionsFound')}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="light" onPress={onClose}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              color="primary"
+              isLoading={installing}
+              isDisabled={!selectedTag || installing}
+              onPress={installSpecificCore}
+            >
+              {t('mihomo.installVersion')}
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </>
   )
 }
