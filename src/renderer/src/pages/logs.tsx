@@ -9,6 +9,8 @@ import { useTranslation } from 'react-i18next'
 
 import { includesIgnoreCase } from '@renderer/utils/includes'
 
+const LOGS_FILTER_KEY = 'logs-filter'
+
 const cachedLogs: {
   log: IMihomoLogInfo[]
   trigger: ((i: IMihomoLogInfo[]) => void) | null
@@ -38,7 +40,9 @@ window.electron.ipcRenderer.on('mihomoLogs', (_e, log: IMihomoLogInfo) => {
 const Logs: React.FC = () => {
   const { t } = useTranslation()
   const [logs, setLogs] = useState<IMihomoLogInfo[]>(cachedLogs.log)
-  const [filter, setFilter] = useState('')
+  const [filter, setFilter] = useState(() => {
+    return localStorage.getItem(LOGS_FILTER_KEY) || ''
+  })
   const [trace, setTrace] = useState(true)
 
   const virtuosoRef = useRef<VirtuosoHandle>(null)
@@ -48,6 +52,10 @@ const Logs: React.FC = () => {
       return includesIgnoreCase(log.payload, filter) || includesIgnoreCase(log.type, filter)
     })
   }, [logs, filter])
+
+  useEffect(() => {
+    localStorage.setItem(LOGS_FILTER_KEY, filter)
+  }, [filter])
 
   useEffect(() => {
     if (!trace) return
