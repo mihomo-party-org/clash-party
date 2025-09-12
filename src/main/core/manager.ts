@@ -674,8 +674,6 @@ export async function restartAsAdmin(forTun: boolean = true): Promise<void> {
       }
     })
 
-    await new Promise(resolve => setTimeout(resolve, 1500))
-
     const { app } = await import('electron')
     app.quit()
   } catch (error) {
