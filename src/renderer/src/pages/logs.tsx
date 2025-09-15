@@ -44,6 +44,7 @@ const Logs: React.FC = () => {
     return localStorage.getItem(LOGS_FILTER_KEY) || ''
   })
   const [trace, setTrace] = useState(true)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const virtuosoRef = useRef<VirtuosoHandle>(null)
   const filteredLogs = useMemo(() => {
@@ -56,6 +57,22 @@ const Logs: React.FC = () => {
   useEffect(() => {
     localStorage.setItem(LOGS_FILTER_KEY, filter)
   }, [filter])
+
+  useEffect(() => {
+    if (!trace) {
+      const container = containerRef.current
+      if (container) {
+        const handleScroll = () => {
+          setTrace(true)
+          container.removeEventListener('wheel', handleScroll)
+        }
+        container.addEventListener('wheel', handleScroll)
+        return () => {
+          container.removeEventListener('wheel', handleScroll)
+        }
+      }
+    }
+  }, [trace])
 
   useEffect(() => {
     if (!trace) return
@@ -96,7 +113,9 @@ const Logs: React.FC = () => {
             variant={trace ? 'solid' : 'bordered'}
             title={t('logs.autoScroll')}
             onPress={() => {
-              setTrace((prev) => !prev)
+              if (trace) {
+                setTrace(false)
+              }
             }}
           >
             <IoLocationSharp className="text-lg" />
@@ -117,7 +136,7 @@ const Logs: React.FC = () => {
         </div>
         <Divider />
       </div>
-      <div className="h-[calc(100vh-100px)] mt-px">
+      <div className="h-[calc(100vh-100px)] mt-px" ref={containerRef}>
         <Virtuoso
           ref={virtuosoRef}
           data={filteredLogs}
