@@ -13,6 +13,9 @@ import {
   themesDir
 } from '../utils/dirs'
 import { systemLogger } from '../utils/logger'
+import { Cron } from 'croner'
+
+let backupCronJob: Cron | null = null
 
 export async function webdavBackup(): Promise<boolean> {
   const { createClient } = await import('webdav/dist/node/index.js')
@@ -136,4 +139,60 @@ export async function webdavDelete(filename: string): Promise<void> {
     password: webdavPassword
   })
   await client.deleteFile(`${webdavDir}/${filename}`)
+}
+
+/**
+ * 初始化WebDAV定时备份任务
+ */
+export async function initWebdavBackupScheduler(): Promise<void> {
+  try {
+    // 先停止现有的定时任务
+    if (backupCronJob) {
+      backupCronJob.stop()
+      backupCronJob = null
+    }
+
+    const { webdavBackupCron } = await getAppConfig()
+    
+    // 如果配置了Cron表达式，则启动定时任务
+    if (webdavBackupCron) {
+      backupCronJob = new Cron(webdavBackupCron, async () => {
+        try {
+          await webdavBackup()
+          await systemLogger.info('WebDAV backup completed successfully via cron job')
+        } catch (error) {
+          await systemLogger.error('Failed to execute WebDAV backup via cron job', error)
+        }
+      })
+      
+      await systemLogger.info(`WebDAV backup scheduler initialized with cron: ${webdavBackupCron}`)
+      await systemLogger.info(`WebDAV backup scheduler nextRun: ${backupCronJob.nextRun()}`)
+    } else {
+      await systemLogger.info('WebDAV backup scheduler disabled (no cron expression configured)')
+    }
+  } catch (error) {
+    await systemLogger.error('Failed to initialize WebDAV backup scheduler', error)
+  }
+}
+
+/**
+ * 停止WebDAV定时备份任务
+ */
+export async function stopWebdavBackupScheduler(): Promise<void> {
+  if (backupCronJob) {
+    backupCronJob.stop()
+    backupCronJob = null
+    await systemLogger.info('WebDAV backup scheduler stopped')
+  }
+}
+
+/**
+ * 重新初始化WebDAV定时备份任务
+ * 先停止现有任务，然后重新启动
+ */
+export async function reinitScheduler(): Promise<void> {
+  await systemLogger.info('Reinitializing WebDAV backup scheduler...')
+  await stopWebdavBackupScheduler()
+  await initWebdavBackupScheduler()
+  await systemLogger.info('WebDAV backup scheduler reinitialized successfully')
 }

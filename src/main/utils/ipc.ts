@@ -106,6 +106,7 @@ import { startMonitor } from '../resolve/trafficMonitor'
 import { closeFloatingWindow, showContextMenu, showFloatingWindow } from '../resolve/floatingWindow'
 import i18next from 'i18next'
 import { addProfileUpdater, removeProfileUpdater } from '../core/profileUpdater'
+import { reinitScheduler } from '../resolve/backup'
 
 function ipcErrorWrapper<T>( // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fn: (...args: any[]) => Promise<T> // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -244,6 +245,7 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('webdavRestore', (_e, filename) => ipcErrorWrapper(webdavRestore)(filename))
   ipcMain.handle('listWebdavBackups', ipcErrorWrapper(listWebdavBackups))
   ipcMain.handle('webdavDelete', (_e, filename) => ipcErrorWrapper(webdavDelete)(filename))
+  ipcMain.handle('reinitWebdavBackupScheduler', ipcErrorWrapper(reinitScheduler))
   ipcMain.handle('registerShortcut', (_e, oldShortcut, newShortcut, action) =>
     ipcErrorWrapper(registerShortcut)(oldShortcut, newShortcut, action)
   )

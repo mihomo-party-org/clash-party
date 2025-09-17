@@ -214,6 +214,8 @@
   "webdav.maxBackups": "最大备份数",
   "webdav.noLimit": "不限制",
   "webdav.backup": "备份",
+  "webdav.backup.cron.title": "定时备份配置",
+  "webdav.backup.cron.placeholder": "Cron 表达式",
   "webdav.restore.title": "恢复备份",
   "webdav.restore.noBackups": "还没有备份",
   "webdav.notification.backupSuccess.title": "备份成功",

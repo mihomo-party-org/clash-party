@@ -214,6 +214,8 @@
   "webdav.maxBackups": "Max Backups",
   "webdav.noLimit": "No Limit",
   "webdav.backup": "Backup",
+  "webdav.backup.cron.title": "Schedule Config Backup",
+  "webdav.backup.cron.placeholder": "Cron expression",
   "webdav.restore.title": "Restore Backup",
   "webdav.restore.noBackups": "No backups available",
   "webdav.notification.backupSuccess.title": "Backup Successful",

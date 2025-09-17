@@ -296,6 +296,7 @@ interface IAppConfig {
   webdavUsername?: string
   webdavPassword?: string
   webdavMaxBackups?: number
+  webdavBackupCron?: string
   useNameserverPolicy: boolean
   nameserverPolicy: { [key: string]: string | string[] }
   showWindowShortcut?: string

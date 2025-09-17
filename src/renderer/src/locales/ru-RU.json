@@ -210,6 +210,8 @@
   "webdav.maxBackups": "Максимум резервных копий",
   "webdav.noLimit": "Без ограничений",
   "webdav.backup": "Резервное копирование",
+  "webdav.backup.cron.title": "Расписание резервного копирования",
+  "webdav.backup.cron.placeholder": "Cron выражение",
   "webdav.restore.title": "Восстановление резервной копии",
   "webdav.restore.noBackups": "Нет доступных резервных копий",
   "webdav.notification.backupSuccess.title": "Резервное копирование успешно",

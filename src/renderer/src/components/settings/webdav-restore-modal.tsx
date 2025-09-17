@@ -30,7 +30,7 @@ const WebdavRestoreModal: React.FC<Props> = (props) => {
           {filenames.length === 0 ? (
             <div className="flex justify-center">{t('webdav.restore.noBackups')}</div>
           ) : (
-            filenames.map((filename) => (
+            filenames.sort().reverse().map((filename) => (
               <div className="flex" key={filename}>
                 <Button
                   size="sm"

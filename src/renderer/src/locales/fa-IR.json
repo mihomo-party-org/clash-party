@@ -210,6 +210,8 @@
   "webdav.maxBackups": "حداکثر نسخه پشتیبان",
   "webdav.noLimit": "بدون محدودیت",
   "webdav.backup": "پشتیبان‌گیری",
+  "webdav.backup.cron.title": "زمانبندی پشتیبان‌گیری پیکربندی",
+  "webdav.backup.cron.placeholder": "عبارت Cron",
   "webdav.restore.title": "بازیابی پشتیبان",
   "webdav.restore.noBackups": "هیچ پشتیبانی موجود نیست",
   "webdav.notification.backupSuccess.title": "پشتیبان‌گیری موفق",

@@ -21,6 +21,7 @@ import { showFloatingWindow } from './resolve/floatingWindow'
 import { initI18n } from '../shared/i18n'
 import i18next from 'i18next'
 import { logger } from './utils/logger'
+import { initWebdavBackupScheduler } from './resolve/backup'
 
 // 错误处理
 function showSafeErrorBox(titleKey: string, message: string): void {
@@ -246,7 +247,8 @@ app.whenReady().then(async () => {
   try {
     const [startPromise] = await startCore()
     startPromise.then(async () => {
-      await initProfileUpdater()
+    await initProfileUpdater()
+    await initWebdavBackupScheduler() // 初始化WebDAV定时备份任务
       // 上次是否为了开启 TUN 而重启
       await checkAdminRestartForTun()
     })

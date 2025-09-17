@@ -338,6 +338,13 @@ export async function webdavDelete(filename: string): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('webdavDelete', filename))
 }
 
+// WebDAV 备份调度器相关 IPC 调用
+export async function reinitWebdavBackupScheduler(): Promise<void> {
+  return ipcErrorWrapper(
+    await window.electron.ipcRenderer.invoke('reinitWebdavBackupScheduler')
+  )
+}
+
 export async function setTitleBarOverlay(overlay: TitleBarOverlayOptions): Promise<void> {
   try {
     return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setTitleBarOverlay', overlay))
