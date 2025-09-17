@@ -11,6 +11,7 @@ import { defaultProfile } from '../utils/template'
 import { subStorePort } from '../resolve/server'
 import { join } from 'path'
 import { app } from 'electron'
+import { updateAllResources } from '../core/mihomoApi'
 
 let profileConfig: IProfileConfig // profile.yaml
 // 最终选中订阅ID
@@ -56,6 +57,16 @@ export async function changeCurrentProfile(id: string): Promise<void> {
     if (targetProfileId !== id) {
       return
     }
+
+    const { autoUpdateResource = true } = await getAppConfig()
+    if (autoUpdateResource) {
+      try {
+        await updateAllResources()
+      } catch (e) {
+        console.error('Failed to update resources after profile change:', e)
+      }
+    }
+    
     await restartCore()
     if (targetProfileId === id) {
       targetProfileId = null

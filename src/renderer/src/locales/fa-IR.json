@@ -63,6 +63,7 @@
   "settings.proxyInTray": "نمایش اطلاعات پراکسی در منوی سیستم‌تری",
   "settings.disableTrayIconColor": "غیرفعال کردن تغییر رنگ آیکون تری",
   "settings.disableAnimations": "غیرفعال کردن جلوه‌های انیمیشن",
+  "settings.autoUpdateResource": "به‌روزرسانی خودکار منابع خارجی هنگام تغییر پروفایل",
   "settings.showTraffic_windows": "نمایش سرعت شبکه در نوار وظیفه",
   "settings.showTraffic_mac": "نمایش سرعت شبکه در نوار وضعیت",
   "settings.showDockIcon": "نمایش آیکون Dock",

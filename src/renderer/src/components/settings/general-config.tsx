@@ -63,7 +63,8 @@ const GeneralConfig: React.FC = () => {
     envType = [platform === 'win32' ? 'powershell' : 'bash'],
     autoCheckUpdate,
     appTheme = 'system',
-    language = 'zh-CN'
+    language = 'zh-CN',
+    autoUpdateResource = true
   } = appConfig || {}
 
   useEffect(() => {
@@ -395,6 +396,15 @@ const GeneralConfig: React.FC = () => {
             isSelected={disableAnimations}
             onValueChange={async (v) => {
               await patchAppConfig({ disableAnimations: v })
+            }}
+          />
+        </SettingItem>
+        <SettingItem title={t('settings.autoUpdateResource')} divider>
+          <Switch
+            size="sm"
+            isSelected={autoUpdateResource}
+            onValueChange={async (v) => {
+              await patchAppConfig({ autoUpdateResource: v })
             }}
           />
         </SettingItem>

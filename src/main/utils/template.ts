@@ -46,7 +46,8 @@ export const defaultConfig: IAppConfig = {
     'substore'
   ],
   siderWidth: 250,
-  sysProxy: { enable: false, mode: 'manual' }
+  sysProxy: { enable: false, mode: 'manual' },
+  autoUpdateResource: true
 }
 
 export const defaultControledMihomoConfig: Partial<IMihomoConfig> = {

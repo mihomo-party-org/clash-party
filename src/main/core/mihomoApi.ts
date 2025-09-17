@@ -425,3 +425,37 @@ export async function getTrayIconStatus(): Promise<'white' | 'blue' | 'green' | 
   const [sysProxyEnabled, tunEnabled] = await Promise.all([SysProxyStatus(), TunStatus()])
   return calculateTrayIconStatus(sysProxyEnabled, tunEnabled)
 }
+
+// 更新所有外部资源
+export async function updateAllResources(): Promise<void> {
+  try {
+    // 更新所有代理集合
+    const proxyProviders = await mihomoProxyProviders()
+    if (proxyProviders?.providers) {
+      const proxyProviderNames = Object.keys(proxyProviders.providers)
+      for (const name of proxyProviderNames) {
+        try {
+          await mihomoUpdateProxyProviders(name)
+        } catch (e) {
+          console.error(`Failed to update proxy provider ${name}:`, e)
+        }
+      }
+    }
+
+    // 更新所有规则集合
+    const ruleProviders = await mihomoRuleProviders()
+    if (ruleProviders?.providers) {
+      const ruleProviderNames = Object.keys(ruleProviders.providers)
+      for (const name of ruleProviderNames) {
+        try {
+          await mihomoUpdateRuleProviders(name)
+        } catch (e) {
+          console.error(`Failed to update rule provider ${name}:`, e)
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Failed to update all resources:', e)
+    throw e
+  }
+}
