@@ -150,7 +150,7 @@ const TunSwitcher: React.FC<Props> = (props) => {
         </CardBody>
         <CardFooter className="pt-1">
           <h3
-            className={`text-md font-bold ${match ? 'text-primary-foreground' : 'text-foreground'}`}
+            className={`text-md font-bold sider-card-title ${match ? 'text-primary-foreground' : 'text-foreground'}`}
           >
             {t('sider.cards.tun')}
           </h3>

@@ -158,7 +158,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
           </CardBody>
           <CardFooter className="pt-1">
             <h3
-              className={`text-md font-bold ${match ? 'text-primary-foreground' : 'text-foreground'}`}
+              className={`text-md font-bold text-ellipsis whitespace-nowrap overflow-hidden ${match ? 'text-primary-foreground' : 'text-foreground'}`}
             >
               {t('sider.cards.core')}
             </h3>
