@@ -7,12 +7,16 @@ import {
   DropdownItem,
   DropdownMenu,
   DropdownTrigger,
-  Input
+  Input,
+  Card,
+  CardBody,
+  CardHeader
 } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
 import ProfileItem from '@renderer/components/profiles/profile-item'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { getFilePath, readTextFile, subStoreCollections, subStoreSubs } from '@renderer/utils/ipc'
 import type { KeyboardEvent } from 'react'
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -32,6 +36,7 @@ import SubStoreIcon from '@renderer/components/base/substore-icon'
 import useSWR from 'swr'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { mihomoUpgradeUI } from '@renderer/utils/ipc'
 
 const Profiles: React.FC = () => {
   const { t } = useTranslation()
@@ -45,6 +50,9 @@ const Profiles: React.FC = () => {
     mutateProfileConfig
   } = useProfileConfig()
   const { appConfig } = useAppConfig()
+  const { controledMihomoConfig } = useControledMihomoConfig()
+  const externalController = controledMihomoConfig?.['external-controller'] || ''
+  const externalUI = (controledMihomoConfig as any)?.['external-ui']
   const { useSubStore = true, useCustomSubStore = false, customSubStoreUrl = '' } = appConfig || {}
   const { current, items = [] } = profileConfig || {}
   const navigate = useNavigate()
@@ -195,6 +203,26 @@ const Profiles: React.FC = () => {
     setSortedItems(items)
   }, [items])
 
+  // 获取本地WebUI的URL
+  const getLocalWebUIUrl = (): string => {
+    if (externalController) {
+      // 将地址转换为WebUI URL
+      // 例如: 127.0.0.1:9090 -> http://127.0.0.1:9090/ui
+      const controller = externalController.replace('0.0.0.0', '127.0.0.1')
+      // 如果配置了external-ui，使用/ui路径，否则可能需要使用不同的路径
+      const uiPath = externalUI ? '/ui' : '/ui' // 默认使用/ui路径
+      return `http://${controller}${uiPath}`
+    }
+    // 默认URL
+    return 'http://127.0.0.1:9090/ui'
+  }
+  
+  // 检查本地WebUI是否可用
+  const isLocalWebUIAvailable = (): boolean => {
+    // 如果有配置的external-controller，则认为本地WebUI可用
+    return !!externalController
+  }
+  
   return (
     <BasePage
       ref={pageRef}
@@ -377,6 +405,53 @@ const Profiles: React.FC = () => {
           </Dropdown>
         </div>
         <Divider />
+      </div>
+      {/* WebUI Card with Multiple Options */}
+      <div className="m-2">
+        <Card>
+          <CardHeader className="flex gap-3">
+            <div className="flex flex-col">
+              <p className="text-md">{t('profiles.openWebUI.title')}</p>
+              <p className="text-small text-default-500">{t('profiles.openWebUI.description')}</p>
+            </div>
+          </CardHeader>
+          <CardBody>
+            <div className="flex gap-2 flex-wrap">
+              <Button 
+                onPress={() => window.open('https://metacubexd.pages.dev/', '_blank')}
+              >
+                MetaCubeXD
+              </Button>
+              <Button 
+                onPress={() => window.open('https://zashboard.pages.dev/', '_blank')}
+              >
+                Zashboard
+              </Button>
+              {isLocalWebUIAvailable() && (
+                <>
+                  <Button 
+                    onPress={() => window.open(getLocalWebUIUrl(), '_blank')}
+                  >
+                    {t('profiles.openWebUI.local')}
+                  </Button>
+                  <Button 
+                    color="success"
+                    onPress={async () => {
+                      try {
+                        await mihomoUpgradeUI()
+                        new Notification(t('profiles.updateWebUI.success'))
+                      } catch (e) {
+                        new Notification(t('profiles.updateWebUI.failed', { error: String(e) }))
+                      }
+                    }}
+                  >
+                    {t('profiles.updateWebUI.button')}
+                  </Button>
+                </>
+              )}
+            </div>
+          </CardBody>
+        </Card>
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <div

@@ -183,6 +183,11 @@ export const mihomoUpgrade = async (): Promise<void> => {
   return await instance.post('/upgrade')
 }
 
+export const mihomoUpgradeUI = async (): Promise<void> => {
+  const instance = await getAxios()
+  return await instance.post('/upgrade/ui')
+}
+
 // Smart 内核 API
 export const mihomoSmartGroupWeights = async (
   groupName: string

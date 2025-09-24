@@ -15,6 +15,7 @@ import {
   mihomoUpdateRuleProviders,
   mihomoUpgrade,
   mihomoUpgradeGeo,
+  mihomoUpgradeUI,
   mihomoVersion,
   patchMihomoConfig,
   mihomoSmartGroupWeights,
@@ -167,6 +168,7 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('mihomoUnfixedProxy', (_e, group) => ipcErrorWrapper(mihomoUnfixedProxy)(group))
   ipcMain.handle('mihomoUpgradeGeo', ipcErrorWrapper(mihomoUpgradeGeo))
   ipcMain.handle('mihomoUpgrade', ipcErrorWrapper(mihomoUpgrade))
+  ipcMain.handle('mihomoUpgradeUI', ipcErrorWrapper(mihomoUpgradeUI))
   ipcMain.handle('mihomoProxyDelay', (_e, proxy, url) =>
     ipcErrorWrapper(mihomoProxyDelay)(proxy, url)
   )
