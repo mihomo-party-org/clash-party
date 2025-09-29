@@ -11,6 +11,7 @@ import { defaultProfile } from '../utils/template'
 import { subStorePort } from '../resolve/server'
 import { join } from 'path'
 import { app } from 'electron'
+import { mihomoUpgradeConfig } from '../core/mihomoApi'
 
 let profileConfig: IProfileConfig // profile.yaml
 // 最终选中订阅ID
@@ -221,7 +222,25 @@ export async function setProfileStr(id: string, content: string): Promise<void> 
   // 读取最新的配置
   const { current } = await getProfileConfig(true)
   await writeFile(profilePath(id), content, 'utf-8')
-  if (current === id) await restartCore()
+  if (current === id) {
+    try {
+      const { generateProfile } = await import('../core/factory')
+      await generateProfile()
+      await mihomoUpgradeConfig()
+      console.log('[Profile] Config reloaded successfully using mihomoUpgradeConfig')
+    } catch (error) {
+      console.error('[Profile] Failed to reload config with mihomoUpgradeConfig:', error)
+      try {
+        console.log('[Profile] Falling back to restart core')
+        const { restartCore } = await import('../core/manager')
+        await restartCore()
+        console.log('[Profile] Core restarted successfully')
+      } catch (restartError) {
+        console.error('[Profile] Failed to restart core:', restartError)
+        throw restartError
+      }
+    }
+  }
 }
 
 export async function getProfile(id: string | undefined): Promise<IMihomoConfig> {

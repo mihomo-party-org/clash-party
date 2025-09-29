@@ -188,6 +188,33 @@ export const mihomoUpgradeUI = async (): Promise<void> => {
   return await instance.post('/upgrade/ui')
 }
 
+export const mihomoUpgradeConfig = async (): Promise<void> => {
+  console.log('[mihomoApi] mihomoUpgradeConfig called')
+  
+  try {
+    const instance = await getAxios()
+    console.log('[mihomoApi] axios instance obtained')
+    const { diffWorkDir = false } = await getAppConfig()
+    const { current } = await import('../config').then(mod => mod.getProfileConfig(true))
+    const { mihomoWorkConfigPath } = await import('../utils/dirs')
+    const configPath = diffWorkDir ? mihomoWorkConfigPath(current) : mihomoWorkConfigPath('work')
+    console.log('[mihomoApi] config path:', configPath)
+    const { existsSync } = await import('fs')
+    if (!existsSync(configPath)) {
+      console.log('[mihomoApi] config file does not exist, generating...')
+      const { generateProfile } = await import('./factory')
+      await generateProfile()
+    }
+    const response = await instance.put('/configs?force=true', {
+      path: configPath
+    })
+    console.log('[mihomoApi] config upgrade request completed', response?.status || 'no status')
+  } catch (error) {
+    console.error('[mihomoApi] Failed to upgrade config:', error)
+    throw error
+  }
+}
+
 // Smart 内核 API
 export const mihomoSmartGroupWeights = async (
   groupName: string

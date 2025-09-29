@@ -88,6 +88,10 @@ export async function mihomoUpgradeUI(): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoUpgradeUI'))
 }
 
+export async function mihomoUpgradeConfig(): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoUpgradeConfig'))
+}
+
 export async function mihomoProxyDelay(proxy: string, url?: string): Promise<IMihomoDelay> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoProxyDelay', proxy, url))
 }
