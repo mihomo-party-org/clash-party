@@ -63,7 +63,8 @@ const GeneralConfig: React.FC = () => {
     envType = [platform === 'win32' ? 'powershell' : 'bash'],
     autoCheckUpdate,
     appTheme = 'system',
-    language = 'zh-CN'
+    language = 'zh-CN',
+    triggerMainWindowBehavior = 'show' // 添加这一行
   } = appConfig || {}
 
   useEffect(() => {
@@ -397,6 +398,19 @@ const GeneralConfig: React.FC = () => {
               await patchAppConfig({ disableAnimations: v })
             }}
           />
+        </SettingItem>
+        <SettingItem title={t('settings.triggerMainWindowBehavior')} divider>
+          <Tabs
+            size="sm"
+            color="primary"
+            selectedKey={triggerMainWindowBehavior}
+            onSelectionChange={(key) => {
+              patchAppConfig({ triggerMainWindowBehavior: key as 'show' | 'toggle' })
+            }}
+          >
+            <Tab key="show" title={t('settings.triggerMainWindowBehaviorShow')} />
+            <Tab key="toggle" title={t('settings.triggerMainWindowBehaviorToggle')} />
+          </Tabs>
         </SettingItem>
         <SettingItem
           title={t('settings.disableHardwareAcceleration')}

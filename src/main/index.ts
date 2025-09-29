@@ -434,10 +434,16 @@ export async function createWindow(): Promise<void> {
 }
 
 export function triggerMainWindow(): void {
-  if (mainWindow?.isVisible()) {
-    closeMainWindow()
-  } else {
-    showMainWindow()
+  if (mainWindow) {
+    getAppConfig()
+    .then(({ triggerMainWindowBehavior = 'show' }) => {
+      if (triggerMainWindowBehavior === 'toggle' && mainWindow?.isVisible()) {
+        closeMainWindow()
+      } else {
+        showMainWindow()
+      }
+    })
+    .catch(showMainWindow)
   }
 }
 

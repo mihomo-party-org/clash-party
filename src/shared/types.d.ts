@@ -309,6 +309,7 @@ interface IAppConfig {
   restartAppShortcut?: string
   quitWithoutCoreShortcut?: string
   language?: 'zh-CN' | 'en-US' | 'ru-RU' | 'fa-IR'
+  triggerMainWindowBehavior?: 'show' | 'toggle'
 }
 
 interface IMihomoTunConfig {
