@@ -64,7 +64,8 @@ const GeneralConfig: React.FC = () => {
     autoCheckUpdate,
     appTheme = 'system',
     language = 'zh-CN',
-    triggerMainWindowBehavior = 'show' // 添加这一行
+    triggerMainWindowBehavior = 'show',
+    hideConnectionCardWave = false
   } = appConfig || {}
 
   useEffect(() => {
@@ -411,6 +412,15 @@ const GeneralConfig: React.FC = () => {
             <Tab key="show" title={t('settings.triggerMainWindowBehaviorShow')} />
             <Tab key="toggle" title={t('settings.triggerMainWindowBehaviorToggle')} />
           </Tabs>
+        </SettingItem>
+        <SettingItem title={t('settings.hideConnectionCardWave')} divider>
+          <Switch
+            size="sm"
+            isSelected={hideConnectionCardWave}
+            onValueChange={async (v) => {
+              await patchAppConfig({ hideConnectionCardWave: v })
+            }}
+          />
         </SettingItem>
         <SettingItem
           title={t('settings.disableHardwareAcceleration')}

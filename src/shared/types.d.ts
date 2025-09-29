@@ -242,6 +242,7 @@ interface IAppConfig {
   connectionCardStatus?: CardStatus
   dnsCardStatus?: CardStatus
   logCardStatus?: CardStatus
+  hideConnectionCardWave?: boolean
   pauseSSID?: string[]
   mihomoCoreCardStatus?: CardStatus
   overrideCardStatus?: CardStatus

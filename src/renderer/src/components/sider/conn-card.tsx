@@ -36,7 +36,7 @@ interface Props {
 const ConnCard: React.FC<Props> = (props) => {
   const { iconOnly } = props
   const { appConfig } = useAppConfig()
-  const { showTraffic = false, connectionCardStatus = 'col-span-2', disableAnimations = false } = appConfig || {}
+  const { showTraffic = false, connectionCardStatus = 'col-span-2', disableAnimations = false, hideConnectionCardWave = false } = appConfig || {}
   const location = useLocation()
   const navigate = useNavigate()
   const match = location.pathname.includes('/connections')
@@ -224,9 +224,11 @@ const ConnCard: React.FC<Props> = (props) => {
               </h3>
             </CardFooter>
           </Card>
-          <div className="w-full h-full absolute top-0 left-0 pointer-events-none overflow-hidden rounded-[14px]">
-            <Line data={chartData} options={chartOptions} />
-          </div>
+          {!hideConnectionCardWave && (
+            <div className="w-full h-full absolute top-0 left-0 pointer-events-none overflow-hidden rounded-[14px]">
+              <Line data={chartData} options={chartOptions} />
+            </div>
+          )}
         </>
       ) : (
         <Card

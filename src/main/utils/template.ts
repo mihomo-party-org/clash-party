@@ -26,6 +26,7 @@ export const defaultConfig: IAppConfig = {
   floatingWindowCompatMode: true,
   disableHardwareAcceleration: false,
   disableLoopbackDetector: false,
+  hideConnectionCardWave: false,
   disableEmbedCA: false,
   disableSystemCA: false,
   skipSafePathCheck: false,
