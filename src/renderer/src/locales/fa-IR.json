@@ -377,6 +377,7 @@
   "dns.customHosts.valuePlaceholder": "دامنه یا IP",
   "dns.saveOnly": "فقط ذخیره",
   "profiles.title": "مدیریت پروفایل",
+  "profiles.input.placeholder": "آدرس اشتراک خود را وارد کنید",
   "profiles.updateAll": "به‌روزرسانی همه پروفایل‌ها",
   "profiles.useProxy": "پراکسی",
   "profiles.import": "وارد کردن",

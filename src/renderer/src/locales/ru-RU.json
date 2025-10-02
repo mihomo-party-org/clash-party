@@ -377,6 +377,7 @@
   "dns.customHosts.valuePlaceholder": "Домен или IP",
   "dns.saveOnly": "Только сохранить",
   "profiles.title": "Управление профилями",
+  "profiles.input.placeholder": "Введите URL вашей подписки",
   "profiles.updateAll": "Обновить все профили",
   "profiles.useProxy": "Прокси",
   "profiles.import": "Импорт",

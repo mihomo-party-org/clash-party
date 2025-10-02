@@ -388,6 +388,7 @@
   "dns.customHosts.valuePlaceholder": "Domain or IP",
   "dns.saveOnly": "Save Only",
   "profiles.title": "Profile Management",
+  "profiles.input.placeholder": "Enter your subscription URL",
   "profiles.updateAll": "Update All Profiles",
   "profiles.useProxy": "Proxy",
   "profiles.import": "Import",

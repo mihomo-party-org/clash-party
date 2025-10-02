@@ -388,6 +388,7 @@
   "dns.fallbackFilter.domainPlaceholder": "例：+.google.com",
   "dns.saveOnly": "仅保存",
   "profiles.title": "订阅管理",
+  "profiles.input.placeholder": "请输入您的订阅网址",
   "profiles.updateAll": "更新全部订阅",
   "profiles.useProxy": "代理",
   "profiles.import": "导入",

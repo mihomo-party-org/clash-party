@@ -256,6 +256,7 @@ const Profiles: React.FC = () => {
         <div className="flex p-2">
           <Input
             size="sm"
+            placeholder={t('profiles.input.placeholder')}
             value={url}
             onValueChange={setUrl}
             onKeyUp={handleInputKeyUp}
