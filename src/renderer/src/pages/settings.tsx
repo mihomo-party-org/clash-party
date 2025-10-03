@@ -10,6 +10,7 @@ import ShortcutConfig from '@renderer/components/settings/shortcut-config'
 import { FaTelegramPlane } from 'react-icons/fa'
 import SiderConfig from '@renderer/components/settings/sider-config'
 import SubStoreConfig from '@renderer/components/settings/substore-config'
+import WebUIConfig from '@renderer/components/settings/webui-config'
 import { useTranslation } from 'react-i18next'
 
 const Settings: React.FC = () => {
@@ -60,6 +61,7 @@ const Settings: React.FC = () => {
       }
     >
       <GeneralConfig />
+      <WebUIConfig />
       <SubStoreConfig />
       <SiderConfig />
       <WebdavConfig />
