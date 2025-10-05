@@ -85,10 +85,17 @@ const EditRulesModal: React.FC<Props> = (props) => {
       if (parsed && parsed.rules && Array.isArray(parsed.rules)) {
         const parsedRules = parsed.rules.map((rule: string) => {
           const parts = rule.split(',')
+          if (parts[0] ==='MATCH') {
           return {
             type: parts[0],
-            payload: parts[1] || '',
-            proxy: parts[2] || ''
+            proxy: parts[1] || ''
+          }
+          }else{
+            return {
+              type: parts[0],
+              payload: parts[1],
+              proxy: parts[2]
+            }
           }
         })
         setRules(parsedRules)
@@ -138,7 +145,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
   }, [searchTerm, rules])
 
   const handleAddRule = (): void => {
-    if (newRule.payload.trim() !== '') {
+    if (newRule.payload.trim() !== '' || newRule.type === 'MATCH') {
       const updatedRules = [...rules, { ...newRule }]
       setRules(updatedRules)
       setFilteredRules(updatedRules)
@@ -277,6 +284,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
                   placeholder={t('profiles.editRules.payloadPlaceholder')}
                   value={newRule.payload}
                   onValueChange={(value) => setNewRule({ ...newRule, payload: value })}
+                  isDisabled={newRule.type === 'MATCH'}
                 />
                 
                 <Autocomplete
@@ -297,7 +305,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
                 <Button 
                   color="primary" 
                   onPress={handleAddRule}
-                  isDisabled={!newRule.payload.trim()}
+                  isDisabled={!(newRule.payload.trim() || newRule.type === 'MATCH')}
                 >
                   {t('profiles.editRules.addRule')}
                 </Button>
@@ -341,8 +349,10 @@ const EditRulesModal: React.FC<Props> = (props) => {
                         {rule.type}
                       </Chip>
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">{rule.payload}</div>
-                        {rule.proxy && (
+                        <div className="font-medium truncate">
+                          {rule.type === 'MATCH' ? rule.proxy : rule.payload}
+                        </div>
+                        {rule.proxy && rule.type !== 'MATCH' && (
                           <div className="text-sm text-foreground-500 truncate">{rule.proxy}</div>
                         )}
                       </div>
