@@ -93,7 +93,6 @@
   "settings.title": "Application Settings",
   "settings.webui.title": "WebUI Management Panel",
   "settings.webui.manage": "Manage Panels",
-  "settings.webui.currentConfig": "Current Configuration",
   "settings.webui.host": "Host",
   "settings.webui.port": "Port",
   "settings.webui.secret": "Secret",

@@ -93,7 +93,6 @@
   "settings.title": "应用设置",
   "settings.webui.title": "WebUI 管理面板",
   "settings.webui.manage": "管理面板",
-  "settings.webui.currentConfig": "当前配置信息",
   "settings.webui.host": "主机",
   "settings.webui.port": "端口",
   "settings.webui.secret": "密钥",
