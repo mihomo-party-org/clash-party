@@ -17,6 +17,7 @@ import dayjs from '@renderer/utils/dayjs'
 import React, { Key, useMemo, useState } from 'react'
 import EditFileModal from './edit-file-modal'
 import EditInfoModal from './edit-info-modal'
+import EditRulesModal from './edit-rules-modal'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { openFile } from '@renderer/utils/ipc'
@@ -59,6 +60,7 @@ const ProfileItem: React.FC<Props> = (props) => {
   const [updating, setUpdating] = useState(false)
   const [openInfoEditor, setOpenInfoEditor] = useState(false)
   const [openFileEditor, setOpenFileEditor] = useState(false)
+  const [openRulesEditor, setOpenRulesEditor] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const {
     attributes,
@@ -86,6 +88,13 @@ const ProfileItem: React.FC<Props> = (props) => {
       {
         key: 'edit-file',
         label: t('profiles.editFile.title'),
+        showDivider: false,
+        color: 'default',
+        className: ''
+      } as MenuItem,
+      {
+        key: 'edit-rules',
+        label: t('profiles.editRules.title'),
         showDivider: false,
         color: 'default',
         className: ''
@@ -125,6 +134,10 @@ const ProfileItem: React.FC<Props> = (props) => {
       }
       case 'edit-file': {
         setOpenFileEditor(true)
+        break
+      }
+      case 'edit-rules': {
+        setOpenRulesEditor(true)
         break
       }
       case 'open-file': {
@@ -201,6 +214,7 @@ const ProfileItem: React.FC<Props> = (props) => {
       }}
     >
       {openFileEditor && <EditFileModal id={info.id} onClose={() => setOpenFileEditor(false)} />}
+      {openRulesEditor && <EditRulesModal id={info.id} onClose={() => setOpenRulesEditor(false)} />}
       {openInfoEditor && (
         <EditInfoModal
           item={info}
