@@ -6,7 +6,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { platform } from '@renderer/utils/init'
 import { FaNetworkWired } from 'react-icons/fa'
-import { IoMdCloudDownload, IoMdInformationCircleOutline, IoMdRefresh } from 'react-icons/io'
+import { IoMdCloudDownload, IoMdInformationCircleOutline, IoMdRefresh, IoMdShuffle } from 'react-icons/io'
 import PubSub from 'pubsub-js'
 import {
   mihomoUpgrade,
@@ -118,6 +118,9 @@ const Mihomo: React.FC = () => {
   }
   
   const { host, port } = parseController()
+  
+  // 生成随机端口(范围1024-65535)
+  const generateRandomPort = () => Math.floor(Math.random() * (65535 - 1024 + 1)) + 1024
   
   // 默认WebUI面板选项
   const defaultWebUIPanels: WebUIPanel[] = [
@@ -644,6 +647,18 @@ const Mihomo: React.FC = () => {
                   setMixedPortInput(parseInt(v))
                 }}
               />
+              <Button
+                isIconOnly
+                size="sm"
+                variant="light"
+                className="ml-2"
+                onPress={() => {
+                  const randomPort = generateRandomPort()
+                  setMixedPortInput(randomPort)
+                }}
+              >
+                <IoMdShuffle className="text-lg" />
+              </Button>
             </div>
           </SettingItem>
           <SettingItem title={t('mihomo.socksPort')} divider>
@@ -672,6 +687,18 @@ const Mihomo: React.FC = () => {
                   setSocksPortInput(parseInt(v))
                 }}
               />
+              <Button
+                isIconOnly
+                size="sm"
+                variant="light"
+                className="ml-2"
+                onPress={() => {
+                  const randomPort = generateRandomPort()
+                  setSocksPortInput(randomPort)
+                }}
+              >
+                <IoMdShuffle className="text-lg" />
+              </Button>
             </div>
           </SettingItem>
           <SettingItem title={t('mihomo.httpPort')} divider>
@@ -700,6 +727,18 @@ const Mihomo: React.FC = () => {
                   setHttpPortInput(parseInt(v))
                 }}
               />
+              <Button
+                isIconOnly
+                size="sm"
+                variant="light"
+                className="ml-2"
+                onPress={() => {
+                  const randomPort = generateRandomPort()
+                  setHttpPortInput(randomPort)
+                }}
+              >
+                <IoMdShuffle className="text-lg" />
+              </Button>
             </div>
           </SettingItem>
           {platform !== 'win32' && (
@@ -729,6 +768,18 @@ const Mihomo: React.FC = () => {
                     setRedirPortInput(parseInt(v))
                   }}
                 />
+                <Button
+                  isIconOnly
+                  size="sm"
+                  variant="light"
+                  className="ml-2"
+                  onPress={() => {
+                    const randomPort = generateRandomPort()
+                    setRedirPortInput(randomPort)
+                  }}
+                >
+                  <IoMdShuffle className="text-lg" />
+                </Button>
               </div>
             </SettingItem>
           )}
@@ -759,6 +810,18 @@ const Mihomo: React.FC = () => {
                     setTproxyPortInput(parseInt(v))
                   }}
                 />
+                <Button
+                  isIconOnly
+                  size="sm"
+                  variant="light"
+                  className="ml-2"
+                  onPress={() => {
+                    const randomPort = generateRandomPort()
+                    setTproxyPortInput(randomPort)
+                  }}
+                >
+                  <IoMdShuffle className="text-lg" />
+                </Button>
               </div>
             </SettingItem>
           )}
