@@ -147,6 +147,7 @@
   "mihomo.socksPort": "پورت Socks",
   "mihomo.httpPort": "پورت Http",
   "mihomo.redirPort": "پورت Redir",
+  "mihomo.tproxyPort": "پورت Tproxy",
   "mihomo.externalController": "آدرس کنترل‌کننده خارجی",
   "mihomo.externalControllerSecret": "رمز کنترل‌کننده خارجی",
   "mihomo.ipv6": "IPv6",

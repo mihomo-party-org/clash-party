@@ -733,7 +733,7 @@ const Mihomo: React.FC = () => {
             </SettingItem>
           )}
           {platform === 'linux' && (
-            <SettingItem title="TProxy 端口" divider>
+            <SettingItem title={t('mihomo.tproxyPort')} divider>
               <div className="flex">
                 {tproxyPortInput !== tproxyPort && (
                   <Button

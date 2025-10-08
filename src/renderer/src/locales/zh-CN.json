@@ -169,6 +169,7 @@
   "mihomo.socksPort": "Socks 端口",
   "mihomo.httpPort": "Http 端口",
   "mihomo.redirPort": "Redir 端口",
+  "mihomo.tproxyPort": "Tproxy 端口",
   "mihomo.externalController": "外部控制地址",
   "mihomo.externalControllerSecret": "外部控制访问密钥",
   "mihomo.ipv6": "IPv6",

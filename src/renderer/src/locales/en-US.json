@@ -169,6 +169,7 @@
   "mihomo.socksPort": "Socks Port",
   "mihomo.httpPort": "Http Port",
   "mihomo.redirPort": "Redir Port",
+  "mihomo.tproxyPort": "Tproxy Port",
   "mihomo.externalController": "External Controller Address",
   "mihomo.externalControllerSecret": "External Controller Secret",
   "mihomo.ipv6": "IPv6",
