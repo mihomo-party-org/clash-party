@@ -433,12 +433,16 @@ export async function createWindow(): Promise<void> {
   }
 }
 
-export function triggerMainWindow(): void {
+export function triggerMainWindow(force?: boolean): void {
   if (mainWindow) {
     getAppConfig()
-    .then(({ triggerMainWindowBehavior = 'show' }) => {
-      if (triggerMainWindowBehavior === 'toggle' && mainWindow?.isVisible()) {
-        closeMainWindow()
+    .then(({ triggerMainWindowBehavior = 'toggle' }) => {
+      if (force === true || triggerMainWindowBehavior === 'toggle') {
+        if (mainWindow?.isVisible()) {
+          closeMainWindow()
+        } else {
+          showMainWindow()
+        }
       } else {
         showMainWindow()
       }
