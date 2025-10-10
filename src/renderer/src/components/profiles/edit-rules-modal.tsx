@@ -424,7 +424,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
                   <Button 
                     color="primary" 
                     onPress={() => handleAddRule('prepend')}
-                    isDisabled={!(newRule.payload.trim() || newRule.type === 'MATCH')}
+                    isDisabled={!(newRule.payload.trim() || newRule.type === 'MATCH') || !newRule.type}
                     startContent={<MdVerticalAlignTop className="text-lg" />}
                   >
                     {t('profiles.editRules.addRulePrepend')}
@@ -433,7 +433,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
                     color="primary" 
                     variant="bordered"
                     onPress={() => handleAddRule('append')}
-                    isDisabled={!(newRule.payload.trim() || newRule.type === 'MATCH')}
+                    isDisabled={!(newRule.payload.trim() || newRule.type === 'MATCH') || !newRule.type}
                     startContent={<MdVerticalAlignBottom className="text-lg" />}
                   >
                     {t('profiles.editRules.addRuleAppend')}
