@@ -18,7 +18,7 @@ import React, { useEffect, useState } from 'react'
 import { getProfileStr, setProfileStr } from '@renderer/utils/ipc'
 import { useTranslation } from 'react-i18next'
 import yaml from 'js-yaml'
-import { IoMdTrash, IoIosArrowUp, IoIosArrowDown } from 'react-icons/io'
+import { IoMdTrash, IoMdArrowUp, IoMdArrowDown } from 'react-icons/io'
 import { MdVerticalAlignTop, MdVerticalAlignBottom } from 'react-icons/md'
 
 interface Props {
@@ -508,7 +508,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
                             isIconOnly
                             isDisabled={originalIndex === 0}
                           >
-                            <IoIosArrowUp className="text-lg" />
+                            <IoMdArrowUp className="text-lg" />
                           </Button>
                           <Button 
                             size="sm" 
@@ -517,7 +517,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
                             isIconOnly
                             isDisabled={originalIndex === rules.length - 1}
                           >
-                            <IoIosArrowDown className="text-lg" />
+                            <IoMdArrowDown className="text-lg" />
                           </Button>
                           <Button 
                             size="sm" 
