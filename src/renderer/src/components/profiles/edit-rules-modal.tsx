@@ -18,7 +18,7 @@ import React, { useEffect, useState } from 'react'
 import { getProfileStr, setProfileStr } from '@renderer/utils/ipc'
 import { useTranslation } from 'react-i18next'
 import yaml from 'js-yaml'
-import { IoMdTrash, IoMdArrowUp, IoMdArrowDown } from 'react-icons/io'
+import { IoMdTrash, IoMdArrowUp, IoMdArrowDown, IoMdUndo } from 'react-icons/io'
 import { MdVerticalAlignTop, MdVerticalAlignBottom } from 'react-icons/md'
 
 interface Props {
@@ -97,6 +97,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
   const [newRule, setNewRule] = useState<RuleItem>({ type: 'DOMAIN', payload: '', proxy: 'DIRECT', additionalParams: [] })
   const [searchTerm, setSearchTerm] = useState('')
   const [proxyGroups, setProxyGroups] = useState<string[]>([])
+  const [deletedRules, setDeletedRules] = useState<Set<number>>(new Set()) // Store indices of deleted rules
   const { t } = useTranslation()
 
   const getContent = async (): Promise<void> => {
@@ -172,8 +173,11 @@ const EditRulesModal: React.FC<Props> = (props) => {
 
   const handleSave = async (): Promise<void> => {
     try {
+      // 过滤掉已标记为删除的规则
+      const rulesToSave = rules.filter((_, index) => !deletedRules.has(index));
+      
       // 将规则转换回字符串格式
-      const ruleStrings = rules.map(rule => {
+      const ruleStrings = rulesToSave.map(rule => {
         const parts = [rule.type]
         if (rule.payload) parts.push(rule.payload)
         if (rule.proxy) parts.push(rule.proxy)
@@ -310,10 +314,16 @@ const EditRulesModal: React.FC<Props> = (props) => {
     }
   }
 
-  const handleRemoveRule = (ruleToRemove: RuleItem): void => {
-    const updatedRules = rules.filter(rule => rule !== ruleToRemove)
-    setRules(updatedRules)
-    setFilteredRules(updatedRules)
+  const handleRemoveRule = (index: number): void => {
+    setDeletedRules(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(index)) {
+        newSet.delete(index) // 如果已经标记为删除，则取消标记
+      } else {
+        newSet.add(index) // 标记为删除
+      }
+      return newSet
+    })
   }
 
   const handleMoveRuleUp = (index: number): void => {
@@ -324,6 +334,19 @@ const EditRulesModal: React.FC<Props> = (props) => {
     updatedRules[index - 1] = temp
     setRules(updatedRules)
     setFilteredRules(updatedRules)
+    setDeletedRules(prev => {
+      const newSet = new Set<number>()
+      prev.forEach(idx => {
+        if (idx === index) {
+          newSet.add(index - 1)
+        } else if (idx === index - 1) {
+          newSet.add(index)
+        } else {
+          newSet.add(idx)
+        }
+      })
+      return newSet
+    })
   }
 
   const handleMoveRuleDown = (index: number): void => {
@@ -334,6 +357,19 @@ const EditRulesModal: React.FC<Props> = (props) => {
     updatedRules[index + 1] = temp
     setRules(updatedRules)
     setFilteredRules(updatedRules)
+    setDeletedRules(prev => {
+      const newSet = new Set<number>()
+      prev.forEach(idx => {
+        if (idx === index) {
+          newSet.add(index + 1)
+        } else if (idx === index + 1) {
+          newSet.add(index)
+        } else {
+          newSet.add(idx)
+        }
+      })
+      return newSet
+    })
   }
 
   return (
@@ -476,7 +512,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
                   filteredRules.map((rule) => {
                     const originalIndex = rules.indexOf(rule);
                     return (
-                      <div key={originalIndex} className="flex items-center gap-2 p-2 bg-content2 rounded-lg">
+                      <div key={originalIndex} className={`flex items-center gap-2 p-2 rounded-lg ${deletedRules.has(originalIndex) ? 'bg-danger-50 opacity-70' : 'bg-content2'}`}>
                         <div className="flex flex-col">
                           <div className="flex items-center gap-1">
                             <Chip size="sm" variant="flat">
@@ -506,7 +542,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
                             variant="light"
                             onPress={() => handleMoveRuleUp(originalIndex)}
                             isIconOnly
-                            isDisabled={originalIndex === 0}
+                            isDisabled={originalIndex === 0 || deletedRules.has(originalIndex)}
                           >
                             <IoMdArrowUp className="text-lg" />
                           </Button>
@@ -515,18 +551,18 @@ const EditRulesModal: React.FC<Props> = (props) => {
                             variant="light"
                             onPress={() => handleMoveRuleDown(originalIndex)}
                             isIconOnly
-                            isDisabled={originalIndex === rules.length - 1}
+                            isDisabled={originalIndex === rules.length - 1 || deletedRules.has(originalIndex)}
                           >
                             <IoMdArrowDown className="text-lg" />
                           </Button>
                           <Button 
                             size="sm" 
-                            color="danger" 
+                            color={deletedRules.has(originalIndex) ? "success" : "danger"}
                             variant="light"
-                            onPress={() => handleRemoveRule(rule)}
+                            onPress={() => handleRemoveRule(originalIndex)}
                             isIconOnly
                           >
-                            <IoMdTrash className="text-lg" />
+                            {deletedRules.has(originalIndex) ? <IoMdUndo className="text-lg" /> : <IoMdTrash className="text-lg" />}
                           </Button>
                         </div>
                       </div>
@@ -538,7 +574,10 @@ const EditRulesModal: React.FC<Props> = (props) => {
           </div>
         </ModalBody>
         <ModalFooter className="pt-0">
-          <Button size="sm" variant="light" onPress={onClose}>
+          <Button size="sm" variant="light" onPress={() => {
+            setDeletedRules(new Set()) // 清除删除状态
+            onClose()
+          }}>
             {t('common.cancel')}
           </Button>
           <Button
