@@ -19,6 +19,7 @@ import { getProfileStr, setProfileStr } from '@renderer/utils/ipc'
 import { useTranslation } from 'react-i18next'
 import yaml from 'js-yaml'
 import { IoMdTrash, IoIosArrowUp, IoIosArrowDown } from 'react-icons/io'
+import { MdVerticalAlignTop, MdVerticalAlignBottom } from 'react-icons/md'
 
 interface Props {
   id: string
@@ -292,9 +293,17 @@ const EditRulesModal: React.FC<Props> = (props) => {
     });
   };
 
-  const handleAddRule = (): void => {
+  const handleAddRule = (position: 'prepend' | 'append' = 'append'): void => {
     if (newRule.payload.trim() !== '' || newRule.type === 'MATCH') {
-      const updatedRules = [...rules, { ...newRule }]
+      const newRuleItem = { ...newRule };
+      let updatedRules: RuleItem[];
+      
+      if (position === 'prepend') {
+        updatedRules = [newRuleItem, ...rules];
+      } else {
+        updatedRules = [...rules, newRuleItem];
+      }
+      
       setRules(updatedRules)
       setFilteredRules(updatedRules)
       setNewRule({ type: 'DOMAIN', payload: '', proxy: 'DIRECT', additionalParams: [] })
@@ -411,13 +420,25 @@ const EditRulesModal: React.FC<Props> = (props) => {
                   </>
                 )}
                 
-                <Button 
-                  color="primary" 
-                  onPress={handleAddRule}
-                  isDisabled={!(newRule.payload.trim() || newRule.type === 'MATCH')}
-                >
-                  {t('profiles.editRules.addRule')}
-                </Button>
+                <div className="flex flex-col gap-2">
+                  <Button 
+                    color="primary" 
+                    onPress={() => handleAddRule('prepend')}
+                    isDisabled={!(newRule.payload.trim() || newRule.type === 'MATCH')}
+                    startContent={<MdVerticalAlignTop className="text-lg" />}
+                  >
+                    {t('profiles.editRules.addRulePrepend')}
+                  </Button>
+                  <Button 
+                    color="primary" 
+                    variant="bordered"
+                    onPress={() => handleAddRule('append')}
+                    isDisabled={!(newRule.payload.trim() || newRule.type === 'MATCH')}
+                    startContent={<MdVerticalAlignBottom className="text-lg" />}
+                  >
+                    {t('profiles.editRules.addRuleAppend')}
+                  </Button>
+                </div>
               </div>
               
               <div className="flex-1 border-t border-divider pt-4">

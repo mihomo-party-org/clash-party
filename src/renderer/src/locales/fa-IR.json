@@ -420,6 +420,8 @@
   "profiles.editRules.proxy": "پروکسی",
   "profiles.editRules.proxyPlaceholder": "پروکسی را انتخاب یا وارد کنید",
   "profiles.editRules.addRule": "افزودن قانون",
+  "profiles.editRules.addRulePrepend": "افزودن قانون به ابتدا",
+  "profiles.editRules.addRuleAppend": "افزودن قانون به انتها",
   "profiles.editRules.instructions": "دستورالعمل‌ها",
   "profiles.editRules.instructions1": "۱. نوع قانون را از منوی کشویی انتخاب کنید",
   "profiles.editRules.instructions2": "۲. محتوا را وارد کنید",

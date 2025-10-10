@@ -446,6 +446,8 @@
   "profiles.editRules.proxy": "代理节点",
   "profiles.editRules.proxyPlaceholder": "请选择或输入代理节点",
   "profiles.editRules.addRule": "添加规则",
+  "profiles.editRules.addRulePrepend": "添加前置规则",
+  "profiles.editRules.addRuleAppend": "添加后置规则",
   "profiles.editRules.instructions": "使用说明",
   "profiles.editRules.instructions1": "1. 在下拉菜单中选择规则类型",
   "profiles.editRules.instructions2": "2. 输入匹配内容",

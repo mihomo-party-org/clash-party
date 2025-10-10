@@ -420,6 +420,8 @@
   "profiles.editRules.proxy": "Прокси",
   "profiles.editRules.proxyPlaceholder": "Выберите или введите прокси",
   "profiles.editRules.addRule": "Добавить правило",
+  "profiles.editRules.addRulePrepend": "Добавить правило в начало",
+  "profiles.editRules.addRuleAppend": "Добавить правило в конец",
   "profiles.editRules.instructions": "Инструкции",
   "profiles.editRules.instructions1": "1. Выберите тип правила из выпадающего меню",
   "profiles.editRules.instructions2": "2. Введите полезную нагрузку",

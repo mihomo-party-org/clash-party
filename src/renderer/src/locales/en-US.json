@@ -441,6 +441,8 @@
   "profiles.editRules.proxy": "Proxy",
   "profiles.editRules.proxyPlaceholder": "Select or enter proxy",
   "profiles.editRules.addRule": "Add Rule",
+  "profiles.editRules.addRulePrepend": "Add Rule to Top",
+  "profiles.editRules.addRuleAppend": "Add Rule to Bottom",
   "profiles.editRules.instructions": "Instructions",
   "profiles.editRules.instructions1": "1. Select rule type from dropdown menu",
   "profiles.editRules.instructions2": "2. Enter payload",
