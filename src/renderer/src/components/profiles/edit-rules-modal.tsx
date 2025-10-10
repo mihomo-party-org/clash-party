@@ -18,6 +18,7 @@ import React, { useEffect, useState } from 'react'
 import { getProfileStr, setProfileStr } from '@renderer/utils/ipc'
 import { useTranslation } from 'react-i18next'
 import yaml from 'js-yaml'
+import { IoMdTrash } from 'react-icons/io'
 
 interface Props {
   id: string
@@ -461,8 +462,9 @@ const EditRulesModal: React.FC<Props> = (props) => {
                         color="danger" 
                         variant="light"
                         onPress={() => handleRemoveRule(rule)}
+                        isIconOnly
                       >
-                        {t('common.delete')}
+                        <IoMdTrash className="text-lg" />
                       </Button>
                     </div>
                   ))
