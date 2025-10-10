@@ -455,6 +455,8 @@
   "profiles.editRules.noRules": "暂无规则",
   "profiles.editRules.noMatchingRules": "没有匹配的规则",
   "profiles.editRules.saveError": "保存规则时出错",
+  "profiles.editRules.noResolve": "跳过DNS解析 (no-resolve)",
+  "profiles.editRules.src": "匹配源IP (src)",
   "profiles.openFile": "打开文件",
   "profiles.home": "主页",
   "profiles.notification.importSuccess": "订阅导入成功",

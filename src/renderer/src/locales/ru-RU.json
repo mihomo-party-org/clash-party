@@ -429,6 +429,8 @@
   "profiles.editRules.noRules": "Нет правил",
   "profiles.editRules.noMatchingRules": "Нет совпадающих правил",
   "profiles.editRules.saveError": "Ошибка сохранения правил",
+  "profiles.editRules.noResolve": "Пропустить DNS-резолвинг (no-resolve)",
+  "profiles.editRules.src": "Сопоставить исходный IP (src)",
   "profiles.openFile": "Открыть файл",
   "profiles.home": "Главная",
   "profiles.notification.importSuccess": "Подписка успешно импортирована",

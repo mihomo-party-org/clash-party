@@ -10,7 +10,9 @@ import {
   Select,
   SelectItem,
   Autocomplete,
-  AutocompleteItem
+  AutocompleteItem,
+  Checkbox,
+  Divider
 } from '@heroui/react'
 import React, { useEffect, useState } from 'react'
 import { getProfileStr, setProfileStr } from '@renderer/utils/ipc'
@@ -26,6 +28,7 @@ interface RuleItem {
   type: string
   payload: string
   proxy: string
+  additionalParams?: string[]
 }
 
 // 内置路由规则 https://wiki.metacubex.one/config/rules/
@@ -66,12 +69,30 @@ const ruleTypes = [
   'MATCH'
 ]
 
+// 支持 no-resolve 参数的规则类型
+const noResolveSupportTypes = [
+  'IP-CIDR',
+  'IP-CIDR6',
+  'IP-SUFFIX',
+  'IP-ASN',
+  'GEOIP'
+]
+
+// 支持 src 参数的规则类型
+const srcSupportTypes = [
+  'IP-CIDR',
+  'IP-CIDR6',
+  'IP-SUFFIX',
+  'IP-ASN',
+  'GEOIP'
+]
+
 const EditRulesModal: React.FC<Props> = (props) => {
   const { id, onClose } = props
   const [rules, setRules] = useState<RuleItem[]>([])
   const [filteredRules, setFilteredRules] = useState<RuleItem[]>([])
   const [profileContent, setProfileContent] = useState('')
-  const [newRule, setNewRule] = useState<RuleItem>({ type: 'DOMAIN', payload: '', proxy: 'DIRECT' })
+  const [newRule, setNewRule] = useState<RuleItem>({ type: 'DOMAIN', payload: '', proxy: 'DIRECT', additionalParams: [] })
   const [searchTerm, setSearchTerm] = useState('')
   const [proxyGroups, setProxyGroups] = useState<string[]>([])
   const { t } = useTranslation()
@@ -85,16 +106,18 @@ const EditRulesModal: React.FC<Props> = (props) => {
       if (parsed && parsed.rules && Array.isArray(parsed.rules)) {
         const parsedRules = parsed.rules.map((rule: string) => {
           const parts = rule.split(',')
-          if (parts[0] ==='MATCH') {
-          return {
-            type: parts[0],
-            proxy: parts[1] || ''
-          }
-          }else{
+          if (parts[0] === 'MATCH') {
+            return {
+              type: 'MATCH',
+              proxy: parts[1]
+            }
+          } else {
+            const additionalParams = parts.slice(3).filter(param => param.trim() !== '') || []
             return {
               type: parts[0],
               payload: parts[1],
-              proxy: parts[2]
+              proxy: parts[2],
+              additionalParams
             }
           }
         })
@@ -138,26 +161,12 @@ const EditRulesModal: React.FC<Props> = (props) => {
       const filtered = rules.filter(rule => 
         rule.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
         rule.payload.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (rule.proxy && rule.proxy.toLowerCase().includes(searchTerm.toLowerCase()))
+        (rule.proxy && rule.proxy.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (rule.additionalParams && rule.additionalParams.some(param => param.toLowerCase().includes(searchTerm.toLowerCase())))
       )
       setFilteredRules(filtered)
     }
   }, [searchTerm, rules])
-
-  const handleAddRule = (): void => {
-    if (newRule.payload.trim() !== '' || newRule.type === 'MATCH') {
-      const updatedRules = [...rules, { ...newRule }]
-      setRules(updatedRules)
-      setFilteredRules(updatedRules)
-      setNewRule({ type: 'DOMAIN', payload: '', proxy: 'DIRECT' })
-    }
-  }
-
-  const handleRemoveRule = (ruleToRemove: RuleItem): void => {
-    const updatedRules = rules.filter(rule => rule !== ruleToRemove)
-    setRules(updatedRules)
-    setFilteredRules(updatedRules)
-  }
 
   const handleSave = async (): Promise<void> => {
     try {
@@ -166,6 +175,9 @@ const EditRulesModal: React.FC<Props> = (props) => {
         const parts = [rule.type]
         if (rule.payload) parts.push(rule.payload)
         if (rule.proxy) parts.push(rule.proxy)
+        if (rule.additionalParams && rule.additionalParams.length > 0) {
+          parts.push(...rule.additionalParams)
+        }
         return parts.join(',')
       })
       
@@ -243,6 +255,57 @@ const EditRulesModal: React.FC<Props> = (props) => {
     }
   }
 
+  const handleRuleTypeChange = (selected: string): void => {
+    const noResolveSupported = noResolveSupportTypes.includes(selected);
+    const srcSupported = srcSupportTypes.includes(selected);
+
+    let additionalParams = [...(newRule.additionalParams || [])];
+    if (!noResolveSupported) {
+      additionalParams = additionalParams.filter(param => param !== 'no-resolve');
+    }
+    if (!srcSupported) {
+      additionalParams = additionalParams.filter(param => param !== 'src');
+    }
+    
+    setNewRule({
+      ...newRule,
+      type: selected,
+      additionalParams: additionalParams.length > 0 ? additionalParams : []
+    });
+  };
+
+  const handleAdditionalParamChange = (param: string, checked: boolean): void => {
+    let newAdditionalParams = [...(newRule.additionalParams || [])];
+    
+    if (checked) {
+      if (!newAdditionalParams.includes(param)) {
+        newAdditionalParams.push(param);
+      }
+    } else {
+      newAdditionalParams = newAdditionalParams.filter(p => p !== param);
+    }
+    
+    setNewRule({ 
+      ...newRule, 
+      additionalParams: newAdditionalParams
+    });
+  };
+
+  const handleAddRule = (): void => {
+    if (newRule.payload.trim() !== '' || newRule.type === 'MATCH') {
+      const updatedRules = [...rules, { ...newRule }]
+      setRules(updatedRules)
+      setFilteredRules(updatedRules)
+      setNewRule({ type: 'DOMAIN', payload: '', proxy: 'DIRECT', additionalParams: [] })
+    }
+  }
+
+  const handleRemoveRule = (ruleToRemove: RuleItem): void => {
+    const updatedRules = rules.filter(rule => rule !== ruleToRemove)
+    setRules(updatedRules)
+    setFilteredRules(updatedRules)
+  }
+
   return (
     <Modal
       backdrop="blur"
@@ -269,7 +332,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
                   selectedKeys={[newRule.type]}
                   onSelectionChange={(keys) => {
                     const selected = Array.from(keys)[0] as string
-                    setNewRule({ ...newRule, type: selected })
+                    handleRuleTypeChange(selected)
                   }}
                 >
                   {ruleTypes.map((type) => (
@@ -301,6 +364,31 @@ const EditRulesModal: React.FC<Props> = (props) => {
                     </AutocompleteItem>
                   ))}
                 </Autocomplete>
+                
+                {/* 附加参数 */}
+                {(noResolveSupportTypes.includes(newRule.type) || srcSupportTypes.includes(newRule.type)) && (
+                  <>
+                    <Divider className="my-2" />
+                    <div className="flex flex-col gap-2">
+                      {noResolveSupportTypes.includes(newRule.type) && (
+                        <Checkbox
+                          isSelected={newRule.additionalParams?.includes('no-resolve') || false}
+                          onValueChange={(checked) => handleAdditionalParamChange('no-resolve', checked)}
+                        >
+                          {t('profiles.editRules.noResolve')}
+                        </Checkbox>
+                      )}
+                      {srcSupportTypes.includes(newRule.type) && (
+                        <Checkbox
+                          isSelected={newRule.additionalParams?.includes('src') || false}
+                          onValueChange={(checked) => handleAdditionalParamChange('src', checked)}
+                        >
+                          {t('profiles.editRules.src')}
+                        </Checkbox>
+                      )}
+                    </div>
+                  </>
+                )}
                 
                 <Button 
                   color="primary" 
@@ -345,9 +433,21 @@ const EditRulesModal: React.FC<Props> = (props) => {
                 ) : (
                   filteredRules.map((rule, index) => (
                     <div key={index} className="flex items-center gap-2 p-2 bg-content2 rounded-lg">
-                      <Chip size="sm" variant="flat">
-                        {rule.type}
-                      </Chip>
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-1">
+                          <Chip size="sm" variant="flat">
+                            {rule.type}
+                          </Chip>
+                          {/* 显示附加参数 */}
+                          <div className="flex gap-1">
+                            {rule.additionalParams && rule.additionalParams.length > 0 && (
+                              rule.additionalParams.map((param, idx) => (
+                                <Chip key={idx} size="sm" variant="flat" color="secondary">{param}</Chip>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-medium truncate">
                           {rule.type === 'MATCH' ? rule.proxy : rule.payload}

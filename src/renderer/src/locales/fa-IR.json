@@ -429,6 +429,8 @@
   "profiles.editRules.noRules": "بدون قانون",
   "profiles.editRules.noMatchingRules": "قانونی یافت نشد",
   "profiles.editRules.saveError": "خطا در ذخیره قوانین",
+  "profiles.editRules.noResolve": "رد کردن تحلیل DNS (no-resolve)",
+  "profiles.editRules.src": "مطابقت با IP منبع (src)",
   "profiles.openFile": "باز کردن فایل",
   "profiles.home": "خانه",
   "profiles.notification.importSuccess": "اشتراک با موفقیت وارد شد",

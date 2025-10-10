@@ -450,6 +450,8 @@
   "profiles.editRules.noRules": "No rules",
   "profiles.editRules.noMatchingRules": "No matching rules",
   "profiles.editRules.saveError": "Error saving rules",
+  "profiles.editRules.noResolve": "Skip DNS Resolution (no-resolve)",
+  "profiles.editRules.src": "Match Source IP (src)",
   "profiles.openFile": "Open File",
   "profiles.home": "Home",
   "profiles.traffic.usage": "{{used}}/{{total}}",
