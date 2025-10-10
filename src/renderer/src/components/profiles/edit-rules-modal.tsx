@@ -18,7 +18,7 @@ import React, { useEffect, useState } from 'react'
 import { getProfileStr, setProfileStr } from '@renderer/utils/ipc'
 import { useTranslation } from 'react-i18next'
 import yaml from 'js-yaml'
-import { IoMdTrash } from 'react-icons/io'
+import { IoMdTrash, IoIosArrowUp, IoIosArrowDown } from 'react-icons/io'
 
 interface Props {
   id: string
@@ -307,6 +307,26 @@ const EditRulesModal: React.FC<Props> = (props) => {
     setFilteredRules(updatedRules)
   }
 
+  const handleMoveRuleUp = (index: number): void => {
+    if (index <= 0) return
+    const updatedRules = [...rules]
+    const temp = updatedRules[index]
+    updatedRules[index] = updatedRules[index - 1]
+    updatedRules[index - 1] = temp
+    setRules(updatedRules)
+    setFilteredRules(updatedRules)
+  }
+
+  const handleMoveRuleDown = (index: number): void => {
+    if (index >= rules.length - 1) return
+    const updatedRules = [...rules]
+    const temp = updatedRules[index]
+    updatedRules[index] = updatedRules[index + 1]
+    updatedRules[index + 1] = temp
+    setRules(updatedRules)
+    setFilteredRules(updatedRules)
+  }
+
   return (
     <Modal
       backdrop="blur"
@@ -432,42 +452,65 @@ const EditRulesModal: React.FC<Props> = (props) => {
                         : t('profiles.editRules.noRules')}
                   </div>
                 ) : (
-                  filteredRules.map((rule, index) => (
-                    <div key={index} className="flex items-center gap-2 p-2 bg-content2 rounded-lg">
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-1">
-                          <Chip size="sm" variant="flat">
-                            {rule.type}
-                          </Chip>
-                          {/* 显示附加参数 */}
-                          <div className="flex gap-1">
-                            {rule.additionalParams && rule.additionalParams.length > 0 && (
-                              rule.additionalParams.map((param, idx) => (
-                                <Chip key={idx} size="sm" variant="flat" color="secondary">{param}</Chip>
-                              ))
-                            )}
+                  filteredRules.map((rule) => {
+                    const originalIndex = rules.indexOf(rule);
+                    return (
+                      <div key={originalIndex} className="flex items-center gap-2 p-2 bg-content2 rounded-lg">
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-1">
+                            <Chip size="sm" variant="flat">
+                              {rule.type}
+                            </Chip>
+                            {/* 显示附加参数 */}
+                            <div className="flex gap-1">
+                              {rule.additionalParams && rule.additionalParams.length > 0 && (
+                                rule.additionalParams.map((param, idx) => (
+                                  <Chip key={idx} size="sm" variant="flat" color="secondary">{param}</Chip>
+                                ))
+                              )}  
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">
-                          {rule.type === 'MATCH' ? rule.proxy : rule.payload}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">
+                            {rule.type === 'MATCH' ? rule.proxy : rule.payload}
+                          </div>
+                          {rule.proxy && rule.type !== 'MATCH' && (
+                            <div className="text-sm text-foreground-500 truncate">{rule.proxy}</div>
+                          )}
                         </div>
-                        {rule.proxy && rule.type !== 'MATCH' && (
-                          <div className="text-sm text-foreground-500 truncate">{rule.proxy}</div>
-                        )}
+                        <div className="flex gap-1">
+                          <Button 
+                            size="sm" 
+                            variant="light"
+                            onPress={() => handleMoveRuleUp(originalIndex)}
+                            isIconOnly
+                            isDisabled={originalIndex === 0}
+                          >
+                            <IoIosArrowUp className="text-lg" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="light"
+                            onPress={() => handleMoveRuleDown(originalIndex)}
+                            isIconOnly
+                            isDisabled={originalIndex === rules.length - 1}
+                          >
+                            <IoIosArrowDown className="text-lg" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            color="danger" 
+                            variant="light"
+                            onPress={() => handleRemoveRule(rule)}
+                            isIconOnly
+                          >
+                            <IoMdTrash className="text-lg" />
+                          </Button>
+                        </div>
                       </div>
-                      <Button 
-                        size="sm" 
-                        color="danger" 
-                        variant="light"
-                        onPress={() => handleRemoveRule(rule)}
-                        isIconOnly
-                      >
-                        <IoMdTrash className="text-lg" />
-                      </Button>
-                    </div>
-                  ))
+                    )
+                  })
                 )}
               </div>
             </div>
