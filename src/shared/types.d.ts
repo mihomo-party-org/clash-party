@@ -223,10 +223,6 @@ interface IAppConfig {
   smartCoreUseLightGBM: boolean
   smartCoreCollectData: boolean
   smartCoreStrategy: 'sticky-sessions' | 'round-robin'
-  disableLoopbackDetector: boolean
-  disableEmbedCA: boolean
-  disableSystemCA: boolean
-  skipSafePathCheck: boolean
   proxyDisplayMode: 'simple' | 'full'
   proxyDisplayOrder: 'default' | 'delay' | 'name'
   profileDisplayDate?: 'expire' | 'update'

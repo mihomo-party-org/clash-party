@@ -25,11 +25,7 @@ export const defaultConfig: IAppConfig = {
   controlSniff: true,
   floatingWindowCompatMode: true,
   disableHardwareAcceleration: false,
-  disableLoopbackDetector: false,
   hideConnectionCardWave: false,
-  disableEmbedCA: false,
-  disableSystemCA: false,
-  skipSafePathCheck: false,
   nameserverPolicy: {},
   siderOrder: [
     'sysproxy',

@@ -86,11 +86,7 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
     core = 'mihomo',
     autoSetDNS = true,
     diffWorkDir = false,
-    mihomoCpuPriority = 'PRIORITY_NORMAL',
-    disableLoopbackDetector = false,
-    disableEmbedCA = false,
-    disableSystemCA = false,
-    skipSafePathCheck = false
+    mihomoCpuPriority = 'PRIORITY_NORMAL'
   } = await getAppConfig()
   const { 'log-level': logLevel } = await getControledMihomoConfig()
   if (existsSync(path.join(dataDir(), 'core.pid'))) {
@@ -135,19 +131,13 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
   // 内核日志输出到独立的 core-日期.log 文件
   const stdout = createWriteStream(coreLogPath(), { flags: 'a' })
   const stderr = createWriteStream(coreLogPath(), { flags: 'a' })
-  const env = {
-    DISABLE_LOOPBACK_DETECTOR: String(disableLoopbackDetector),
-    DISABLE_EMBED_CA: String(disableEmbedCA),
-    DISABLE_SYSTEM_CA: String(disableSystemCA),
-    SKIP_SAFE_PATH_CHECK: String(skipSafePathCheck)
-  }
+  
   child = spawn(
     corePath,
     ['-d', diffWorkDir ? mihomoProfileWorkDir(current) : mihomoWorkDir(), ctlParam, dynamicIpcPath],
     {
       detached: detached,
-      stdio: detached ? 'ignore' : undefined,
-      env: env
+      stdio: detached ? 'ignore' : undefined
     }
   )
   if (process.platform === 'win32' && child.pid) {
@@ -431,15 +421,12 @@ export async function quitWithoutCore(): Promise<void> {
 async function checkProfile(): Promise<void> {
   const {
     core = 'mihomo',
-    diffWorkDir = false,
-    skipSafePathCheck = false
+    diffWorkDir = false
   } = await getAppConfig()
   const { current } = await getProfileConfig()
   const corePath = mihomoCorePath(core)
   const execFilePromise = promisify(execFile)
-  const env = {
-    SKIP_SAFE_PATH_CHECK: String(skipSafePathCheck)
-  }
+  
   try {
     await execFilePromise(corePath, [
       '-t',
@@ -447,7 +434,7 @@ async function checkProfile(): Promise<void> {
       diffWorkDir ? mihomoWorkConfigPath(current) : mihomoWorkConfigPath('work'),
       '-d',
       mihomoTestDir()
-    ], { env })
+    ])
   } catch (error) {
     await managerLogger.error('Profile check failed', error)
 

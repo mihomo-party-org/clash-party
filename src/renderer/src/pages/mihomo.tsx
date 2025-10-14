@@ -42,11 +42,8 @@ const Mihomo: React.FC = () => {
     smartCoreCollectData = false,
     smartCoreStrategy = 'sticky-sessions',
     maxLogDays = 7,
-    sysProxy,
-    disableLoopbackDetector,
-    disableEmbedCA,
-    disableSystemCA,
-    skipSafePathCheck } = appConfig || {}
+    sysProxy 
+  } = appConfig || {}
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
 
   interface WebUIPanel {
@@ -1130,42 +1127,7 @@ const Mihomo: React.FC = () => {
               }}
             />
           </SettingItem>
-          <SettingItem title={t('mihomo.disableLoopbackDetector')} divider>
-            <Switch
-              size="sm"
-              isSelected={disableLoopbackDetector}
-              onValueChange={(v) => {
-                handleConfigChangeWithRestart('disableLoopbackDetector', v)
-              }}
-            />
-          </SettingItem>
-          <SettingItem title={t('mihomo.skipSafePathCheck')} divider>
-            <Switch
-              size="sm"
-              isSelected={skipSafePathCheck}
-              onValueChange={(v) => {
-                handleConfigChangeWithRestart('skipSafePathCheck', v)
-              }}
-            />
-          </SettingItem>
-          <SettingItem title={t('mihomo.disableEmbedCA')} divider>
-            <Switch
-              size="sm"
-              isSelected={disableEmbedCA}
-              onValueChange={(v) => {
-                handleConfigChangeWithRestart('disableEmbedCA', v)
-              }}
-            />
-          </SettingItem>
-          <SettingItem title={t('mihomo.disableSystemCA')} divider>
-            <Switch
-              size="sm"
-              isSelected={disableSystemCA}
-              onValueChange={(v) => {
-                handleConfigChangeWithRestart('disableSystemCA', v)
-              }}
-            />
-          </SettingItem>
+
           <SettingItem title={t('mihomo.logRetentionDays')} divider>
             <Input
               size="sm"
