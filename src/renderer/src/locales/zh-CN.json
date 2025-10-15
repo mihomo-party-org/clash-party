@@ -540,6 +540,8 @@
   "connections.detail.specialProxy": "特殊代理",
   "connections.detail.specialRules": "特殊规则",
   "connections.detail.close": "关闭",
+  "connections.pause": "暂停",
+  "connections.resume": "恢复",
   "resources.geoData.geoip": "GeoIP 数据库",
   "resources.geoData.geosite": "GeoSite 数据库",
   "resources.geoData.mmdb": "MMDB 数据库",

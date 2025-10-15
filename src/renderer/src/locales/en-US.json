@@ -540,6 +540,8 @@
   "connections.detail.specialProxy": "Special Proxy",
   "connections.detail.specialRules": "Special Rules",
   "connections.detail.close": "Close",
+  "connections.pause": "Pause",
+  "connections.resume": "Resume",
   "resources.geoData.geoip": "GeoIP Database",
   "resources.geoData.geosite": "GeoSite Database",
   "resources.geoData.mmdb": "MMDB Database",

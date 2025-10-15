@@ -515,6 +515,8 @@
   "connections.detail.specialProxy": "پراکسی ویژه",
   "connections.detail.specialRules": "قوانین ویژه",
   "connections.detail.close": "بستن",
+  "connections.pause": "مکث",
+  "connections.resume": "ادامه",
   "resources.geoData.geoip": "پایگاه داده GeoIP",
   "resources.geoData.geosite": "پایگاه داده GeoSite",
   "resources.geoData.mmdb": "پایگاه داده MMDB",

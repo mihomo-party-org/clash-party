@@ -13,6 +13,7 @@ import { HiSortAscending, HiSortDescending } from 'react-icons/hi'
 import { includesIgnoreCase } from '@renderer/utils/includes'
 import { differenceWith, unionWith } from 'lodash'
 import { useTranslation } from 'react-i18next'
+import { IoMdPause, IoMdPlay } from 'react-icons/io'
 
 let cachedConnections: IMihomoConnectionDetail[] = []
 
@@ -28,6 +29,7 @@ const Connections: React.FC = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [selected, setSelected] = useState<IMihomoConnectionDetail>()
   const [tab, setTab] = useState('active')
+  const [isPaused, setIsPaused] = useState(false)
 
   const filteredConnections = useMemo(() => {
     const connections = tab === 'active' ? activeConnections : closedConnections
@@ -93,6 +95,7 @@ const Connections: React.FC = () => {
   }
 
   useEffect(() => {
+    if (isPaused) return
     window.electron.ipcRenderer.on('mihomoConnections', (_e, info: IMihomoConnectionsInfo) => {
       setConnectionsInfo(info)
 
@@ -131,7 +134,10 @@ const Connections: React.FC = () => {
     return (): void => {
       window.electron.ipcRenderer.removeAllListeners('mihomoConnections')
     }
-  }, [allConnections, activeConnections, closedConnections])
+  }, [allConnections, activeConnections, closedConnections, isPaused])
+  const togglePause = () => {
+    setIsPaused(!isPaused)
+  }
 
   return (
     <BasePage
@@ -153,6 +159,16 @@ const Connections: React.FC = () => {
             showOutline={false}
             content={`${filteredConnections.length}`}
           >
+            <Button
+              className="app-nodrag ml-1"
+              title={isPaused ? t('connections.resume') : t('connections.pause')}
+              isIconOnly
+              size="sm"
+              variant="light"
+              onPress={togglePause}
+            >
+              {isPaused ? <IoMdPlay className="text-lg" /> : <IoMdPause className="text-lg" />}
+            </Button>
             <Button
               className="app-nodrag ml-1"
               title={t('connections.closeAll')}

@@ -515,6 +515,8 @@
   "connections.detail.specialProxy": "Специальный прокси",
   "connections.detail.specialRules": "Специальные правила",
   "connections.detail.close": "Закрыть",
+  "connections.pause": "Пауза",
+  "connections.resume": "Продолжить",
   "resources.geoData.geoip": "База данных GeoIP",
   "resources.geoData.geosite": "База данных GeoSite",
   "resources.geoData.mmdb": "База данных MMDB",
