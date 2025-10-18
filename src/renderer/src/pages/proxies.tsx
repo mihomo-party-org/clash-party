@@ -357,7 +357,8 @@ const Proxies: React.FC = () => {
                   variant="light"
                   size="sm"
                   isIconOnly
-                  onPress={() => {
+                  onPress={(e) => {
+                    e.stopPropagation()
                     if (!isOpen[index]) {
                       setIsOpen((prev) => {
                         const newOpen = [...prev]
@@ -388,7 +389,8 @@ const Proxies: React.FC = () => {
                   isLoading={delaying[index]}
                   size="sm"
                   isIconOnly
-                  onPress={() => {
+                  onPress={(e) => {
+                    e.stopPropagation()
                     onGroupDelay(index)
                   }}
                 >
