@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next'
 import yaml from 'js-yaml'
 import { IoMdTrash, IoMdArrowUp, IoMdArrowDown, IoMdUndo } from 'react-icons/io'
 import { MdVerticalAlignTop, MdVerticalAlignBottom } from 'react-icons/md'
+import { platform } from '@renderer/utils/init'
 
 interface Props {
   id: string
@@ -33,61 +34,216 @@ interface RuleItem {
   additionalParams?: string[]
 }
 
+const portValidator = (value: string): boolean => {
+  return new RegExp(
+    "^(?:[1-9]\\d{0,3}|[1-5]\\d{4}|6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])$",
+  ).test(value);
+};
+
+const ipv4CIDRValidator = (value: string): boolean => {
+  return new RegExp(
+    "^(?:(?:[1-9]?[0-9]|1[0-9][0-9]|2(?:[0-4][0-9]|5[0-5]))\\.){3}(?:[1-9]?[0-9]|1[0-9][0-9]|2(?:[0-4][0-9]|5[0-5]))(?:\\/(?:[12]?[0-9]|3[0-2]))$",
+  ).test(value);
+};
+
+const ipv6CIDRValidator = (value: string): boolean => {
+  return new RegExp(
+    "^([0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4}){7}|::|:(?::[0-9a-fA-F]{1,4}){1,6}|[0-9a-fA-F]{1,4}:(?::[0-9a-fA-F]{1,4}){1,5}|(?:[0-9a-fA-F]{1,4}:){2}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){3}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){4}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){5}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,6}:)\\/(?:12[0-8]|1[01][0-9]|[1-9]?[0-9])$",
+  ).test(value);
+};
+
 // 内置路由规则 https://wiki.metacubex.one/config/rules/
-const ruleTypes = [
-  'DOMAIN',
-  'DOMAIN-SUFFIX',
-  'DOMAIN-KEYWORD',
-  'DOMAIN-WILDCARD',
-  'DOMAIN-REGEX',
-  'GEOSITE',
-  'IP-CIDR',
-  'IP-CIDR6',
-  'IP-SUFFIX',
-  'IP-ASN',
-  'GEOIP',
-  'SRC-GEOIP',
-  'SRC-IP-ASN',
-  'SRC-IP-CIDR',
-  'SRC-IP-SUFFIX',
-  'DST-PORT',
-  'SRC-PORT',
-  'IN-PORT',
-  'IN-TYPE',
-  'IN-USER',
-  'IN-NAME',
-  'PROCESS-PATH',
-  'PROCESS-PATH-REGEX',
-  'PROCESS-NAME',
-  'PROCESS-NAME-REGEX',
-  'UID',
-  'NETWORK',
-  'DSCP',
-  'RULE-SET',
-  'AND',
-  'OR',
-  'NOT',
-  'SUB-RULE',
-  'MATCH'
-]
+const ruleDefinitionsMap = new Map<string, {
+  name: string;
+  required?: boolean;
+  example?: string;
+  noResolve?: boolean;
+  src?: boolean;
+  validator?: (value: string) => boolean;
+}>([
+  ["DOMAIN", {
+    name: "DOMAIN",
+    example: "example.com",
+  }],
+  ["DOMAIN-SUFFIX", {
+    name: "DOMAIN-SUFFIX",
+    example: "example.com",
+  }],
+  ["DOMAIN-KEYWORD", {
+    name: "DOMAIN-KEYWORD",
+    example: "example",
+  }],
+  ["DOMAIN-REGEX", {
+    name: "DOMAIN-REGEX",
+    example: "example.*",
+  }],
+  ["GEOSITE", {
+    name: "GEOSITE",
+    example: "youtube",
+  }],
+  ["GEOIP", {
+    name: "GEOIP",
+    example: "CN",
+    noResolve: true,
+    src: true,
+  }],
+  ["SRC-GEOIP", {
+    name: "SRC-GEOIP",
+    example: "CN",
+  }],
+  ["IP-ASN", {
+    name: "IP-ASN",
+    example: "13335",
+    noResolve: true,
+    src: true,
+    validator: (value) => (+value ? true : false),
+  }],
+  ["SRC-IP-ASN", {
+    name: "SRC-IP-ASN",
+    example: "9808",
+    validator: (value) => (+value ? true : false),
+  }],
+  ["IP-CIDR", {
+    name: "IP-CIDR",
+    example: "127.0.0.0/8",
+    noResolve: true,
+    src: true,
+    validator: (value) => ipv4CIDRValidator(value) || ipv6CIDRValidator(value),
+  }],
+  ["IP-CIDR6", {
+    name: "IP-CIDR6",
+    example: "2620:0:2d0:200::7/32",
+    noResolve: true,
+    src: true,
+    validator: (value) => ipv4CIDRValidator(value) || ipv6CIDRValidator(value),
+  }],
+  ["SRC-IP-CIDR", {
+    name: "SRC-IP-CIDR",
+    example: "192.168.1.201/32",
+    validator: (value) => ipv4CIDRValidator(value) || ipv6CIDRValidator(value),
+  }],
+  ["IP-SUFFIX", {
+    name: "IP-SUFFIX",
+    example: "8.8.8.8/24",
+    noResolve: true,
+    src: true,
+    validator: (value) => ipv4CIDRValidator(value) || ipv6CIDRValidator(value),
+  }],
+  ["SRC-IP-SUFFIX", {
+    name: "SRC-IP-SUFFIX",
+    example: "192.168.1.201/8",
+    validator: (value) => ipv4CIDRValidator(value) || ipv6CIDRValidator(value),
+  }],
+  ["SRC-PORT", {
+    name: "SRC-PORT",
+    example: "7777",
+    validator: (value) => portValidator(value),
+  }],
+  ["DST-PORT", {
+    name: "DST-PORT",
+    example: "80",
+    validator: (value) => portValidator(value),
+  }],
+  ["IN-PORT", {
+    name: "IN-PORT",
+    example: "7897",
+    validator: (value) => portValidator(value),
+  }],
+  ["DSCP", {
+    name: "DSCP",
+    example: "4",
+  }],
+  ["PROCESS-NAME", {
+    name: "PROCESS-NAME",
+    example: platform === "win32" ? "chrome.exe" : "curl",
+  }],
+  ["PROCESS-PATH", {
+    name: "PROCESS-PATH",
+    example:
+      platform === "win32"
+        ? "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+        : "/usr/bin/wget",
+  }],
+  ["PROCESS-NAME-REGEX", {
+    name: "PROCESS-NAME-REGEX",
+    example: ".*telegram.*",
+  }],
+  ["PROCESS-PATH-REGEX", {
+    name: "PROCESS-PATH-REGEX",
+    example:
+      platform === "win32" ? "(?i).*Application\\chrome.*" : ".*bin/wget",
+  }],
+  ["NETWORK", {
+    name: "NETWORK",
+    example: "udp",
+    validator: (value) => ["tcp", "udp"].includes(value),
+  }],
+  ["UID", {
+    name: "UID",
+    example: "1001",
+    validator: (value) => (+value ? true : false),
+  }],
+  ["IN-TYPE", {
+    name: "IN-TYPE",
+    example: "SOCKS/HTTP",
+  }],
+  ["IN-USER", {
+    name: "IN-USER",
+    example: "mihomo",
+  }],
+  ["IN-NAME", {
+    name: "IN-NAME",
+    example: "ss",
+  }],
+  ["SUB-RULE", {
+    name: "SUB-RULE",
+    example: "(NETWORK,tcp)",
+  }],
+  ["RULE-SET", {
+    name: "RULE-SET",
+    example: "providername",
+    noResolve: true,
+    src: true,
+  }],
+  ["AND", {
+    name: "AND",
+    example: "((DOMAIN,baidu.com),(NETWORK,UDP))",
+  }],
+  ["OR", {
+    name: "OR",
+    example: "((NETWORK,UDP),(DOMAIN,baidu.com))",
+  }],
+  ["NOT", {
+    name: "NOT",
+    example: "((DOMAIN,baidu.com))",
+  }],
+  ["MATCH", {
+    name: "MATCH",
+    required: false,
+  }],
+]);
 
-// 支持 no-resolve 参数的规则类型
-const noResolveSupportTypes = [
-  'IP-CIDR',
-  'IP-CIDR6',
-  'IP-SUFFIX',
-  'IP-ASN',
-  'GEOIP'
-]
+const ruleTypes = Array.from(ruleDefinitionsMap.keys());
 
-// 支持 src 参数的规则类型
-const srcSupportTypes = [
-  'IP-CIDR',
-  'IP-CIDR6',
-  'IP-SUFFIX',
-  'IP-ASN',
-  'GEOIP'
-]
+const isRuleSupportsNoResolve = (ruleType: string): boolean => {
+  const rule = ruleDefinitionsMap.get(ruleType);
+  return rule?.noResolve === true;
+};
+
+const isRuleSupportsSrc = (ruleType: string): boolean => {
+  const rule = ruleDefinitionsMap.get(ruleType);
+  return rule?.src === true;
+};
+
+const getRuleExample = (ruleType: string): string => {
+  const rule = ruleDefinitionsMap.get(ruleType);
+  return rule?.example || '';
+};
+
+const isAddRuleDisabled = (newRule: RuleItem, validateRulePayload: (ruleType: string, payload: string) => boolean): boolean => {
+  return (!(newRule.payload.trim() || newRule.type === 'MATCH')) || !newRule.type || 
+    (newRule.type !== 'MATCH' && newRule.payload.trim() !== '' && !validateRulePayload(newRule.type, newRule.payload));
+};
 
 const EditRulesModal: React.FC<Props> = (props) => {
   const { id, onClose } = props
@@ -262,8 +418,8 @@ const EditRulesModal: React.FC<Props> = (props) => {
   }
 
   const handleRuleTypeChange = (selected: string): void => {
-    const noResolveSupported = noResolveSupportTypes.includes(selected);
-    const srcSupported = srcSupportTypes.includes(selected);
+    const noResolveSupported = isRuleSupportsNoResolve(selected);
+    const srcSupported = isRuleSupportsSrc(selected);
 
     let additionalParams = [...(newRule.additionalParams || [])];
     if (!noResolveSupported) {
@@ -298,7 +454,12 @@ const EditRulesModal: React.FC<Props> = (props) => {
   };
 
   const handleAddRule = (position: 'prepend' | 'append' = 'append'): void => {
-    if (newRule.payload.trim() !== '' || newRule.type === 'MATCH') {
+    if (newRule.type === 'MATCH' || newRule.payload.trim() !== '') {
+      if (newRule.type !== 'MATCH' && newRule.payload.trim() !== '' && !validateRulePayload(newRule.type, newRule.payload)) {
+        alert(t('profiles.editRules.invalidPayload') + ': ' + getRuleExample(newRule.type));
+        return;
+      }
+      
       const newRuleItem = { ...newRule };
       let updatedRules: RuleItem[];
       
@@ -372,6 +533,24 @@ const EditRulesModal: React.FC<Props> = (props) => {
     })
   }
 
+  const validateRulePayload = (ruleType: string, payload: string): boolean => {
+    if (ruleType === 'MATCH') {
+      return true;
+    }
+
+    const validator = getRuleValidator(ruleType);
+    if (!validator) {
+      return true;
+    }
+
+    return validator(payload);
+  };
+
+  const getRuleValidator = (ruleType: string): ((value: string) => boolean) | undefined => {
+    const rule = ruleDefinitionsMap.get(ruleType);
+    return rule?.validator;
+  };
+
   return (
     <Modal
       backdrop="blur"
@@ -410,10 +589,11 @@ const EditRulesModal: React.FC<Props> = (props) => {
                 
                 <Input
                   label={t('profiles.editRules.payload')}
-                  placeholder={t('profiles.editRules.payloadPlaceholder')}
+                  placeholder={getRuleExample(newRule.type) || t('profiles.editRules.payloadPlaceholder')}
                   value={newRule.payload}
                   onValueChange={(value) => setNewRule({ ...newRule, payload: value })}
                   isDisabled={newRule.type === 'MATCH'}
+                  color={newRule.payload && newRule.type !== 'MATCH' && !validateRulePayload(newRule.type, newRule.payload) ? "danger" : "default"}
                 />
                 
                 <Autocomplete
@@ -432,11 +612,11 @@ const EditRulesModal: React.FC<Props> = (props) => {
                 </Autocomplete>
                 
                 {/* 附加参数 */}
-                {(noResolveSupportTypes.includes(newRule.type) || srcSupportTypes.includes(newRule.type)) && (
+                {(isRuleSupportsNoResolve(newRule.type) || isRuleSupportsSrc(newRule.type)) && (
                   <>
                     <Divider className="my-2" />
                     <div className="flex flex-col gap-2">
-                      {noResolveSupportTypes.includes(newRule.type) && (
+                      {isRuleSupportsNoResolve(newRule.type) && (
                         <Checkbox
                           isSelected={newRule.additionalParams?.includes('no-resolve') || false}
                           onValueChange={(checked) => handleAdditionalParamChange('no-resolve', checked)}
@@ -444,7 +624,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
                           {t('profiles.editRules.noResolve')}
                         </Checkbox>
                       )}
-                      {srcSupportTypes.includes(newRule.type) && (
+                      {isRuleSupportsSrc(newRule.type) && (
                         <Checkbox
                           isSelected={newRule.additionalParams?.includes('src') || false}
                           onValueChange={(checked) => handleAdditionalParamChange('src', checked)}
@@ -460,7 +640,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
                   <Button 
                     color="primary" 
                     onPress={() => handleAddRule('prepend')}
-                    isDisabled={!(newRule.payload.trim() || newRule.type === 'MATCH') || !newRule.type}
+                    isDisabled={isAddRuleDisabled(newRule, validateRulePayload)}
                     startContent={<MdVerticalAlignTop className="text-lg" />}
                   >
                     {t('profiles.editRules.addRulePrepend')}
@@ -469,7 +649,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
                     color="primary" 
                     variant="bordered"
                     onPress={() => handleAddRule('append')}
-                    isDisabled={!(newRule.payload.trim() || newRule.type === 'MATCH') || !newRule.type}
+                    isDisabled={isAddRuleDisabled(newRule, validateRulePayload)}
                     startContent={<MdVerticalAlignBottom className="text-lg" />}
                   >
                     {t('profiles.editRules.addRuleAppend')}
