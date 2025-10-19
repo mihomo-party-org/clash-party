@@ -36,7 +36,7 @@ const Mihomo: React.FC = () => {
   const {
     core = 'mihomo',
     specificVersion,
-    enableSmartCore = true,
+    enableSmartCore = false,
     enableSmartOverride = true,
     smartCoreUseLightGBM = false,
     smartCoreCollectData = false,
@@ -414,7 +414,7 @@ const Mihomo: React.FC = () => {
             </SettingItem>
 
             {/* Smart 覆写开关 */}
-            {enableSmartCore && (
+            {enableSmartCore && core === 'mihomo-smart' && (
               <SettingItem
                 title={
                   <div className="flex items-center gap-2">
