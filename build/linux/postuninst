@@ -3,10 +3,10 @@
 case "$1" in
   remove|purge|0)
     if type update-alternatives >/dev/null 2>&1; then
-        update-alternatives --remove 'mihomo-party' '/opt/mihomo-party/mihomo-party' 2>/dev/null || true
+        update-alternatives --remove 'clash-party' '/opt/clash-party/mihomo-party' 2>/dev/null || true
     fi
     
-    [ -L '/usr/bin/mihomo-party' ] && rm -f '/usr/bin/mihomo-party'
+    [ -L '/usr/bin/clash-party' ] && rm -f '/usr/bin/clash-party'
 
     if hash update-mime-database 2>/dev/null; then
       update-mime-database /usr/share/mime || true
