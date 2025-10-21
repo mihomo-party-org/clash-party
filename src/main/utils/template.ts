@@ -1,6 +1,6 @@
 export const defaultConfig: IAppConfig = {
   core: 'mihomo',
-  enableSmartCore: true,
+  enableSmartCore: false,
   enableSmartOverride: true,
   smartCoreUseLightGBM: false,
   smartCoreCollectData: false,
