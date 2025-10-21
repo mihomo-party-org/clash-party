@@ -1158,7 +1158,7 @@ const Mihomo: React.FC = () => {
               <SelectItem key="debug">{t('mihomo.debug')}</SelectItem>
             </Select>
           </SettingItem>
-          <SettingItem title={t('mihomo.findProcess')} divider>
+          <SettingItem title={t('mihomo.findProcess')} >
             <Select
               classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
               className="w-[100px]"
