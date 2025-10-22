@@ -85,7 +85,7 @@ import {
   setupFirewall
 } from '../sys/misc'
 import { getRuntimeConfig, getRuntimeConfigStr } from '../core/factory'
-import { listWebdavBackups, webdavBackup, webdavDelete, webdavRestore } from '../resolve/backup'
+import { listWebdavBackups, webdavBackup, webdavDelete, webdavRestore, exportLocalBackup, importLocalBackup } from '../resolve/backup'
 import { getInterfaces } from '../sys/interface'
 import { closeTrayIcon, copyEnv, showTrayIcon, updateTrayIcon, updateTrayIconImmediate } from '../resolve/tray'
 import { registerShortcut } from '../resolve/shortcut'
@@ -250,6 +250,8 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('listWebdavBackups', ipcErrorWrapper(listWebdavBackups))
   ipcMain.handle('webdavDelete', (_e, filename) => ipcErrorWrapper(webdavDelete)(filename))
   ipcMain.handle('reinitWebdavBackupScheduler', ipcErrorWrapper(reinitScheduler))
+  ipcMain.handle('exportLocalBackup', () => ipcErrorWrapper(exportLocalBackup)())
+  ipcMain.handle('importLocalBackup', () => ipcErrorWrapper(importLocalBackup)())
   ipcMain.handle('registerShortcut', (_e, oldShortcut, newShortcut, action) =>
     ipcErrorWrapper(registerShortcut)(oldShortcut, newShortcut, action)
   )

@@ -14,6 +14,9 @@ import {
 } from '../utils/dirs'
 import { systemLogger } from '../utils/logger'
 import { Cron } from 'croner'
+import { dialog } from 'electron'
+import { existsSync } from 'fs'
+import i18next from 'i18next'
 
 let backupCronJob: Cron | null = null
 
@@ -195,4 +198,76 @@ export async function reinitScheduler(): Promise<void> {
   await stopWebdavBackupScheduler()
   await initWebdavBackupScheduler()
   await systemLogger.info('WebDAV backup scheduler reinitialized successfully')
+}
+
+/**
+ * 导出本地备份
+ */
+export async function exportLocalBackup(): Promise<boolean> {
+  const zip = new AdmZip()
+  if (existsSync(appConfigPath())) {
+    zip.addLocalFile(appConfigPath())
+  }
+  if (existsSync(controledMihomoConfigPath())) {
+    zip.addLocalFile(controledMihomoConfigPath())
+  }
+  if (existsSync(profileConfigPath())) {
+    zip.addLocalFile(profileConfigPath())
+  }
+  if (existsSync(overrideConfigPath())) {
+    zip.addLocalFile(overrideConfigPath())
+  }
+  if (existsSync(themesDir())) {
+    zip.addLocalFolder(themesDir(), 'themes')
+  }
+  if (existsSync(profilesDir())) {
+    zip.addLocalFolder(profilesDir(), 'profiles')
+  }
+  if (existsSync(overrideDir())) {
+    zip.addLocalFolder(overrideDir(), 'override')
+  }
+  if (existsSync(subStoreDir())) {
+    zip.addLocalFolder(subStoreDir(), 'substore')
+  }
+  
+  const date = new Date()
+  const zipFileName = `clash-party-backup-${dayjs(date).format('YYYY-MM-DD_HH-mm-ss')}.zip`
+  const result = await dialog.showSaveDialog({
+    title: i18next.t('localBackup.export.title'),
+    defaultPath: zipFileName,
+    filters: [
+      { name: 'ZIP Files', extensions: ['zip'] },
+      { name: 'All Files', extensions: ['*'] }
+    ]
+  })
+  
+  if (!result.canceled && result.filePath) {
+    zip.writeZip(result.filePath)
+    await systemLogger.info(`Local backup exported to: ${result.filePath}`)
+    return true
+  }
+  return false
+}
+
+/**
+ * 导入本地备份
+ */
+export async function importLocalBackup(): Promise<boolean> {
+  const result = await dialog.showOpenDialog({
+    title: i18next.t('localBackup.import.title'),
+    filters: [
+      { name: 'ZIP Files', extensions: ['zip'] },
+      { name: 'All Files', extensions: ['*'] }
+    ],
+    properties: ['openFile']
+  })
+  
+  if (!result.canceled && result.filePaths.length > 0) {
+    const filePath = result.filePaths[0]
+    const zip = new AdmZip(filePath)
+    zip.extractAllTo(dataDir(), true)
+    await systemLogger.info(`Local backup imported from: ${filePath}`)
+    return true
+  }
+  return false
 }
