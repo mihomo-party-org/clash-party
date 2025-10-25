@@ -11,6 +11,7 @@ import {
   profilePath,
   profilesDir,
   resourcesFilesDir,
+  rulesDir,
   subStoreDir,
   themesDir
 } from './dirs'
@@ -106,6 +107,7 @@ async function initDirs(): Promise<void> {
     themesDir(),
     profilesDir(),
     overrideDir(),
+    rulesDir(),
     mihomoWorkDir(),
     logDir(),
     mihomoTestDir(),

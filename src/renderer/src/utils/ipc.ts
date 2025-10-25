@@ -549,6 +549,14 @@ export async function copyEnv(type: 'bash' | 'cmd' | 'powershell'): Promise<void
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('copyEnv', type))
 }
 
+export async function getRuleStr(id: string): Promise<string> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getRuleStr', id))
+}
+
+export async function setRuleStr(id: string, str: string): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setRuleStr', id, str))
+}
+
 async function alert<T>(msg: T): Promise<void> {
   const msgStr = typeof msg === 'string' ? msg : JSON.stringify(msg)
   return await window.electron.ipcRenderer.invoke('alert', msgStr)
