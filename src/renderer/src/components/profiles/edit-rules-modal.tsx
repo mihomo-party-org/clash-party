@@ -242,7 +242,7 @@ const getRuleExample = (ruleType: string): string => {
 };
 
 const isAddRuleDisabled = (newRule: RuleItem, validateRulePayload: (ruleType: string, payload: string) => boolean): boolean => {
-  return (!(newRule.payload.trim() || newRule.type === 'MATCH')) || !newRule.type || 
+  return (!(newRule.payload.trim() || newRule.type === 'MATCH')) || !newRule.type || !newRule.proxy ||
     (newRule.type !== 'MATCH' && newRule.payload.trim() !== '' && !validateRulePayload(newRule.type, newRule.payload));
 };
 
