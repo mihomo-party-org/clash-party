@@ -35,6 +35,34 @@ interface RuleItem {
   offset?: number
 }
 
+const domainValidator = (value: string): boolean => {
+  if (value.length > 253 || value.length < 2) return false;
+  
+  return new RegExp(
+    "^(?:(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)\\.)+[a-zA-Z]{2,}$"
+  ).test(value) || 
+  ["localhost", "local", "localdomain"].includes(value.toLowerCase());
+};
+
+const domainSuffixValidator = (value: string): boolean => {
+  return new RegExp(
+    "^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\\.)*[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\\.[a-zA-Z]{2,}$"
+  ).test(value);
+};
+
+const domainKeywordValidator = (value: string): boolean => {
+  return value.length > 0 && !value.includes(",") && !value.includes(" ");
+};
+
+const domainRegexValidator = (value: string): boolean => {
+  try {
+    new RegExp(value);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const portValidator = (value: string): boolean => {
   return new RegExp(
     "^(?:[1-9]\\d{0,3}|[1-5]\\d{4}|6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])$",
@@ -65,18 +93,22 @@ const ruleDefinitionsMap = new Map<string, {
   ["DOMAIN", {
     name: "DOMAIN",
     example: "example.com",
+    validator: (value) => domainValidator(value)
   }],
   ["DOMAIN-SUFFIX", {
     name: "DOMAIN-SUFFIX",
     example: "example.com",
+    validator: (value) => domainSuffixValidator(value)
   }],
   ["DOMAIN-KEYWORD", {
     name: "DOMAIN-KEYWORD",
     example: "example",
+    validator: (value) => domainKeywordValidator(value)
   }],
   ["DOMAIN-REGEX", {
     name: "DOMAIN-REGEX",
     example: "example.*",
+    validator: (value) => domainRegexValidator(value)
   }],
   ["GEOSITE", {
     name: "GEOSITE",
