@@ -1,9 +1,9 @@
-import axios from 'axios'
+import * as chromeRequest from './chromeRequest'
 import { getControledMihomoConfig } from '../config'
 
 export async function getImageDataURL(url: string): Promise<string> {
   const { 'mixed-port': port = 7890 } = await getControledMihomoConfig()
-  const res = await axios.get(url, {
+  const res = await chromeRequest.get(url, {
     responseType: 'arraybuffer',
     proxy: {
       protocol: 'http',
@@ -12,6 +12,6 @@ export async function getImageDataURL(url: string): Promise<string> {
     }
   })
   const mimeType = res.headers['content-type']
-  const dataURL = `data:${mimeType};base64,${Buffer.from(res.data).toString('base64')}`
+  const dataURL = `data:${mimeType};base64,${Buffer.from(res.data as Buffer).toString('base64')}`
   return dataURL
 }

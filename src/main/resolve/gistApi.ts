@@ -1,4 +1,4 @@
-import axios from 'axios'
+import * as chromeRequest from '../utils/chromeRequest'
 import { getAppConfig, getControledMihomoConfig } from '../config'
 import { getRuntimeConfigStr } from '../core/factory'
 
@@ -10,7 +10,7 @@ interface GistInfo {
 
 async function listGists(token: string): Promise<GistInfo[]> {
   const { 'mixed-port': port = 7890 } = await getControledMihomoConfig()
-  const res = await axios.get('https://api.github.com/gists', {
+  const res = await chromeRequest.get('https://api.github.com/gists', {
     headers: {
       Accept: 'application/vnd.github+json',
       Authorization: `Bearer ${token}`,
@@ -28,7 +28,7 @@ async function listGists(token: string): Promise<GistInfo[]> {
 
 async function createGist(token: string, content: string): Promise<void> {
   const { 'mixed-port': port = 7890 } = await getControledMihomoConfig()
-  return await axios.post(
+  await chromeRequest.post(
     'https://api.github.com/gists',
     {
       description: 'Auto Synced Clash Party Runtime Config',
@@ -52,7 +52,7 @@ async function createGist(token: string, content: string): Promise<void> {
 
 async function updateGist(token: string, id: string, content: string): Promise<void> {
   const { 'mixed-port': port = 7890 } = await getControledMihomoConfig()
-  return await axios.patch(
+  await chromeRequest.patch(
     `https://api.github.com/gists/${id}`,
     {
       description: 'Auto Synced Clash Party Runtime Config',

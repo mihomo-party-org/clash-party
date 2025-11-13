@@ -9,7 +9,7 @@ import net from 'net'
 import path from 'path'
 import { nativeImage } from 'electron'
 import express from 'express'
-import axios from 'axios'
+import * as chromeRequest from '../utils/chromeRequest'
 import AdmZip from 'adm-zip'
 import { systemLogger } from '../utils/logger'
 
@@ -155,7 +155,7 @@ export async function downloadSubStore(): Promise<void> {
 
     // 下载后端文件
     const tempBackendPath = path.join(tempDir, 'sub-store.bundle.cjs')
-    const backendRes = await axios.get(
+    const backendRes = await chromeRequest.get(
       'https://github.com/sub-store-org/Sub-Store/releases/latest/download/sub-store.bundle.js',
       {
         responseType: 'arraybuffer',
@@ -167,9 +167,9 @@ export async function downloadSubStore(): Promise<void> {
         }
       }
     )
-    await writeFile(tempBackendPath, Buffer.from(backendRes.data))
+    await writeFile(tempBackendPath, Buffer.from(backendRes.data as Buffer))
     // 下载前端文件
-    const frontendRes = await axios.get(
+    const frontendRes = await chromeRequest.get(
       'https://github.com/sub-store-org/Sub-Store-Front-End/releases/latest/download/dist.zip',
       {
         responseType: 'arraybuffer',
@@ -182,7 +182,7 @@ export async function downloadSubStore(): Promise<void> {
       }
     )
     // 先解压到临时目录
-    const zip = new AdmZip(Buffer.from(frontendRes.data))
+    const zip = new AdmZip(Buffer.from(frontendRes.data as Buffer))
     zip.extractAllTo(tempDir, true)
     await cp(tempBackendPath, backendPath)
     if (existsSync(frontendDir)) {

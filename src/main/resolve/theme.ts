@@ -1,7 +1,7 @@
 import { copyFile, readdir, readFile, writeFile } from 'fs/promises'
 import { themesDir } from '../utils/dirs'
 import path from 'path'
-import axios from 'axios'
+import * as chromeRequest from '../utils/chromeRequest'
 import AdmZip from 'adm-zip'
 import { getControledMihomoConfig } from '../config'
 import { existsSync } from 'fs'
@@ -36,7 +36,7 @@ export async function resolveThemes(): Promise<{ key: string; label: string }[]>
 export async function fetchThemes(): Promise<void> {
   const zipUrl = 'https://github.com/mihomo-party-org/theme-hub/releases/download/latest/themes.zip'
   const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
-  const zipData = await axios.get(zipUrl, {
+  const zipData = await chromeRequest.get(zipUrl, {
     responseType: 'arraybuffer',
     headers: { 'Content-Type': 'application/octet-stream' },
     proxy: {
@@ -45,7 +45,7 @@ export async function fetchThemes(): Promise<void> {
       port: mixedPort
     }
   })
-  const zip = new AdmZip(zipData.data as Buffer)
+  const zip = new AdmZip(Buffer.from(zipData.data as Buffer))
   zip.extractAllTo(themesDir(), true)
 }
 

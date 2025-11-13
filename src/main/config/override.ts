@@ -2,7 +2,7 @@ import { overrideConfigPath, overridePath } from '../utils/dirs'
 import { getControledMihomoConfig } from './controledMihomo'
 import { readFile, writeFile, rm } from 'fs/promises'
 import { existsSync } from 'fs'
-import axios from 'axios'
+import * as chromeRequest from '../utils/chromeRequest'
 import { parse, stringify } from '../utils/yaml'
 
 let overrideConfig: IOverrideConfig // override.yaml
@@ -70,7 +70,7 @@ export async function createOverride(item: Partial<IOverrideItem>): Promise<IOve
     case 'remote': {
       const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
       if (!item.url) throw new Error('Empty URL')
-      const res = await axios.get(item.url, {
+      const res = await chromeRequest.get(item.url, {
         proxy: {
           protocol: 'http',
           host: '127.0.0.1',

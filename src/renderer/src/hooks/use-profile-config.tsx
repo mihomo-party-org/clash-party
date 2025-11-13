@@ -1,12 +1,12 @@
-import React, { createContext, useContext, ReactNode } from 'react'
+import React, { createContext, ReactNode, useContext } from 'react'
 import useSWR from 'swr'
 import {
-  getProfileConfig,
-  setProfileConfig as set,
   addProfileItem as add,
+  changeCurrentProfile as change,
+  getProfileConfig,
   removeProfileItem as remove,
-  updateProfileItem as update,
-  changeCurrentProfile as change
+  setProfileConfig as set,
+  updateProfileItem as update
 } from '@renderer/utils/ipc'
 
 interface ProfileConfigContextType {
@@ -25,7 +25,8 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
   const { data: profileConfig, mutate: mutateProfileConfig } = useSWR('getProfileConfig', () =>
     getProfileConfig()
   )
-  const [targetProfileId, setTargetProfileId] = React.useState<string | null>(null)
+  const targetProfileId = React.useRef<string | null>(null)
+  const pendingTask = React.useRef<Promise<void> | null>(null)
 
   const setProfileConfig = async (config: IProfileConfig): Promise<void> => {
     try {
@@ -72,11 +73,9 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
   }
 
   const changeCurrentProfile = async (id: string): Promise<void> => {
-    if (targetProfileId === id) {
+    if (targetProfileId.current === id) {
       return
     }
-
-    setTargetProfileId(id)
 
     // 立即更新 UI 状态和托盘菜单，提供即时反馈
     if (profileConfig) {
@@ -85,17 +84,24 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
       window.electron.ipcRenderer.send('updateTrayMenu')
     }
 
-    // 异步执行后台切换，不阻塞 UI
-    try {
-      await change(id)
+    targetProfileId.current = id
+    await processChange()
+  }
 
-      if (targetProfileId === id) {
-        mutateProfileConfig()
-        setTargetProfileId(null)
-      } else {
-      }
-    } catch (e) {
-      if (targetProfileId === id) {
+  const processChange = async () => {
+    if (pendingTask.current) {
+      return
+    }
+
+    while (targetProfileId.current) {
+      const targetId = targetProfileId.current
+      targetProfileId.current = null
+
+      pendingTask.current = change(targetId)
+      try {
+        // 异步执行后台切换，不阻塞 UI
+        await pendingTask.current
+      } catch (e) {
         const errorMsg = (e as any)?.message || String(e)
         // 处理 IPC 超时错误
         if (errorMsg.includes('reply was never sent')) {
@@ -104,7 +110,8 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
           alert(`切换 Profile 失败: ${errorMsg}`)
           mutateProfileConfig()
         }
-        setTargetProfileId(null)
+      } finally {
+        pendingTask.current = null
       }
     }
   }

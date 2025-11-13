@@ -44,6 +44,38 @@ import { safeShowErrorBox } from '../utils/init'
 import i18next from '../../shared/i18n'
 import { managerLogger } from '../utils/logger'
 
+// 内核名称白名单
+const ALLOWED_CORES = ['mihomo', 'mihomo-alpha', 'mihomo-smart'] as const
+type AllowedCore = typeof ALLOWED_CORES[number]
+
+function isValidCoreName(core: string): core is AllowedCore {
+  return ALLOWED_CORES.includes(core as AllowedCore)
+}
+
+  // 路径检查
+function validateCorePath(corePath: string): void {
+
+  if (corePath.includes('..')) {
+    throw new Error('Invalid core path: directory traversal detected')
+  }
+
+  const dangerousChars = /[;&|`$(){}[\]<>'"\\]/
+  if (dangerousChars.test(path.basename(corePath))) {
+    throw new Error('Invalid core path: contains dangerous characters')
+  }
+
+  const normalizedPath = path.normalize(path.resolve(corePath))
+  const expectedDir = path.normalize(path.resolve(mihomoCoreDir()))
+
+  if (!normalizedPath.startsWith(expectedDir + path.sep) && normalizedPath !== expectedDir) {
+    throw new Error('Invalid core path: not in expected directory')
+  }
+}
+
+function shellEscape(arg: string): string {
+  return "'" + arg.replace(/'/g, "'\\''") + "'"
+}
+
 chokidar.watch(path.join(mihomoCoreDir(), 'meta-update'), {}).on('unlinkDir', async () => {
   try {
     await stopCore(true)
@@ -86,11 +118,7 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
     core = 'mihomo',
     autoSetDNS = true,
     diffWorkDir = false,
-    mihomoCpuPriority = 'PRIORITY_NORMAL',
-    disableLoopbackDetector = false,
-    disableEmbedCA = false,
-    disableSystemCA = false,
-    skipSafePathCheck = false
+    mihomoCpuPriority = 'PRIORITY_NORMAL'
   } = await getAppConfig()
   const { 'log-level': logLevel } = await getControledMihomoConfig()
   if (existsSync(path.join(dataDir(), 'core.pid'))) {
@@ -135,19 +163,13 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
   // 内核日志输出到独立的 core-日期.log 文件
   const stdout = createWriteStream(coreLogPath(), { flags: 'a' })
   const stderr = createWriteStream(coreLogPath(), { flags: 'a' })
-  const env = {
-    DISABLE_LOOPBACK_DETECTOR: String(disableLoopbackDetector),
-    DISABLE_EMBED_CA: String(disableEmbedCA),
-    DISABLE_SYSTEM_CA: String(disableSystemCA),
-    SKIP_SAFE_PATH_CHECK: String(skipSafePathCheck)
-  }
+  
   child = spawn(
     corePath,
     ['-d', diffWorkDir ? mihomoProfileWorkDir(current) : mihomoWorkDir(), ctlParam, dynamicIpcPath],
     {
       detached: detached,
-      stdio: detached ? 'ignore' : undefined,
-      env: env
+      stdio: detached ? 'ignore' : undefined
     }
   )
   if (process.platform === 'win32' && child.pid) {
@@ -431,15 +453,12 @@ export async function quitWithoutCore(): Promise<void> {
 async function checkProfile(): Promise<void> {
   const {
     core = 'mihomo',
-    diffWorkDir = false,
-    skipSafePathCheck = false
+    diffWorkDir = false
   } = await getAppConfig()
   const { current } = await getProfileConfig()
   const corePath = mihomoCorePath(core)
   const execFilePromise = promisify(execFile)
-  const env = {
-    SKIP_SAFE_PATH_CHECK: String(skipSafePathCheck)
-  }
+  
   try {
     await execFilePromise(corePath, [
       '-t',
@@ -447,7 +466,7 @@ async function checkProfile(): Promise<void> {
       diffWorkDir ? mihomoWorkConfigPath(current) : mihomoWorkConfigPath('work'),
       '-d',
       mihomoTestDir()
-    ], { env })
+    ])
   } catch (error) {
     await managerLogger.error('Profile check failed', error)
 
@@ -502,22 +521,28 @@ export async function checkTunPermissions(): Promise<boolean> {
 
 export async function grantTunPermissions(): Promise<void> {
   const { core = 'mihomo' } = await getAppConfig()
+
+  // 验证内核名称
+  if (!isValidCoreName(core)) {
+    throw new Error(`Invalid core name: ${core}. Allowed values: ${ALLOWED_CORES.join(', ')}`)
+  }
+
   const corePath = mihomoCorePath(core)
-  const execPromise = promisify(exec)
+
+  // 验证路径
+  validateCorePath(corePath)
+
   const execFilePromise = promisify(execFile)
 
   if (process.platform === 'darwin') {
-    const shell = `chown root:admin ${corePath.replace(' ', '\\\\ ')}\nchmod +sx ${corePath.replace(' ', '\\\\ ')}`
-    const command = `do shell script "${shell}" with administrator privileges`
-    await execPromise(`osascript -e '${command}'`)
+    const escapedPath = shellEscape(corePath)
+    const script = `do shell script "chown root:admin ${escapedPath} && chmod +sx ${escapedPath}" with administrator privileges`
+    await execFilePromise('osascript', ['-e', script])
   }
 
   if (process.platform === 'linux') {
-    await execFilePromise('pkexec', [
-      'bash',
-      '-c',
-      `chown root:root "${corePath}" && chmod +sx "${corePath}"`
-    ])
+    await execFilePromise('pkexec', ['chown', 'root:root', corePath])
+    await execFilePromise('pkexec', ['chmod', '+sx', corePath])
   }
 
   if (process.platform === 'win32') {

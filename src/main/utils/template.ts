@@ -1,6 +1,6 @@
 export const defaultConfig: IAppConfig = {
   core: 'mihomo',
-  enableSmartCore: true,
+  enableSmartCore: false,
   enableSmartOverride: true,
   smartCoreUseLightGBM: false,
   smartCoreCollectData: false,
@@ -25,11 +25,7 @@ export const defaultConfig: IAppConfig = {
   controlSniff: true,
   floatingWindowCompatMode: true,
   disableHardwareAcceleration: false,
-  disableLoopbackDetector: false,
   hideConnectionCardWave: false,
-  disableEmbedCA: false,
-  disableSystemCA: false,
-  skipSafePathCheck: false,
   nameserverPolicy: {},
   siderOrder: [
     'sysproxy',

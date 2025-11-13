@@ -130,7 +130,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
                         }
                       }
                     }}
-                    placeholder="例如：30 或 '0 * * * *'"
+                    placeholder={t('profiles.editInfo.intervalPlaceholder')}
                   />
 
                   {/* 动态提示信息 */}
@@ -142,13 +142,13 @@ const EditInfoModal: React.FC<Props> = (props) => {
                           : '#6b7280'
                   }}>
                     {typeof values.interval === 'number' ? (
-                      '以分钟为单位的定时间隔'
+                      t('profiles.editInfo.intervalMinutes')
                     ) : /^\d+$/.test(values.interval?.toString() || '') ? (
-                      '以分钟为单位的定时间隔'
+                      t('profiles.editInfo.intervalMinutes')
                     ) : isValidCron(values.interval?.toString() || '', { seconds: false }) ? (
-                      '有效的Cron表达式'
+                      t('profiles.editInfo.intervalCron')
                     ) : (
-                      '请输入数字或合法的Cron表达式（如：0 * * * *）'
+                      t('profiles.editInfo.intervalHint')
                     )}
                   </div>
                 </div>

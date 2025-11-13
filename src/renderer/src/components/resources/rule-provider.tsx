@@ -49,7 +49,7 @@ const RuleProvider: React.FC = () => {
 
   const { data, mutate } = useSWR('mihomoRuleProviders', mihomoRuleProviders)
   const providers = useMemo(() => {
-    if (!data) return []
+    if (!data || !data.providers) return []
     return Object.values(data.providers).sort((a, b) => {
       if (a.vehicleType === 'File' && b.vehicleType !== 'File') {
         return -1

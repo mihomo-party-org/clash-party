@@ -266,7 +266,7 @@ jobs:
         run: |
           pnpm install
           pnpm add @mihomo-party/sysproxy-linux-${{ matrix.arch }}-gnu
-          sed -i "s/productName: Clash Party/productName: mihomo-party/" electron-builder.yml
+          sed -i "s/productName: Clash Party/productName: clash-party/" electron-builder.yml
       - name: Update Version for Dev Build
         if: github.event_name == 'workflow_dispatch'
         env:

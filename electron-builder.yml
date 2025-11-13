@@ -68,7 +68,9 @@ linux:
   artifactName: clash-party-linux-${version}-${arch}.${ext}
 deb:
   afterInstall: 'build/linux/postinst'
+  afterRemove: 'build/linux/postuninst'
 rpm:
   afterInstall: 'build/linux/postinst'
+  afterRemove: 'build/linux/postuninst'
 npmRebuild: true
 publish: []

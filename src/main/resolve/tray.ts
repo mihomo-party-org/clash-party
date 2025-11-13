@@ -356,10 +356,10 @@ export async function createTray(): Promise<void> {
       image.setTemplateImage(true)
       tray?.setImage(image)
     })
-    tray?.addListener('right-click', async () => {
+    tray?.addListener('click', async () => {
       triggerMainWindow()
     })
-    tray?.addListener('click', async () => {
+    tray?.addListener('right-click', async () => {
       await updateTrayMenu()
     })
   }

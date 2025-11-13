@@ -1,19 +1,22 @@
 #!/bin/bash
 
-if type update-alternatives 2>/dev/null >&1; then
+set -e
+
+if type update-alternatives >/dev/null 2>&1; then
     # Remove previous link if it doesn't use update-alternatives
-    if [ -L '/usr/bin/mihomo-party' -a -e '/usr/bin/mihomo-party' -a "`readlink '/usr/bin/mihomo-party'`" != '/etc/alternatives/mihomo-party' ]; then
-        rm -f '/usr/bin/mihomo-party'
+    if [ -L '/usr/bin/clash-party' ] && [ -e '/usr/bin/clash-party' ] && [ "$(readlink '/usr/bin/clash-party')" != '/etc/alternatives/clash-party' ]; then
+        rm -f '/usr/bin/clash-party'
     fi
-    update-alternatives --install '/usr/bin/mihomo-party' 'mihomo-party' '/opt/mihomo-party/mihomo-party' 100 || ln -sf '/opt/mihomo-party/mihomo-party' '/usr/bin/mihomo-party'
+    update-alternatives --install '/usr/bin/clash-party' 'clash-party' '/opt/clash-party/mihomo-party' 100 || ln -sf '/opt/clash-party/mihomo-party' '/usr/bin/clash-party'
 else
-    ln -sf '/opt/mihomo-party/mihomo-party' '/usr/bin/mihomo-party'
+    ln -sf '/opt/clash-party/mihomo-party' '/usr/bin/clash-party'
 fi
 
-chmod 4755 '/opt/mihomo-party/chrome-sandbox' || true
-chmod +sx /opt/mihomo-party/resources/sidecar/mihomo
-chmod +sx /opt/mihomo-party/resources/sidecar/mihomo-alpha
-chmod +sx /opt/mihomo-party/resources/sidecar/mihomo-smart
+chmod 4755 '/opt/clash-party/chrome-sandbox' 2>/dev/null || true
+
+chmod +sx /opt/clash-party/resources/sidecar/mihomo 2>/dev/null || true
+chmod +sx /opt/clash-party/resources/sidecar/mihomo-alpha 2>/dev/null || true
+chmod +sx /opt/clash-party/resources/sidecar/mihomo-smart 2>/dev/null || true
 
 if hash update-mime-database 2>/dev/null; then
     update-mime-database /usr/share/mime || true

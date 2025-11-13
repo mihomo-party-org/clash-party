@@ -85,7 +85,7 @@ import {
   setupFirewall
 } from '../sys/misc'
 import { getRuntimeConfig, getRuntimeConfigStr } from '../core/factory'
-import { listWebdavBackups, webdavBackup, webdavDelete, webdavRestore } from '../resolve/backup'
+import { listWebdavBackups, webdavBackup, webdavDelete, webdavRestore, exportLocalBackup, importLocalBackup } from '../resolve/backup'
 import { getInterfaces } from '../sys/interface'
 import { closeTrayIcon, copyEnv, showTrayIcon, updateTrayIcon, updateTrayIconImmediate } from '../resolve/tray'
 import { registerShortcut } from '../resolve/shortcut'
@@ -99,7 +99,7 @@ import {
   writeTheme
 } from '../resolve/theme'
 import { subStoreCollections, subStoreSubs } from '../core/subStoreApi'
-import { logDir } from './dirs'
+import { logDir, rulePath } from './dirs'
 import path from 'path'
 import v8 from 'v8'
 import { getGistUrl } from '../resolve/gistApi'
@@ -146,6 +146,18 @@ export async function installSpecificMihomoCore(version: string): Promise<void> 
 
 export async function clearMihomoVersionCache(): Promise<void> {
   clearVersionCache('MetaCubeX', 'mihomo')
+}
+
+export async function getRuleStr(id: string): Promise<string> {
+  const { readFile } = await import('fs/promises')
+  const filePath = rulePath(id)
+  return await readFile(filePath, 'utf-8')
+}
+
+export async function setRuleStr(id: string, str: string): Promise<void> {
+  const { writeFile } = await import('fs/promises')
+  const filePath = rulePath(id)
+  await writeFile(filePath, str, 'utf-8')
 }
 
 export function registerIpcMainHandlers(): void {
@@ -250,6 +262,8 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('listWebdavBackups', ipcErrorWrapper(listWebdavBackups))
   ipcMain.handle('webdavDelete', (_e, filename) => ipcErrorWrapper(webdavDelete)(filename))
   ipcMain.handle('reinitWebdavBackupScheduler', ipcErrorWrapper(reinitScheduler))
+  ipcMain.handle('exportLocalBackup', () => ipcErrorWrapper(exportLocalBackup)())
+  ipcMain.handle('importLocalBackup', () => ipcErrorWrapper(importLocalBackup)())
   ipcMain.handle('registerShortcut', (_e, oldShortcut, newShortcut, action) =>
     ipcErrorWrapper(registerShortcut)(oldShortcut, newShortcut, action)
   )
@@ -289,7 +303,7 @@ export function registerIpcMainHandlers(): void {
   })
   ipcMain.handle('showMainWindow', showMainWindow)
   ipcMain.handle('closeMainWindow', closeMainWindow)
-  ipcMain.handle('triggerMainWindow', triggerMainWindow)
+  ipcMain.handle('triggerMainWindow', (_e, force) => triggerMainWindow(force))
   ipcMain.handle('showFloatingWindow', () => ipcErrorWrapper(showFloatingWindow)())
   ipcMain.handle('closeFloatingWindow', () => ipcErrorWrapper(closeFloatingWindow)())
   ipcMain.handle('showContextMenu', () => ipcErrorWrapper(showContextMenu)())
@@ -346,4 +360,8 @@ export function registerIpcMainHandlers(): void {
 
   // 注册清除版本缓存的IPC处理程序
   ipcMain.handle('clearMihomoVersionCache', () => ipcErrorWrapper(clearMihomoVersionCache)())
+  
+  // 规则相关IPC处理程序
+  ipcMain.handle('getRuleStr', (_e, id) => ipcErrorWrapper(getRuleStr)(id))
+  ipcMain.handle('setRuleStr', (_e, id, str) => ipcErrorWrapper(setRuleStr)(id, str))
 }

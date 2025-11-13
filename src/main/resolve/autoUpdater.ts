@@ -1,4 +1,4 @@
-import axios from 'axios'
+import * as chromeRequest from '../utils/chromeRequest'
 import { parse } from '../utils/yaml'
 import { app, shell } from 'electron'
 import { getControledMihomoConfig } from '../config'
@@ -14,7 +14,7 @@ import { checkAdminPrivileges } from '../core/manager'
 
 export async function checkUpdate(): Promise<IAppVersion | undefined> {
   const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
-  const res = await axios.get(
+  const res = await chromeRequest.get(
     'https://github.com/mihomo-party-org/mihomo-party/releases/latest/download/latest.yml',
     {
       headers: { 'Content-Type': 'application/octet-stream' },
@@ -83,7 +83,7 @@ export async function downloadAndInstallUpdate(version: string): Promise<void> {
   }
   try {
     if (!existsSync(path.join(dataDir(), file))) {
-      const res = await axios.get(`${baseUrl}${file}`, {
+      const res = await chromeRequest.get(`${baseUrl}${file}`, {
         responseType: 'arraybuffer',
         proxy: {
           protocol: 'http',

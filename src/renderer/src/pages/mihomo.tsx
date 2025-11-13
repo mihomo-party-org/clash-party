@@ -36,7 +36,7 @@ const Mihomo: React.FC = () => {
   const {
     core = 'mihomo',
     specificVersion,
-    enableSmartCore = true,
+    enableSmartCore = false,
     enableSmartOverride = true,
     smartCoreUseLightGBM = false,
     smartCoreCollectData = false,
@@ -432,7 +432,7 @@ const Mihomo: React.FC = () => {
             </SettingItem>
 
             {/* Smart 覆写开关 */}
-            {enableSmartCore && (
+            {enableSmartCore && core === 'mihomo-smart' && (
               <SettingItem
                 title={
                   <div className="flex items-center gap-2">
@@ -870,7 +870,7 @@ const Mihomo: React.FC = () => {
             </SettingItem>
           )}
           {platform === 'linux' && (
-            <SettingItem title="TProxy 端口" divider>
+            <SettingItem title={t('mihomo.tproxyPort')} divider>
               <div className="flex">
                 {isManualPortChange && tproxyPortInput !== tproxyPort && (
                   <Button
@@ -1298,42 +1298,7 @@ const Mihomo: React.FC = () => {
               }}
             />
           </SettingItem>
-          <SettingItem title={t('mihomo.disableLoopbackDetector')} divider>
-            <Switch
-              size="sm"
-              isSelected={disableLoopbackDetector}
-              onValueChange={(v) => {
-                handleConfigChangeWithRestart('disableLoopbackDetector', v)
-              }}
-            />
-          </SettingItem>
-          <SettingItem title={t('mihomo.skipSafePathCheck')} divider>
-            <Switch
-              size="sm"
-              isSelected={skipSafePathCheck}
-              onValueChange={(v) => {
-                handleConfigChangeWithRestart('skipSafePathCheck', v)
-              }}
-            />
-          </SettingItem>
-          <SettingItem title={t('mihomo.disableEmbedCA')} divider>
-            <Switch
-              size="sm"
-              isSelected={disableEmbedCA}
-              onValueChange={(v) => {
-                handleConfigChangeWithRestart('disableEmbedCA', v)
-              }}
-            />
-          </SettingItem>
-          <SettingItem title={t('mihomo.disableSystemCA')} divider>
-            <Switch
-              size="sm"
-              isSelected={disableSystemCA}
-              onValueChange={(v) => {
-                handleConfigChangeWithRestart('disableSystemCA', v)
-              }}
-            />
-          </SettingItem>
+
           <SettingItem title={t('mihomo.logRetentionDays')} divider>
             <Input
               size="sm"
@@ -1364,7 +1329,7 @@ const Mihomo: React.FC = () => {
               <SelectItem key="debug">{t('mihomo.debug')}</SelectItem>
             </Select>
           </SettingItem>
-          <SettingItem title={t('mihomo.findProcess')} divider>
+          <SettingItem title={t('mihomo.findProcess')} >
             <Select
               classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
               className="w-[100px]"

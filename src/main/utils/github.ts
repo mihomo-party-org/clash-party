@@ -1,5 +1,6 @@
-import axios from 'axios'
+import * as chromeRequest from './chromeRequest'
 import { createWriteStream, createReadStream } from 'fs'
+import { writeFile } from 'fs/promises'
 import { mihomoCoreDir } from './dirs'
 import AdmZip from 'adm-zip'
 import { execSync } from 'child_process'
@@ -62,29 +63,30 @@ export async function getGitHubTags(owner: string, repo: string, forceRefresh = 
   
   try {
     console.log(`[GitHub] Fetching tags for ${owner}/${repo}`)
-    const response = await axios.get<GitHubTag[]>(
+    const response = await chromeRequest.get<GitHubTag[]>(
       `${GITHUB_API_CONFIG.BASE_URL}/repos/${owner}/${repo}/tags?per_page=${GITHUB_API_CONFIG.TAGS_PER_PAGE}`,
       {
         headers: {
           Accept: 'application/vnd.github+json',
           'X-GitHub-Api-Version': GITHUB_API_CONFIG.API_VERSION
         },
+        responseType: 'json',
         timeout: 10000
       }
     )
-    
+
     // 更新缓存
     versionCache.set(cacheKey, {
       data: response.data,
       timestamp: Date.now()
     })
-    
+
     console.log(`[GitHub] Successfully fetched ${response.data.length} tags for ${owner}/${repo}`)
     return response.data
   } catch (error) {
     console.error(`[GitHub] Failed to fetch tags for ${owner}/${repo}:`, error)
-    if (axios.isAxiosError(error)) {
-      throw new Error(`GitHub API error: ${error.response?.status} - ${error.response?.statusText}`)
+    if (error instanceof Error) {
+      throw new Error(`GitHub API error: ${error.message}`)
     }
     throw new Error('Failed to fetch version list')
   }
@@ -110,30 +112,17 @@ export function clearVersionCache(owner: string, repo: string): void {
 async function downloadGitHubAsset(url: string, outputPath: string): Promise<void> {
   try {
     console.log(`[GitHub] Downloading asset from ${url}`)
-    const writer = createWriteStream(outputPath)
-    const response = await axios({
-      url,
-      method: 'GET',
-      responseType: 'stream',
+    const response = await chromeRequest.get(url, {
+      responseType: 'arraybuffer',
       timeout: 30000
     })
 
-    response.data.pipe(writer)
-
-    return new Promise((resolve, reject) => {
-      writer.on('finish', () => {
-        console.log(`[GitHub] Successfully downloaded asset to ${outputPath}`)
-        resolve()
-      })
-      writer.on('error', (error) => {
-        console.error(`[GitHub] Failed to write asset to ${outputPath}:`, error)
-        reject(new Error(`Failed to download core file: ${error.message}`))
-      })
-    })
+    await writeFile(outputPath, Buffer.from(response.data as Buffer))
+    console.log(`[GitHub] Successfully downloaded asset to ${outputPath}`)
   } catch (error) {
     console.error(`[GitHub] Failed to download asset from ${url}:`, error)
-    if (axios.isAxiosError(error)) {
-      throw new Error(`Download error: ${error.response?.status} - ${error.response?.statusText}`)
+    if (error instanceof Error) {
+      throw new Error(`Download error: ${error.message}`)
     }
     throw new Error('Failed to download core file')
   }

@@ -5,7 +5,7 @@ import { readFile, rm, writeFile } from 'fs/promises'
 import { restartCore } from '../core/manager'
 import { getAppConfig } from './app'
 import { existsSync } from 'fs'
-import axios, { AxiosResponse } from 'axios'
+import * as chromeRequest from '../utils/chromeRequest'
 import { parse, stringify } from '../utils/yaml'
 import { defaultProfile } from '../utils/template'
 import { subStorePort } from '../resolve/server'
@@ -148,7 +148,7 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
       const { userAgent, subscriptionTimeout = 30000 } = await getAppConfig()
       const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
       if (!item.url) throw new Error('Empty URL')
-      let res: AxiosResponse
+      let res: chromeRequest.Response<string>
       if (newItem.substore) {
         const urlObj = new URL(`http://127.0.0.1:${subStorePort}${item.url}`)
         urlObj.searchParams.set('target', 'ClashMeta')
@@ -158,7 +158,7 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
         } else {
           urlObj.searchParams.delete('proxy')
         }
-        res = await axios.get(urlObj.toString(), {
+        res = await chromeRequest.get(urlObj.toString(), {
           headers: {
             'User-Agent': userAgent || `mihomo.party/v${app.getVersion()} (clash.meta)`
           },
@@ -166,7 +166,7 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
           timeout: subscriptionTimeout
         })
       } else {
-        res = await axios.get(item.url, {
+        res = await chromeRequest.get(item.url, {
           proxy: newItem.useProxy
             ? {
                 protocol: 'http',

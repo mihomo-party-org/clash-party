@@ -48,7 +48,7 @@ const ProxyProvider: React.FC = () => {
 
   const { data, mutate } = useSWR('mihomoProxyProviders', mihomoProxyProviders)
   const providers = useMemo(() => {
-    if (!data) return []
+    if (!data || !data.providers) return []
     return Object.values(data.providers)
       .filter((provider) => provider.vehicleType !== 'Compatible')
       .sort((a, b) => {
