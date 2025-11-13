@@ -48,7 +48,17 @@ export const defaultConfig: IAppConfig = {
   ],
   siderWidth: 250,
   sysProxy: { enable: false, mode: 'manual' },
-  triggerMainWindowBehavior: 'show' // 添加默认值
+  triggerMainWindowBehavior: 'show',
+  showMixedPort: 7890,
+  enableMixedPort: true,
+  showSocksPort: 7891,
+  enableSocksPort: true,
+  showHttpPort: 7892,
+  enableHttpPort: true,
+  showRedirPort: 0,
+  enableRedirPort: false,
+  showTproxyPort: 0,
+  enableTproxyPort: false
 }
 
 export const defaultControledMihomoConfig: Partial<IMihomoConfig> = {
