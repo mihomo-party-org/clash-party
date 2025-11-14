@@ -272,6 +272,7 @@ interface IAppConfig {
   originDNS?: string
   useWindowFrame: boolean
   proxyInTray: boolean
+  showCurrentProxyInTray: boolean
   siderOrder: string[]
   siderWidth: number
   appTheme: AppTheme

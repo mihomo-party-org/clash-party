@@ -49,6 +49,7 @@ const GeneralConfig: React.FC = () => {
     useDockIcon = true,
     showTraffic = false,
     proxyInTray = true,
+    showCurrentProxyInTray = false,
     disableTray = false,
     disableTrayIconColor = false,
     disableAnimations = false,
@@ -342,6 +343,17 @@ const GeneralConfig: React.FC = () => {
                 }}
               />
             </SettingItem>
+            {proxyInTray && (
+              <SettingItem title={t('settings.showCurrentProxyInTray')} divider>
+                <Switch
+                  size="sm"
+                  isSelected={showCurrentProxyInTray}
+                  onValueChange={async (v) => {
+                    await patchAppConfig({ showCurrentProxyInTray: v })
+                  }}
+                />
+              </SettingItem>
+            )}
             <SettingItem
               title={t('settings.showTraffic', {
                 context: platform === 'win32' ? 'windows' : 'mac'

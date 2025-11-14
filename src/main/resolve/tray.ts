@@ -39,6 +39,7 @@ export const buildContextMenu = async (): Promise<Menu> => {
     envType = process.platform === 'win32' ? ['powershell'] : ['bash'],
     autoCloseConnection,
     proxyInTray = true,
+    showCurrentProxyInTray = false,
     triggerSysProxyShortcut = '',
     showFloatingWindowShortcut = '',
     showWindowShortcut = '',
@@ -54,9 +55,11 @@ export const buildContextMenu = async (): Promise<Menu> => {
     try {
       const groups = await mihomoGroups()
       groupsMenu = groups.map((group) => {
+        const groupLabel = showCurrentProxyInTray ? `${group.name} | ${group.now}` : group.name;
+        
         return {
           id: group.name,
-          label: group.name,
+          label: groupLabel,
           type: 'submenu',
           submenu: group.all.map((proxy) => {
             const delay = proxy.history.length ? proxy.history[proxy.history.length - 1].delay : -1
