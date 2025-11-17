@@ -223,6 +223,7 @@ interface IAppConfig {
   smartCoreUseLightGBM: boolean
   smartCoreCollectData: boolean
   smartCoreStrategy: 'sticky-sessions' | 'round-robin'
+  smartCollectorSize?: number
   proxyDisplayMode: 'simple' | 'full'
   proxyDisplayOrder: 'default' | 'delay' | 'name'
   profileDisplayDate?: 'expire' | 'update'

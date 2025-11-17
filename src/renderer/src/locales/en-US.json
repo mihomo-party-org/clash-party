@@ -165,6 +165,8 @@
   "mihomo.smartCoreStrategyRoundRobin": "Round Robin",
   "mihomo.smartCoreUseLightGBMTooltip": "Use pre-trained general model for quick node selection improvement, but may not suit your specific network environment",
   "mihomo.smartCoreCollectDataTooltip": "Collect your network usage data for training custom models better suited to your network environment (turn off if you don't know how to train models)",
+  "mihomo.smartCollectorSize": "Data Colletct File Size (MB)",
+  "mihomo.smartCollectorSizeTooltip": "Limit The File Size of Collected Data, The Default is 100MB",
   "mihomo.mixedPort": "Mixed Port",
   "mihomo.confirm": "Confirm",
   "mihomo.socksPort": "Socks Port",

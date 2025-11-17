@@ -7,7 +7,7 @@ const SMART_OVERRIDE_ID = 'smart-core-override'
 /**
  * Smart 内核的覆写配置模板
  */
-function generateSmartOverrideTemplate(useLightGBM: boolean, collectData: boolean, strategy: string): string {
+function generateSmartOverrideTemplate(useLightGBM: boolean, collectData: boolean, strategy: string, collectorSize: number): string {
   return `
 // 配置会在启用 Smart 内核时自动应用
 
@@ -18,6 +18,12 @@ function main(config) {
       console.log('[Smart Override] Invalid config object')
       return config
     }
+
+    // 设置 Smart 内核的 profile 配置
+    if (!config.profile) {
+      config.profile = {}
+    }
+    config.profile['smart-collector-size'] = ${collectorSize}
 
     // 确保代理组配置存在
     if (!config['proxy-groups']) {
@@ -321,14 +327,16 @@ export async function createSmartOverride(): Promise<void> {
     const {
       smartCoreUseLightGBM = false,
       smartCoreCollectData = false,
-      smartCoreStrategy = 'sticky-sessions'
+      smartCoreStrategy = 'sticky-sessions',
+      smartCollectorSize = 100
     } = await getAppConfig()
 
     // 生成覆写模板
     const template = generateSmartOverrideTemplate(
       smartCoreUseLightGBM,
       smartCoreCollectData,
-      smartCoreStrategy
+      smartCoreStrategy,
+      smartCollectorSize
     )
 
     // 检查是否已存在 Smart 覆写配置

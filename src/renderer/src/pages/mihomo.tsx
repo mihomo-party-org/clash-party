@@ -41,6 +41,7 @@ const Mihomo: React.FC = () => {
     smartCoreUseLightGBM = false,
     smartCoreCollectData = false,
     smartCoreStrategy = 'sticky-sessions',
+    smartCollectorSize = 100,
     maxLogDays = 7,
     sysProxy,
     disableLoopbackDetector,
@@ -600,6 +601,44 @@ const Mihomo: React.FC = () => {
                       await restartCore()
                     }}
                   />
+                </SettingItem>
+
+
+                <SettingItem
+                  title={
+                    <div className="flex items-center gap-2">
+                      <span>{t('mihomo.smartCollectorSize')}</span>
+                      <Tooltip
+                        content={t('mihomo.smartCollectorSizeTooltip')}
+                        placement="top"
+                        className="max-w-xs"
+                      >
+                        <IoMdInformationCircleOutline className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 cursor-help" />
+                      </Tooltip>
+                    </div>
+                  }
+                  divider
+                >
+                  <div className="flex items-center gap-2">
+                    <Input
+                      size="sm"
+                      className="w-[100px]"
+                      type="number"
+                      value={smartCollectorSize.toString()}
+                      onValueChange={async (v: string) => {
+                        let num = parseInt(v)
+                        await patchAppConfig({ smartCollectorSize: num })
+                      }}
+                      onBlur={async (e) => {
+                        let num = parseInt(e.target.value)
+                        if (isNaN(num)) num = 100
+                        if (num < 1) num = 1
+                        await patchAppConfig({ smartCollectorSize: num })
+                        await restartCore()
+                      }}
+                    />
+                    <span className="text-default-500">MB</span>
+                  </div>
                 </SettingItem>
 
                 <SettingItem

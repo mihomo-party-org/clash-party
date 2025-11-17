@@ -165,6 +165,8 @@
   "mihomo.smartCoreStrategyRoundRobin": "轮询",
   "mihomo.smartCoreUseLightGBMTooltip": "使用预训练的通用模型，可快速提升节点选择效果，但可能不适合您的特定网络环境",
   "mihomo.smartCoreCollectDataTooltip": "收集您的网络使用数据，可用于训练更适合您的网络环境的自定义模型(如果您不懂如何训练模型，请关闭)",
+  "mihomo.smartCollectorSize": "数据收集文件大小（MB）",
+  "mihomo.smartCollectorSizeTooltip": "限制数据收集文件大小，默认为 100MB",
   "mihomo.mixedPort": "混合端口",
   "mihomo.confirm": "确认",
   "mihomo.socksPort": "Socks 端口",
