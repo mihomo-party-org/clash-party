@@ -33,6 +33,7 @@
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "@heroui/react": "^2.8.5",
+    "@mihomo-party/sysproxy": "^2.0.8",
     "@types/crypto-js": "^4.2.2",
     "adm-zip": "^0.5.16",
     "axios": "^1.13.2",
