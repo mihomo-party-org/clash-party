@@ -68,26 +68,20 @@ async function fixUserDataPermissions(): Promise<void> {
 let quitTimeout: NodeJS.Timeout | null = null
 export let mainWindow: BrowserWindow | null = null
 
+const gotTheLock = app.requestSingleInstanceLock()
+
+if (!gotTheLock) {
+  app.quit()
+}
 
 async function initApp(): Promise<void> {
   await fixUserDataPermissions()
 }
 
 initApp()
-  .then(() => {
-    const gotTheLock = app.requestSingleInstanceLock()
-
-    if (!gotTheLock) {
-      app.quit()
-    }
-  })
-  .catch(() => {
-    // ignore permission fix errors
-    const gotTheLock = app.requestSingleInstanceLock()
-
-    if (!gotTheLock) {
-      app.quit()
-    }
+  .catch((e) => {
+    showSafeErrorBox('common.error.initFailed', `${e}`)
+    app.quit()
   })
 
 export function customRelaunch(): void {
