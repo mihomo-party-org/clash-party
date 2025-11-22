@@ -64,6 +64,7 @@
   "settings.floatingWindowCompatMode": "悬浮窗兼容模式（推荐开启）",
   "settings.floatingWindowCompatModeTooltip": "禁用透明效果以避免在某些 Windows 系统上崩溃，建议保持开启以确保稳定性",
   "settings.disableTray": "禁用托盘图标",
+  "settings.swapTrayClick": "交换托盘左右键功能",
   "settings.proxyInTray": "在托盘菜单显示代理信息",
   "settings.showCurrentProxyInTray": "托盘菜单显示当前代理",
   "settings.disableTrayIconColor": "禁用托盘图标颜色变化",

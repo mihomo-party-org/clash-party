@@ -51,6 +51,7 @@ const GeneralConfig: React.FC = () => {
     proxyInTray = true,
     showCurrentProxyInTray = false,
     disableTray = false,
+    swapTrayClick = false,
     disableTrayIconColor = false,
     disableAnimations = false,
     showFloatingWindow: showFloating = false,
@@ -321,16 +322,31 @@ const GeneralConfig: React.FC = () => {
             />
           </SettingItem>
           {!disableTray && (
-            <SettingItem title={t('settings.disableTrayIconColor')} divider>
-              <Switch
-                size="sm"
-                isSelected={disableTrayIconColor}
-                onValueChange={async (v) => {
-                  await patchAppConfig({ disableTrayIconColor: v })
-                  await updateTrayIcon()
-                }}
-              />
-            </SettingItem>
+            <>
+              <SettingItem title={t('settings.swapTrayClick')} divider>
+                <Switch
+                  size="sm"
+                  isSelected={swapTrayClick}
+                  onValueChange={async (v) => {
+                    await patchAppConfig({ swapTrayClick: v })
+                    closeTrayIcon()
+                    setTimeout(() => {
+                      showTrayIcon()
+                    }, 100)
+                  }}
+                />
+              </SettingItem>
+              <SettingItem title={t('settings.disableTrayIconColor')} divider>
+                <Switch
+                  size="sm"
+                  isSelected={disableTrayIconColor}
+                  onValueChange={async (v) => {
+                    await patchAppConfig({ disableTrayIconColor: v })
+                    await updateTrayIcon()
+                  }}
+                />
+              </SettingItem>
+            </>
           )}
         {platform !== 'linux' && (
           <>

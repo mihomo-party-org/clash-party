@@ -331,7 +331,7 @@ export const buildContextMenu = async (): Promise<Menu> => {
 }
 
 export async function createTray(): Promise<void> {
-  const { useDockIcon = true } = await getAppConfig()
+  const { useDockIcon = true, swapTrayClick = false } = await getAppConfig()
   if (process.platform === 'linux') {
     tray = new Tray(pngIcon)
     const menu = await buildContextMenu()
@@ -359,24 +359,45 @@ export async function createTray(): Promise<void> {
       image.setTemplateImage(true)
       tray?.setImage(image)
     })
+    // macOS 默认行为: 左键显示窗口, 右键显示菜单
     tray?.addListener('click', async () => {
-      triggerMainWindow()
+      if (swapTrayClick) {
+        await updateTrayMenu()
+      } else {
+        triggerMainWindow()
+      }
     })
     tray?.addListener('right-click', async () => {
-      await updateTrayMenu()
+      if (swapTrayClick) {
+        triggerMainWindow()
+      } else {
+        await updateTrayMenu()
+      }
     })
   }
   if (process.platform === 'win32') {
-    tray?.addListener('click', () => {
-      triggerMainWindow()
+    tray?.addListener('click', async () => {
+      if (swapTrayClick) {
+        await updateTrayMenu()
+      } else {
+        triggerMainWindow()
+      }
     })
     tray?.addListener('right-click', async () => {
-      await updateTrayMenu()
+      if (swapTrayClick) {
+        triggerMainWindow()
+      } else {
+        await updateTrayMenu()
+      }
     })
   }
   if (process.platform === 'linux') {
-    tray?.addListener('click', () => {
-      triggerMainWindow()
+    tray?.addListener('click', async () => {
+      if (swapTrayClick) {
+        await updateTrayMenu()
+      } else {
+        triggerMainWindow()
+      }
     })
     ipcMain.on('updateTrayMenu', async () => {
       await updateTrayMenu()

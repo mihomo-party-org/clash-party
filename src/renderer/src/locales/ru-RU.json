@@ -60,6 +60,7 @@
   "settings.showFloatingWindow": "Показывать плавающее окно",
   "settings.spinFloatingIcon": "Анимация иконки при активности сети",
   "settings.disableTray": "Отключить значок в трее",
+  "settings.swapTrayClick": "Поменять местами левый/правый клик в трее",
   "settings.proxyInTray": "Показывать информацию о прокси в трее",
   "settings.disableTrayIconColor": "Отключить смену цвета значка в трее",
   "settings.disableAnimations": "Отключить анимационные эффекты",

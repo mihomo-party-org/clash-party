@@ -238,6 +238,7 @@ interface IAppConfig {
   connectionTableSortDirection?: 'asc' | 'desc'
   spinFloatingIcon?: boolean
   disableTray?: boolean
+  swapTrayClick?: boolean
   showFloatingWindow?: boolean
   floatingWindowCompatMode?: boolean
   disableHardwareAcceleration?: boolean

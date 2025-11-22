@@ -64,6 +64,7 @@
   "settings.floatingWindowCompatMode": "Floating Window Compatibility Mode (Recommended)",
   "settings.floatingWindowCompatModeTooltip": "Disables transparency effects to prevent crashes on some Windows systems. Recommended to keep enabled for stability",
   "settings.disableTray": "Disable Tray Icon",
+  "settings.swapTrayClick": "Swap Tray Left/Right Click",
   "settings.proxyInTray": "Show Proxy Info in Tray Menu",
   "settings.showCurrentProxyInTray": "Show Current Proxy in Tray Menu",
   "settings.disableTrayIconColor": "Disable Tray Icon Color Changes",
