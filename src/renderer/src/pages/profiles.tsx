@@ -50,6 +50,7 @@ const Profiles: React.FC = () => {
   const navigate = useNavigate()
   const [sortedItems, setSortedItems] = useState(items)
   const [useProxy, setUseProxy] = useState(false)
+  const [authToken, setAuthToken] = useState('')
   const [subStoreImporting, setSubStoreImporting] = useState(false)
   const [importing, setImporting] = useState(false)
   const [updating, setUpdating] = useState(false)
@@ -125,8 +126,9 @@ const Profiles: React.FC = () => {
   }, [subs, collections])
   const handleImport = async (): Promise<void> => {
     setImporting(true)
-    await addProfileItem({ name: '', type: 'remote', url, useProxy })
+    await addProfileItem({ name: '', type: 'remote', url, useProxy, authToken: authToken || undefined })
     setUrl('')
+    setAuthToken('')
     setImporting(false)
   }
   const pageRef = useRef<HTMLDivElement>(null)
@@ -225,49 +227,50 @@ const Profiles: React.FC = () => {
       }
     >
       <div className="sticky profiles-sticky top-0 z-40 bg-background">
-        <div className="flex p-2">
-          <Input
-            size="sm"
-            placeholder={t('profiles.input.placeholder')}
-            value={url}
-            onValueChange={setUrl}
-            onKeyUp={handleInputKeyUp}
-            endContent={
-              <>
-                <Button
-                  size="md"
-                  isIconOnly
-                  variant="light"
-                  onPress={() => {
-                    navigator.clipboard.readText().then((text) => {
-                      setUrl(text)
-                    })
-                  }}
-                  className="mr-2"
-                >
-                  <MdContentPaste className="text-lg" />
-                </Button>
-                <Checkbox
-                  className="whitespace-nowrap"
-                  checked={useProxy}
-                  onValueChange={setUseProxy}
-                >
-                  {t('profiles.useProxy')}
-                </Checkbox>
-              </>
-            }
-          />
+        <div className="flex flex-col gap-2 p-2">
+          <div className="flex">
+            <Input
+              size="sm"
+              placeholder={t('profiles.input.placeholder')}
+              value={url}
+              onValueChange={setUrl}
+              onKeyUp={handleInputKeyUp}
+              endContent={
+                <>
+                  <Button
+                    size="md"
+                    isIconOnly
+                    variant="light"
+                    onPress={() => {
+                      navigator.clipboard.readText().then((text) => {
+                        setUrl(text)
+                      })
+                    }}
+                    className="mr-2"
+                  >
+                    <MdContentPaste className="text-lg" />
+                  </Button>
+                  <Checkbox
+                    className="whitespace-nowrap"
+                    checked={useProxy}
+                    onValueChange={setUseProxy}
+                  >
+                    {t('profiles.useProxy')}
+                  </Checkbox>
+                </>
+              }
+            />
 
-          <Button
-            size="sm"
-            color="primary"
-            className="ml-2"
-            isDisabled={isUrlEmpty}
-            isLoading={importing}
-            onPress={handleImport}
-          >
-            {t('profiles.import')}
-          </Button>
+            <Button
+              size="sm"
+              color="primary"
+              className="ml-2"
+              isDisabled={isUrlEmpty}
+              isLoading={importing}
+              onPress={handleImport}
+            >
+              {t('profiles.import')}
+            </Button>
           {useSubStore && (
             <Dropdown
               onOpenChange={() => {
@@ -376,6 +379,17 @@ const Profiles: React.FC = () => {
               <DropdownItem key="new">{t('profiles.new')}</DropdownItem>
             </DropdownMenu>
           </Dropdown>
+          </div>
+          <div className="flex">
+            <Input
+              size="sm"
+              type="password"
+              placeholder={t('profiles.authToken.placeholder')}
+              value={authToken}
+              onValueChange={setAuthToken}
+              className="flex-1"
+            />
+          </div>
         </div>
         <Divider />
       </div>

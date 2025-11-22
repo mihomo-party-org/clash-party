@@ -463,6 +463,7 @@ interface IOverrideItem {
   global?: boolean
   url?: string
   file?: string
+  authToken?: string
 }
 
 interface IOverrideConfig {
@@ -490,6 +491,7 @@ interface IProfileItem {
   extra?: ISubscriptionUserInfo
   substore?: boolean
   allowFixedInterval?: boolean
+  authToken?: string
 }
 
 interface ISubStoreSub {

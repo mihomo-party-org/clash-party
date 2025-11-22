@@ -100,6 +100,18 @@ const EditInfoModal: React.FC<Props> = (props) => {
                   }}
                 />
               </SettingItem>
+              <SettingItem title={t('profiles.editInfo.authToken')}>
+                <Input
+                  size="sm"
+                  type="password"
+                  className={cn(inputWidth)}
+                  value={values.authToken ?? ''}
+                  onValueChange={(v) => {
+                    setValues({ ...values, authToken: v || undefined })
+                  }}
+                  placeholder={t('profiles.editInfo.authTokenPlaceholder')}
+                />
+              </SettingItem>
               <SettingItem title={t('profiles.editInfo.interval')}>
                 <div className="flex flex-col gap-2">
                   <Input

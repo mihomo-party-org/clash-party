@@ -64,18 +64,24 @@ export async function createOverride(item: Partial<IOverrideItem>): Promise<IOve
     ext: item.ext || 'js',
     url: item.url,
     global: item.global || false,
+    authToken: item.authToken,
     updated: new Date().getTime()
   } as IOverrideItem
   switch (newItem.type) {
     case 'remote': {
       const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
       if (!item.url) throw new Error('Empty URL')
+      const headers: Record<string, string> = {}
+      if (newItem.authToken) {
+        headers['Authorization'] = `Bearer ${newItem.authToken}`
+      }
       const res = await chromeRequest.get(item.url, {
         proxy: {
           protocol: 'http',
           host: '127.0.0.1',
           port: mixedPort
         },
+        headers,
         responseType: 'text'
       })
       const data = res.data

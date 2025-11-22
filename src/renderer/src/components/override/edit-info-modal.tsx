@@ -52,16 +52,30 @@ const EditInfoModal: React.FC<Props> = (props) => {
             />
           </SettingItem>
           {values.type === 'remote' && (
-            <SettingItem title={t('override.editInfo.url')}>
-              <Input
-                size="sm"
-                className="w-[200px]"
-                value={values.url}
-                onValueChange={(v) => {
-                  setValues({ ...values, url: v })
-                }}
-              />
-            </SettingItem>
+            <>
+              <SettingItem title={t('override.editInfo.url')}>
+                <Input
+                  size="sm"
+                  className="w-[200px]"
+                  value={values.url}
+                  onValueChange={(v) => {
+                    setValues({ ...values, url: v })
+                  }}
+                />
+              </SettingItem>
+              <SettingItem title={t('override.editInfo.authToken')}>
+                <Input
+                  size="sm"
+                  type="password"
+                  className="w-[200px]"
+                  value={values.authToken ?? ''}
+                  onValueChange={(v) => {
+                    setValues({ ...values, authToken: v || undefined })
+                  }}
+                  placeholder={t('override.editInfo.authTokenPlaceholder')}
+                />
+              </SettingItem>
+            </>
           )}
           <SettingItem title={t('override.editInfo.global')}>
             <Switch

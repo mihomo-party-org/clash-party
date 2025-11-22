@@ -42,6 +42,7 @@ const Override: React.FC = () => {
   const [importing, setImporting] = useState(false)
   const [fileOver, setFileOver] = useState(false)
   const [url, setUrl] = useState('')
+  const [authToken, setAuthToken] = useState('')
   const sensors = useSensors(useSensor(PointerSensor))
   const handleImport = async (): Promise<void> => {
     setImporting(true)
@@ -52,8 +53,11 @@ const Override: React.FC = () => {
         name: name ? decodeURIComponent(name) : undefined,
         type: 'remote',
         url,
-        ext: urlObj.pathname.endsWith('.js') ? 'js' : 'yaml'
+        ext: urlObj.pathname.endsWith('.js') ? 'js' : 'yaml',
+        authToken: authToken || undefined
       })
+      setUrl('')
+      setAuthToken('')
     } finally {
       setImporting(false)
     }
@@ -154,36 +158,37 @@ const Override: React.FC = () => {
       }
     >
       <div className="sticky top-0 z-40 bg-background">
-        <div className="flex p-2">
-          <Input
-            size="sm"
-            value={url}
-            onValueChange={setUrl}
-            endContent={
-              <Button
-                size="sm"
-                isIconOnly
-                variant="light"
-                onPress={() => {
-                  navigator.clipboard.readText().then((text) => {
-                    setUrl(text)
-                  })
-                }}
-              >
-                <MdContentPaste className="text-lg" />
-              </Button>
-            }
-          />
-          <Button
-            size="sm"
-            color="primary"
-            className="ml-2"
-            isDisabled={url === ''}
-            isLoading={importing}
-            onPress={handleImport}
-          >
-            {t('override.import')}
-          </Button>
+        <div className="flex flex-col gap-2 p-2">
+          <div className="flex">
+            <Input
+              size="sm"
+              value={url}
+              onValueChange={setUrl}
+              endContent={
+                <Button
+                  size="sm"
+                  isIconOnly
+                  variant="light"
+                  onPress={() => {
+                    navigator.clipboard.readText().then((text) => {
+                      setUrl(text)
+                    })
+                  }}
+                >
+                  <MdContentPaste className="text-lg" />
+                </Button>
+              }
+            />
+            <Button
+              size="sm"
+              color="primary"
+              className="ml-2"
+              isDisabled={url === ''}
+              isLoading={importing}
+              onPress={handleImport}
+            >
+              {t('override.import')}
+            </Button>
           <Dropdown>
             <DropdownTrigger>
               <Button className="ml-2" size="sm" isIconOnly color="primary">
@@ -230,6 +235,17 @@ const Override: React.FC = () => {
               <DropdownItem key="new-js">{t('override.actions.newJs')}</DropdownItem>
             </DropdownMenu>
           </Dropdown>
+          </div>
+          <div className="flex">
+            <Input
+              size="sm"
+              type="password"
+              placeholder={t('override.authToken.placeholder')}
+              value={authToken}
+              onValueChange={setAuthToken}
+              className="flex-1"
+            />
+          </div>
         </div>
         <Divider />
       </div>
