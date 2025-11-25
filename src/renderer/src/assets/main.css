@@ -79,6 +79,10 @@
   user-select: none;
 }
 
+.select-text {
+  user-select: text !important;
+}
+
 *:focus {
   outline: none;
   outline-color: transparent;
