@@ -451,6 +451,7 @@
   "profiles.editInfo.intervalCron": "有效的Cron表达式",
   "profiles.editInfo.intervalHint": "请输入数字或合法的Cron表达式（如：0 * * * *）",
   "profiles.editInfo.fixedInterval": "固定更新间隔",
+  "profiles.editInfo.autoUpdate": "自动更新",
   "profiles.editInfo.override.title": "覆写",
   "profiles.editInfo.override.global": "全局",
   "profiles.editInfo.override.noAvailable": "没有可用的覆写",

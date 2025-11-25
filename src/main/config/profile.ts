@@ -141,6 +141,7 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
     override: item.override || [],
     useProxy: item.useProxy || false,
     allowFixedInterval: item.allowFixedInterval || false,
+    autoUpdate: item.autoUpdate ?? false,
     updated: new Date().getTime()
   } as IProfileItem
   switch (newItem.type) {

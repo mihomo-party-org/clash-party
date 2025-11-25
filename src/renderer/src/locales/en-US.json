@@ -446,6 +446,7 @@
   "profiles.editInfo.intervalCron": "Valid Cron expression",
   "profiles.editInfo.intervalHint": "Please enter a number or a valid Cron expression (e.g.: 0 * * * *)",
   "profiles.editInfo.fixedInterval": "Fixed Update Interval",
+  "profiles.editInfo.autoUpdate": "Auto Update",
   "profiles.editInfo.override.title": "Override",
   "profiles.editInfo.override.global": "Global",
   "profiles.editInfo.override.noAvailable": "No available overrides",

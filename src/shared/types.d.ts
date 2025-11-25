@@ -491,6 +491,7 @@ interface IProfileItem {
   extra?: ISubscriptionUserInfo
   substore?: boolean
   allowFixedInterval?: boolean
+  autoUpdate?: boolean
 }
 
 interface ISubStoreSub {
