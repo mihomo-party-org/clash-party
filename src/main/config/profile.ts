@@ -142,6 +142,7 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
     useProxy: item.useProxy || false,
     allowFixedInterval: item.allowFixedInterval || false,
     autoUpdate: item.autoUpdate ?? false,
+    authToken: item.authToken,
     updated: new Date().getTime()
   } as IProfileItem
   switch (newItem.type) {
@@ -159,14 +160,24 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
         } else {
           urlObj.searchParams.delete('proxy')
         }
+        const headers: Record<string, string> = {
+          'User-Agent': userAgent || `mihomo.party/v${app.getVersion()} (clash.meta)`
+        }
+        if (item.authToken) {
+          headers['Authorization'] = item.authToken
+        }
         res = await chromeRequest.get(urlObj.toString(), {
-          headers: {
-            'User-Agent': userAgent || `mihomo.party/v${app.getVersion()} (clash.meta)`
-          },
+          headers,
           responseType: 'text',
           timeout: subscriptionTimeout
         })
       } else {
+        const headers: Record<string, string> = {
+          'User-Agent': userAgent || `mihomo.party/v${app.getVersion()} (clash.meta)`
+        }
+        if (item.authToken) {
+          headers['Authorization'] = item.authToken
+        }
         res = await chromeRequest.get(item.url, {
           proxy: newItem.useProxy
             ? {
@@ -175,9 +186,7 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
                 port: mixedPort
               }
             : false,
-          headers: {
-            'User-Agent': userAgent || `mihomo.party/v${app.getVersion()} (clash.meta)`
-          },
+          headers,
           responseType: 'text',
           timeout: subscriptionTimeout
         })

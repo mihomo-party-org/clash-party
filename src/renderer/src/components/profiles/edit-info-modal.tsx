@@ -91,6 +91,18 @@ const EditInfoModal: React.FC<Props> = (props) => {
                   }}
                 />
               </SettingItem>
+              <SettingItem title={t('profiles.editInfo.authToken')}>
+                <Input
+                  size="sm"
+                  type="password"
+                  className={cn(inputWidth)}
+                  value={values.authToken || ''}
+                  onValueChange={(v) => {
+                    setValues({ ...values, authToken: v })
+                  }}
+                  placeholder={t('profiles.editInfo.authTokenPlaceholder')}
+                />
+              </SettingItem>
               <SettingItem title={t('profiles.editInfo.useProxy')}>
                 <Switch
                   size="sm"

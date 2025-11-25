@@ -443,6 +443,8 @@
   "profiles.editInfo.title": "编辑信息",
   "profiles.editInfo.name": "名称",
   "profiles.editInfo.url": "订阅地址",
+  "profiles.editInfo.authToken": "授权令牌",
+  "profiles.editInfo.authTokenPlaceholder": "Bearer token 或其他认证头值",
   "profiles.editInfo.useProxy": "使用代理更新",
   "profiles.editInfo.interval": "更新间隔",
   "profiles.editInfo.intervalPlaceholder": "例如：30 或 '0 * * * *'",

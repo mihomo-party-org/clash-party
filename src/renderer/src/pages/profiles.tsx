@@ -7,7 +7,8 @@ import {
   DropdownItem,
   DropdownMenu,
   DropdownTrigger,
-  Input
+  Input,
+  Tooltip
 } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
 import ProfileItem from '@renderer/components/profiles/profile-item'
@@ -50,6 +51,8 @@ const Profiles: React.FC = () => {
   const navigate = useNavigate()
   const [sortedItems, setSortedItems] = useState(items)
   const [useProxy, setUseProxy] = useState(false)
+  const [authToken, setAuthToken] = useState('')
+  const [showAdvanced, setShowAdvanced] = useState(false)
   const [subStoreImporting, setSubStoreImporting] = useState(false)
   const [importing, setImporting] = useState(false)
   const [updating, setUpdating] = useState(false)
@@ -125,8 +128,15 @@ const Profiles: React.FC = () => {
   }, [subs, collections])
   const handleImport = async (): Promise<void> => {
     setImporting(true)
-    await addProfileItem({ name: '', type: 'remote', url, useProxy })
+    await addProfileItem({
+      name: '',
+      type: 'remote',
+      url,
+      useProxy,
+      authToken: authToken || undefined
+    })
     setUrl('')
+    setAuthToken('')
     setImporting(false)
   }
   const pageRef = useRef<HTMLDivElement>(null)
@@ -225,68 +235,79 @@ const Profiles: React.FC = () => {
       }
     >
       <div className="sticky profiles-sticky top-0 z-40 bg-background">
-        <div className="flex p-2">
-          <Input
-            size="sm"
-            placeholder={t('profiles.input.placeholder')}
-            value={url}
-            onValueChange={setUrl}
-            onKeyUp={handleInputKeyUp}
-            endContent={
-              <>
-                <Button
-                  size="md"
-                  isIconOnly
-                  variant="light"
-                  onPress={() => {
-                    navigator.clipboard.readText().then((text) => {
-                      setUrl(text)
-                    })
-                  }}
-                  className="mr-2"
-                >
-                  <MdContentPaste className="text-lg" />
-                </Button>
-                <Checkbox
-                  className="whitespace-nowrap"
-                  checked={useProxy}
-                  onValueChange={setUseProxy}
-                >
-                  {t('profiles.useProxy')}
-                </Checkbox>
-              </>
-            }
-          />
+        <div className="flex flex-col gap-2 p-2">
+          <div className="flex gap-2">
+            <Input
+              size="sm"
+              placeholder={t('profiles.input.placeholder')}
+              value={url}
+              onValueChange={setUrl}
+              onKeyUp={handleInputKeyUp}
+              className="flex-1"
+              endContent={
+                <>
+                  <Button
+                    size="md"
+                    isIconOnly
+                    variant="light"
+                    onPress={() => {
+                      navigator.clipboard.readText().then((text) => {
+                        setUrl(text)
+                      })
+                    }}
+                    className="mr-2"
+                  >
+                    <MdContentPaste className="text-lg" />
+                  </Button>
+                  <Checkbox
+                    className="whitespace-nowrap"
+                    checked={useProxy}
+                    onValueChange={setUseProxy}
+                  >
+                    {t('profiles.useProxy')}
+                  </Checkbox>
+                </>
+              }
+            />
 
-          <Button
-            size="sm"
-            color="primary"
-            className="ml-2"
-            isDisabled={isUrlEmpty}
-            isLoading={importing}
-            onPress={handleImport}
-          >
-            {t('profiles.import')}
-          </Button>
-          {useSubStore && (
-            <Dropdown
-              onOpenChange={() => {
-                mutateSubs()
-                mutateCollections()
-              }}
+            <Tooltip content={t('profiles.editInfo.authToken')} placement="bottom">
+              <Button
+                size="sm"
+                variant={showAdvanced ? 'solid' : 'light'}
+                isIconOnly
+                onPress={() => setShowAdvanced(!showAdvanced)}
+              >
+                🔑
+              </Button>
+            </Tooltip>
+            <Button
+              size="sm"
+              color="primary"
+              isDisabled={isUrlEmpty}
+              isLoading={importing}
+              onPress={handleImport}
             >
-              <DropdownTrigger>
-                <Button
-                  isLoading={subStoreImporting}
-                  title="Sub-Store"
-                  className="ml-2 substore-import"
-                  size="sm"
-                  isIconOnly
-                  color="primary"
-                >
-                  <SubStoreIcon className="text-lg" />
-                </Button>
-              </DropdownTrigger>
+              {t('profiles.import')}
+            </Button>
+            {useSubStore && (
+              <Dropdown
+                onOpenChange={() => {
+                  mutateSubs()
+                  mutateCollections()
+                }}
+              >
+                <DropdownTrigger>
+                  <Button
+                    isLoading={subStoreImporting}
+                    title="Sub-Store"
+                    className="substore-import"
+                    size="sm"
+                    isIconOnly
+                    color="primary"
+                  >
+                    <SubStoreIcon className="text-lg" />
+                  </Button>
+                </DropdownTrigger>
               <DropdownMenu
                 className="max-h-[calc(100vh-200px)] overflow-y-auto"
                 onAction={async (key) => {
@@ -342,40 +363,53 @@ const Profiles: React.FC = () => {
                   </DropdownItem>
                 ))}
               </DropdownMenu>
-            </Dropdown>
-          )}
-          <Dropdown>
-            <DropdownTrigger>
-              <Button className="ml-2 new-profile" size="sm" isIconOnly color="primary">
-                <FaPlus />
-              </Button>
-            </DropdownTrigger>
-            <DropdownMenu
-              onAction={async (key) => {
-                if (key === 'open') {
-                  try {
-                    const files = await getFilePath(['yml', 'yaml'])
-                    if (files?.length) {
-                      const content = await readTextFile(files[0])
-                      const fileName = files[0].split('/').pop()?.split('\\').pop()
-                      await addProfileItem({ name: fileName, type: 'local', file: content })
+              </Dropdown>
+            )}
+            <Dropdown>
+              <DropdownTrigger>
+                <Button className="new-profile" size="sm" isIconOnly color="primary">
+                  <FaPlus />
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                onAction={async (key) => {
+                  if (key === 'open') {
+                    try {
+                      const files = await getFilePath(['yml', 'yaml'])
+                      if (files?.length) {
+                        const content = await readTextFile(files[0])
+                        const fileName = files[0].split('/').pop()?.split('\\').pop()
+                        await addProfileItem({ name: fileName, type: 'local', file: content })
+                      }
+                    } catch (e) {
+                      alert(e)
                     }
-                  } catch (e) {
-                    alert(e)
+                  } else if (key === 'new') {
+                    await addProfileItem({
+                      name: t('profiles.newProfile'),
+                      type: 'local',
+                      file: 'proxies: []\nproxy-groups: []\nrules: []'
+                    })
                   }
-                } else if (key === 'new') {
-                  await addProfileItem({
-                    name: t('profiles.newProfile'),
-                    type: 'local',
-                    file: 'proxies: []\nproxy-groups: []\nrules: []'
-                  })
-                }
-              }}
-            >
-              <DropdownItem key="open">{t('profiles.open')}</DropdownItem>
-              <DropdownItem key="new">{t('profiles.new')}</DropdownItem>
-            </DropdownMenu>
-          </Dropdown>
+                }}
+              >
+                <DropdownItem key="open">{t('profiles.open')}</DropdownItem>
+                <DropdownItem key="new">{t('profiles.new')}</DropdownItem>
+              </DropdownMenu>
+            </Dropdown>
+          </div>
+          {showAdvanced && (
+            <Input
+              size="sm"
+              type="password"
+              placeholder={t('profiles.editInfo.authTokenPlaceholder')}
+              value={authToken}
+              onValueChange={setAuthToken}
+              onKeyUp={handleInputKeyUp}
+              className="w-full"
+              startContent={<span className="text-default-400 text-sm">🔑</span>}
+            />
+          )}
         </div>
         <Divider />
       </div>

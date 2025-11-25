@@ -492,6 +492,7 @@ interface IProfileItem {
   substore?: boolean
   allowFixedInterval?: boolean
   autoUpdate?: boolean
+  authToken?: string
 }
 
 interface ISubStoreSub {
