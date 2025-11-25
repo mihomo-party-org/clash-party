@@ -8,7 +8,7 @@ export async function initProfileUpdater(): Promise<void> {
   const currentItem = await getCurrentProfileItem()
   
   for (const item of items.filter((i) => i.id !== current)) {
-    if (item.type === 'remote' && item.interval) {
+    if (item.type === 'remote' && item.autoUpdate && item.interval) {
       if (typeof item.interval === 'number') {
         // 数字间隔使用setInterval
         intervalPool[item.id] = setInterval(
@@ -40,7 +40,7 @@ export async function initProfileUpdater(): Promise<void> {
     }
   }
 
-  if (currentItem?.type === 'remote' && currentItem.interval) {
+  if (currentItem?.type === 'remote' && currentItem.autoUpdate && currentItem.interval) {
     if (typeof currentItem.interval === 'number') {
       intervalPool[currentItem.id] = setInterval(
         async () => {
@@ -82,7 +82,7 @@ export async function initProfileUpdater(): Promise<void> {
 }
 
 export async function addProfileUpdater(item: IProfileItem): Promise<void> {
-  if (item.type === 'remote' && item.interval) {
+  if (item.type === 'remote' && item.autoUpdate && item.interval) {
     if (intervalPool[item.id]) {
       if (intervalPool[item.id] instanceof Cron) {
         (intervalPool[item.id] as Cron).stop()

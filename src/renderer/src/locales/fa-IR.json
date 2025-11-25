@@ -60,6 +60,7 @@
   "settings.showFloatingWindow": "نمایش پنجره شناور",
   "settings.spinFloatingIcon": "چرخش آیکون شناور بر اساس سرعت شبکه",
   "settings.disableTray": "غیرفعال کردن آیکون سیستم‌تری",
+  "settings.swapTrayClick": "تعویض کلیک چپ/راست تری",
   "settings.proxyInTray": "نمایش اطلاعات پراکسی در منوی سیستم‌تری",
   "settings.disableTrayIconColor": "غیرفعال کردن تغییر رنگ آیکون تری",
   "settings.disableAnimations": "غیرفعال کردن جلوه‌های انیمیشن",
