@@ -163,7 +163,7 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
   // 内核日志输出到独立的 core-日期.log 文件
   const stdout = createWriteStream(coreLogPath(), { flags: 'a' })
   const stderr = createWriteStream(coreLogPath(), { flags: 'a' })
-  
+
   child = spawn(
     corePath,
     ['-d', diffWorkDir ? mihomoProfileWorkDir(current) : mihomoWorkDir(), ctlParam, dynamicIpcPath],
@@ -307,7 +307,7 @@ async function cleanupWindowsNamedPipes(): Promise<void> {
 
     try {
       const { stdout } = await execPromise(
-        `powershell -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Process | Where-Object {$_.ProcessName -like '*mihomo*'} | Select-Object Id,ProcessName | ConvertTo-Json"`,
+        `powershell -NoProfile -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Process | Where-Object {$_.ProcessName -like '*mihomo*'} | Select-Object Id,ProcessName | ConvertTo-Json"`,
         { encoding: 'utf8' }
       )
 
@@ -458,7 +458,7 @@ async function checkProfile(): Promise<void> {
   const { current } = await getProfileConfig()
   const corePath = mihomoCorePath(core)
   const execFilePromise = promisify(execFile)
-  
+
   try {
     await execFilePromise(corePath, [
       '-t',
@@ -598,7 +598,7 @@ export async function checkAdminPrivileges(): Promise<boolean> {
   }
 
   const execPromise = promisify(exec)
-  
+
   try {
     // fltmc 检测管理员权限
     await execPromise('chcp 65001 >nul 2>&1 && fltmc', { encoding: 'utf8' })
@@ -607,7 +607,7 @@ export async function checkAdminPrivileges(): Promise<boolean> {
   } catch (fltmcError: any) {
     const errorCode = fltmcError?.code || 0
     await managerLogger.debug(`fltmc failed with code ${errorCode}, trying net session as fallback`)
-    
+
     try {
       // net session 备用
       await execPromise('chcp 65001 >nul 2>&1 && net session', { encoding: 'utf8' })
