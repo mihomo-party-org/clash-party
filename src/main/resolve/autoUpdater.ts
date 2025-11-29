@@ -100,7 +100,7 @@ export async function downloadAndInstallUpdate(version: string): Promise<void> {
       try {
         const installerPath = path.join(dataDir(), file)
         const isAdmin = await checkAdminPrivileges()
-        
+
         if (isAdmin) {
           await appLogger.info('Running installer with existing admin privileges')
           spawn(installerPath, ['/S', '--force-run'], {
@@ -111,20 +111,20 @@ export async function downloadAndInstallUpdate(version: string): Promise<void> {
           // 提升权限安装
           const escapedPath = installerPath.replace(/'/g, "''")
           const args = ['/S', '--force-run']
-          const argsString = args.map(arg => arg.replace(/'/g, "''")).join("', '")
-          
-          const command = `powershell -Command "Start-Process -FilePath '${escapedPath}' -ArgumentList '${argsString}' -Verb RunAs -WindowStyle Hidden"`
-          
+          const argsString = args.map((arg) => arg.replace(/'/g, "''")).join("', '")
+
+          const command = `powershell  -NoProfile -Command "Start-Process -FilePath '${escapedPath}' -ArgumentList '${argsString}' -Verb RunAs -WindowStyle Hidden"`
+
           await appLogger.info('Starting installer with elevated privileges')
-          
+
           const execPromise = promisify(exec)
           await execPromise(command, { windowsHide: true })
-          
+
           await appLogger.info('Installer started successfully with elevation')
         }
       } catch (installerError) {
         await appLogger.error('Failed to start installer, trying fallback', installerError)
-        
+
         // Fallback: 尝试使用shell.openPath打开安装包
         try {
           await shell.openPath(path.join(dataDir(), file))

@@ -678,13 +678,13 @@ export async function restartAsAdmin(forTun: boolean = true): Promise<void> {
   try {
     // 处理路径和参数的引号
     const escapedExePath = exePath.replace(/'/g, "''")
-    const argsString = restartArgs.map(arg => arg.replace(/'/g, "''")).join("', '")
+    const argsString = restartArgs.map((arg) => arg.replace(/'/g, "''")).join("', '")
 
     let command: string
     if (restartArgs.length > 0) {
-      command = `powershell -Command "Start-Process -FilePath '${escapedExePath}' -ArgumentList '${argsString}' -Verb RunAs"`
+      command = `powershell -NoProfile -Command "Start-Process -FilePath '${escapedExePath}' -ArgumentList '${argsString}' -Verb RunAs"`
     } else {
-      command = `powershell -Command "Start-Process -FilePath '${escapedExePath}' -Verb RunAs"`
+      command = `powershell -NoProfile -Command "Start-Process -FilePath '${escapedExePath}' -Verb RunAs"`
     }
 
     await managerLogger.info('Restarting as administrator with command', command)

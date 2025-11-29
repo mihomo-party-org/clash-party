@@ -43,7 +43,7 @@ export async function openUWPTool(): Promise<void> {
 
   if (!isAdmin) {
     const escapedPath = uwpToolPath.replace(/'/g, "''")
-    const command = `powershell -Command "Start-Process -FilePath '${escapedPath}' -Verb RunAs -Wait"`
+    const command = `powershell -NoProfile -Command "Start-Process -FilePath '${escapedPath}' -Verb RunAs -Wait"`
 
     await execPromise(command, { windowsHide: true })
     return
