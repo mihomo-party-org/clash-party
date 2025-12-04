@@ -355,6 +355,7 @@
   "sysproxy.uwp.title": "UWP Tool",
   "sysproxy.uwp.open": "Open UWP Tool",
   "sysproxy.pac.edit": "Edit PAC Script",
+  "sysproxy.pacEditor.title": "Edit PAC Script",
   "sysproxy.bypass.title": "Proxy Bypass",
   "sysproxy.bypass.addDefault": "Add Default Bypass",
   "sysproxy.bypass.placeholder": "Example: *.baidu.com",

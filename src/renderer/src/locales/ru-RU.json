@@ -330,6 +330,7 @@
   "sysproxy.uwp.title": "Инструмент UWP",
   "sysproxy.uwp.open": "Открыть инструмент UWP",
   "sysproxy.pac.edit": "Редактировать PAC скрипт",
+  "sysproxy.pacEditor.title": "Редактировать PAC скрипт",
   "sysproxy.bypass.title": "Исключения прокси",
   "sysproxy.bypass.addDefault": "Добавить стандартные исключения",
   "sysproxy.bypass.placeholder": "Пример: *.baidu.com",

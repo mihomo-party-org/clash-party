@@ -355,6 +355,7 @@
   "sysproxy.uwp.title": "UWP 工具",
   "sysproxy.uwp.open": "打开 UWP 工具",
   "sysproxy.pac.edit": "编辑 PAC 脚本",
+  "sysproxy.pacEditor.title": "编辑 PAC 脚本",
   "sysproxy.bypass.title": "代理绕过",
   "sysproxy.bypass.addDefault": "添加默认代理绕过",
   "sysproxy.bypass.placeholder": "例: *.baidu.com",

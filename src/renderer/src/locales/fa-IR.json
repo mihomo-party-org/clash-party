@@ -330,6 +330,7 @@
   "sysproxy.uwp.title": "ابزار UWP",
   "sysproxy.uwp.open": "باز کردن ابزار UWP",
   "sysproxy.pac.edit": "ویرایش اسکریپت PAC",
+  "sysproxy.pacEditor.title": "ویرایش اسکریپت PAC",
   "sysproxy.bypass.title": "دور زدن پراکسی",
   "sysproxy.bypass.addDefault": "افزودن دور زدن پیش‌فرض",
   "sysproxy.bypass.placeholder": "مثال: *.baidu.com",
