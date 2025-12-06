@@ -45,7 +45,7 @@ const ProfileCard: React.FC<Props> = (props) => {
     id: 'profile'
   })
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
-  const info = items?.find((item) => item.id === current) ?? {
+  const info = items?.find((item) => item && item.id === current) ?? {
     id: 'default',
     type: 'local',
     name: t('sider.cards.emptyProfile')
