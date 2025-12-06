@@ -191,9 +191,26 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
           timeout: subscriptionTimeout
         })
       }
+      
+      // 检查状态码，例如：403
+      if (res.status < 200 || res.status >= 300) {
+        throw new Error(`Subscription failed: Request status code ${res.status}`)
+      }
 
       const data = res.data
       const headers = res.headers
+      
+      // 校验是否为对象结构 (拦截 HTML字符串、普通文本、乱码)
+      const parsed = parse(data)
+      if (typeof parsed !== 'object' || parsed === null) {
+        throw new Error('Subscription failed: Profile is not a valid YAML')
+      }
+      // 检查是否包含必要的字段，防止空对象
+      const profile = parsed as any
+      if (!profile.proxies && !profile['proxy-providers']) {
+        throw new Error('Subscription failed: Profile missing proxies or providers')
+      }
+      
       if (headers['content-disposition'] && newItem.name === 'Remote File') {
         newItem.name = parseFilename(headers['content-disposition'])
       }
