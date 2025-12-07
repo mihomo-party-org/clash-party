@@ -1,7 +1,6 @@
-import { BrowserWindow } from 'electron'
+import { trySendToRenderer } from './ipcEmitter'
 import { logger } from './logger'
 
-let windowGetter: (() => BrowserWindow | null) | null = null
 const pendingErrors: IAppErrorPayload[] = []
 
 function normalizeError(error: unknown): { message: string; stack?: string; detail?: string } {
@@ -24,13 +23,8 @@ function normalizeError(error: unknown): { message: string; stack?: string; deta
   return { message: 'Unknown error' }
 }
 
-function trySendToRenderer(payload: IAppErrorPayload): boolean {
-  const target = windowGetter?.()
-  if (target?.webContents) {
-    target.webContents.send('app-error', payload)
-    return true
-  }
-  return false
+function sendErrorToRenderer(payload: IAppErrorPayload): boolean {
+  return trySendToRenderer('app-error', payload)
 }
 
 function createPayload(error: unknown, extra: Partial<IAppErrorPayload>): IAppErrorPayload {
@@ -49,19 +43,13 @@ function createPayload(error: unknown, extra: Partial<IAppErrorPayload>): IAppEr
   }
 }
 
-export function registerErrorTarget(getter: () => BrowserWindow | null): void {
-  windowGetter = getter
-  flushPendingErrors()
-}
-
 export function flushPendingErrors(): void {
   if (!pendingErrors.length) return
   const remaining = [...pendingErrors]
   pendingErrors.length = 0
 
   for (const payload of remaining) {
-    const delivered = trySendToRenderer(payload)
-    if (!delivered) {
+    if (!sendErrorToRenderer(payload)) {
       pendingErrors.push(payload)
     }
   }
@@ -73,7 +61,7 @@ export function emitAppError(
 ): IAppErrorPayload {
   const payload = createPayload(error, extra)
 
-  if (!trySendToRenderer(payload)) {
+  if (!sendErrorToRenderer(payload)) {
     pendingErrors.push(payload)
   }
 

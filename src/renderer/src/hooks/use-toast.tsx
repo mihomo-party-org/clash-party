@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactElement, ReactNode } from 'react'
 
 export interface ToastMessage extends IToastPayload {
@@ -20,6 +20,16 @@ interface Props {
 
 export function ToastProvider({ children }: Props): ReactElement {
   const [toasts, setToasts] = useState<ToastMessage[]>([])
+  const timersRef = React.useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+
+  // 清理所有定时器
+  useEffect(() => {
+    const timers = timersRef.current
+    return () => {
+      timers.forEach((timer) => clearTimeout(timer))
+      timers.clear()
+    }
+  }, [])
 
   const addToast = useCallback((toast: Omit<ToastMessage, 'id'>) => {
     const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`
@@ -28,13 +38,20 @@ export function ToastProvider({ children }: Props): ReactElement {
     setToasts((prev) => [...prev, { ...toast, id }])
 
     if (duration > 0) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== id))
+        timersRef.current.delete(id)
       }, duration)
+      timersRef.current.set(id, timer)
     }
   }, [])
 
   const removeToast = useCallback((id: string) => {
+    const timer = timersRef.current.get(id)
+    if (timer) {
+      clearTimeout(timer)
+      timersRef.current.delete(id)
+    }
     setToasts((prev) => prev.filter((t) => t.id !== id))
   }, [])
 

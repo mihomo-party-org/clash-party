@@ -22,8 +22,8 @@ import { initI18n } from '../shared/i18n'
 import i18next from 'i18next'
 import { logger } from './utils/logger'
 import { initWebdavBackupScheduler } from './resolve/backup'
-import { flushPendingErrors, installMainErrorHandlers, registerErrorTarget } from './utils/error'
-import { registerToastTarget } from './utils/toast'
+import { flushPendingErrors, installMainErrorHandlers } from './utils/error'
+import { registerIpcTarget } from './utils/ipcEmitter'
 import { safeShowErrorBox } from './utils/init'
 
 async function fixUserDataPermissions(): Promise<void> {
@@ -53,8 +53,7 @@ let quitTimeout: NodeJS.Timeout | null = null
 export let mainWindow: BrowserWindow | null = null
 
 installMainErrorHandlers()
-registerErrorTarget(() => mainWindow)
-registerToastTarget(() => mainWindow)
+registerIpcTarget(() => mainWindow)
 
 const gotTheLock = app.requestSingleInstanceLock()
 

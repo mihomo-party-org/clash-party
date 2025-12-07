@@ -1,5 +1,5 @@
 import { useToast, ToastMessage } from '@renderer/hooks/use-toast'
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState, memo } from 'react'
 import type { ReactElement } from 'react'
 import { IoClose, IoCheckmarkCircle, IoWarning, IoInformationCircle, IoAlertCircle } from 'react-icons/io5'
 
@@ -29,7 +29,7 @@ interface ToastItemProps {
   onClose: () => void
 }
 
-function ToastItem({ toast, onClose }: ToastItemProps): ReactElement {
+const ToastItem = memo(function ToastItem({ toast, onClose }: ToastItemProps): ReactElement {
   const [isVisible, setIsVisible] = useState(false)
   const Icon = iconMap[toast.type]
 
@@ -72,7 +72,7 @@ function ToastItem({ toast, onClose }: ToastItemProps): ReactElement {
       </button>
     </div>
   )
-}
+})
 
 export default function ToastContainer(): ReactElement | null {
   const { toasts, removeToast } = useToast()

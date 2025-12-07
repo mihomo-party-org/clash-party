@@ -19,10 +19,10 @@ const AppErrorModal = ({ error, onClose }: Props): ReactElement | null => {
     setCopied(false)
   }, [error?.id])
 
-  const detail = useMemo(() => error?.detail || error?.stack || '', [error?.detail, error?.stack])
+  const detail = useMemo(() => error?.detail || error?.stack || '', [error])
   const timestampText = useMemo(
     () => (error ? dayjs(error.timestamp).format('YYYY-MM-DD HH:mm:ss') : ''),
-    [error?.timestamp]
+    [error]
   )
 
   const handleCopy = async (): Promise<void> => {
@@ -86,8 +86,7 @@ ${detail || ''}`.trim()
             </div>
           ) : null}
         </ModalBody>
-        <ModalFooter className="flex items-center justify-between">
-          <div className="text-xs text-default-500" />
+        <ModalFooter className="flex justify-end">
           <div className="flex items-center gap-2">
             <Button size="sm" variant="light" onPress={onClose}>
               {t('errorCenter.close')}
