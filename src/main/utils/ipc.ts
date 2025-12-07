@@ -110,6 +110,7 @@ import i18next from 'i18next'
 import { addProfileUpdater, removeProfileUpdater } from '../core/profileUpdater'
 import { reinitScheduler } from '../resolve/backup'
 import { emitAppError } from './error'
+import { emitToast } from './toast'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function ipcErrorWrapper<T>(fn: (...args: any[]) => Promise<T>) {
@@ -321,9 +322,9 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('writeTheme', (_e, theme, css) => ipcErrorWrapper(writeTheme)(theme, css))
   ipcMain.handle('applyTheme', (_e, theme) => ipcErrorWrapper(applyTheme)(theme))
   ipcMain.handle('copyEnv', (_e, type) => ipcErrorWrapper(copyEnv)(type))
-  // 使用自定义错误弹窗替代 dialog.showErrorBox
+  // 使用轻量级 Toast 显示用户反馈错误
   ipcMain.handle('alert', (_e, msg) => {
-    emitAppError(msg, { title: 'Clash Party' })
+    emitToast('error', msg)
   })
   ipcMain.handle('showDetailedError', (_e, title, message) => {
     emitAppError(message, { title })

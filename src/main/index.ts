@@ -23,6 +23,7 @@ import i18next from 'i18next'
 import { logger } from './utils/logger'
 import { initWebdavBackupScheduler } from './resolve/backup'
 import { flushPendingErrors, installMainErrorHandlers, registerErrorTarget } from './utils/error'
+import { registerToastTarget } from './utils/toast'
 import { safeShowErrorBox } from './utils/init'
 
 async function fixUserDataPermissions(): Promise<void> {
@@ -53,6 +54,7 @@ export let mainWindow: BrowserWindow | null = null
 
 installMainErrorHandlers()
 registerErrorTarget(() => mainWindow)
+registerToastTarget(() => mainWindow)
 
 const gotTheLock = app.requestSingleInstanceLock()
 

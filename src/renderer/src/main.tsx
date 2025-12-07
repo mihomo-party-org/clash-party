@@ -15,6 +15,7 @@ import { ProfileConfigProvider } from './hooks/use-profile-config'
 import { RulesProvider } from './hooks/use-rules'
 import { GroupsProvider } from './hooks/use-groups'
 import { ErrorCenterProvider } from './hooks/use-error-center'
+import { ToastProvider } from './hooks/use-toast'
 import './i18n'
 
 let F12Count = 0
@@ -48,7 +49,8 @@ init().then(() => {
         <NextThemesProvider attribute="class" enableSystem defaultTheme="dark">
           <BaseErrorBoundary>
             <ErrorCenterProvider>
-              <HashRouter>
+              <ToastProvider>
+                <HashRouter>
                 <AppConfigProvider>
                   <ControledMihomoConfigProvider>
                     <ProfileConfigProvider>
@@ -63,6 +65,7 @@ init().then(() => {
                   </ControledMihomoConfigProvider>
                 </AppConfigProvider>
               </HashRouter>
+              </ToastProvider>
             </ErrorCenterProvider>
           </BaseErrorBoundary>
         </NextThemesProvider>

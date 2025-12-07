@@ -33,6 +33,7 @@ import { platform } from '@renderer/utils/init'
 import { TitleBarOverlayOptions } from 'electron'
 import SubStoreCard from '@renderer/components/sider/substore-card'
 import MihomoIcon from './components/base/mihomo-icon'
+import ToastContainer from './components/base/toast-container'
 import { driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import { useTranslation } from 'react-i18next'
@@ -360,21 +361,23 @@ const App: React.FC = () => {
   }
 
   return (
-    <div
-      onMouseMove={(e) => {
-        if (!resizing) return
-        if (e.clientX <= 150) {
-          setSiderWidthValue(narrowWidth)
-        } else if (e.clientX <= 250) {
-          setSiderWidthValue(250)
-        } else if (e.clientX >= 400) {
-          setSiderWidthValue(400)
-        } else {
-          setSiderWidthValue(e.clientX)
-        }
-      }}
-      className={`w-full h-screen flex ${resizing ? 'cursor-ew-resize' : ''}`}
-    >
+    <>
+      <ToastContainer />
+      <div
+        onMouseMove={(e) => {
+          if (!resizing) return
+          if (e.clientX <= 150) {
+            setSiderWidthValue(narrowWidth)
+          } else if (e.clientX <= 250) {
+            setSiderWidthValue(250)
+          } else if (e.clientX >= 400) {
+            setSiderWidthValue(400)
+          } else {
+            setSiderWidthValue(e.clientX)
+          }
+        }}
+        className={`w-full h-screen flex ${resizing ? 'cursor-ew-resize' : ''}`}
+      >
       {siderWidthValue === narrowWidth ? (
         <div style={{ width: `${narrowWidth}px` }} className="side h-full">
           <div className="app-drag flex justify-center items-center z-40 bg-transparent h-[49px]">
@@ -474,6 +477,7 @@ const App: React.FC = () => {
         {page}
       </div>
     </div>
+    </>
   )
 }
 

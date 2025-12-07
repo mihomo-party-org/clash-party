@@ -48,6 +48,12 @@ interface IAppErrorPayload {
   tags?: string[]
 }
 
+interface IToastPayload {
+  type: 'success' | 'error' | 'warning' | 'info'
+  title?: string
+  message: string
+}
+
 interface IAppVersion {
   version: string
   changelog: string
