@@ -108,10 +108,6 @@ export async function mihomoSmartFlushCache(configName?: string): Promise<void> 
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoSmartFlushCache', configName))
 }
 
-export async function showDetailedError(title: string, message: string): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('showDetailedError', title, message))
-}
-
 export async function getSmartOverrideContent(): Promise<string | null> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getSmartOverrideContent'))
 }
@@ -557,9 +553,15 @@ export async function setRuleStr(id: string, str: string): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setRuleStr', id, str))
 }
 
+// 通过 IPC 调用主进程显示 toast
 async function alert<T>(msg: T): Promise<void> {
   const msgStr = typeof msg === 'string' ? msg : JSON.stringify(msg)
   return await window.electron.ipcRenderer.invoke('alert', msgStr)
+}
+
+// 通过 IPC 调用主进程显示错误弹窗
+export async function showDetailedError(title: string, message: string): Promise<void> {
+  return await window.electron.ipcRenderer.invoke('showDetailedError', title, message)
 }
 
 window.alert = alert

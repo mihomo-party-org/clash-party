@@ -40,14 +40,22 @@ import {
   patchAppConfig,
   patchControledMihomoConfig
 } from '../config'
-import { app, dialog } from 'electron'
+import { app } from 'electron'
 import { startSSIDCheck } from '../sys/ssid'
 import i18next from '../../shared/i18n'
 import { initLogger } from './logger'
+import { emitAppError } from './error'
 
 let isInitBasicCompleted = false
 
-// 安全错误处理
+const ERROR_FALLBACKS: Record<string, { zh: string; en: string }> = {
+  'common.error.initFailed': { zh: '应用初始化失败', en: 'Application initialization failed' },
+  'common.error.adminRequired': { zh: '需要管理员权限', en: 'Administrator privileges required' },
+  'mihomo.error.coreStartFailed': { zh: '内核启动出错', en: 'Core start failed' },
+  'profiles.error.importFailed': { zh: '配置导入失败', en: 'Profile import failed' }
+}
+
+// 安全错误处理：即使 i18n 未就绪也能正常显示
 export function safeShowErrorBox(titleKey: string, message: string): void {
   let title: string
   try {
@@ -55,12 +63,10 @@ export function safeShowErrorBox(titleKey: string, message: string): void {
     if (!title || title === titleKey) throw new Error('Translation not ready')
   } catch {
     const isZh = process.env.LANG?.startsWith('zh') || process.env.LC_ALL?.startsWith('zh')
-    const fallbacks: Record<string, { zh: string; en: string }> = {
-      'mihomo.error.coreStartFailed': { zh: '内核启动出错', en: 'Core start failed' }
-    }
-    title = fallbacks[titleKey] ? (isZh ? fallbacks[titleKey].zh : fallbacks[titleKey].en) : (isZh ? '错误' : 'Error')
+    const fb = ERROR_FALLBACKS[titleKey]
+    title = fb ? (isZh ? fb.zh : fb.en) : (isZh ? '错误' : 'Error')
   }
-  dialog.showErrorBox(title, message)
+  emitAppError(message, { title })
 }
 
 async function fixDataDirPermissions(): Promise<void> {

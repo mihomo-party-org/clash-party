@@ -37,6 +37,17 @@ type DnsMode = 'normal' | 'fake-ip' | 'redir-host'
 type FilterMode = 'blacklist' | 'whitelist'
 type NetworkInterfaceInfo = os.NetworkInterfaceInfo
 
+interface IAppErrorPayload {
+  id: string
+  title?: string
+  message: string
+  detail?: string
+  stack?: string
+  timestamp: number
+  source?: 'main' | 'renderer'
+  tags?: string[]
+}
+
 interface IAppVersion {
   version: string
   changelog: string

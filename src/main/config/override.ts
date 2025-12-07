@@ -69,7 +69,9 @@ export async function createOverride(item: Partial<IOverrideItem>): Promise<IOve
   switch (newItem.type) {
     case 'remote': {
       const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
-      if (!item.url) throw new Error('Empty URL')
+      if (!item.url) {
+        throw new Error('Empty URL')
+      }
       const res = await chromeRequest.get(item.url, {
         proxy: {
           protocol: 'http',

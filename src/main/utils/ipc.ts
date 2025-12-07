@@ -109,26 +109,25 @@ import { closeFloatingWindow, showContextMenu, showFloatingWindow } from '../res
 import i18next from 'i18next'
 import { addProfileUpdater, removeProfileUpdater } from '../core/profileUpdater'
 import { reinitScheduler } from '../resolve/backup'
+import { emitAppError } from './error'
 
-function ipcErrorWrapper<T>( // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  fn: (...args: any[]) => Promise<T> // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): (...args: any[]) => Promise<T | { invokeError: unknown }> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function ipcErrorWrapper<T>(fn: (...args: any[]) => Promise<T>) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return async (...args: any[]) => {
+  return async (...args: any[]): Promise<T | { invokeError: string }> => {
     try {
       return await fn(...args)
     } catch (e) {
-      if (e && typeof e === 'object') {
-        if ('message' in e) {
-          return { invokeError: e.message }
-        } else {
-          return { invokeError: JSON.stringify(e) }
-        }
+      // 提取错误消息，支持 Error 对象、字符串、以及带 message 属性的普通对象
+      let message = 'Unknown Error'
+      if (e instanceof Error) {
+        message = e.message
+      } else if (typeof e === 'string') {
+        message = e
+      } else if (e && typeof e === 'object' && 'message' in e) {
+        message = String((e as { message: unknown }).message)
       }
-      if (e instanceof Error || typeof e === 'string') {
-        return { invokeError: e }
-      }
-      return { invokeError: 'Unknown Error' }
+      return { invokeError: message }
     }
   }
 }
@@ -322,11 +321,12 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('writeTheme', (_e, theme, css) => ipcErrorWrapper(writeTheme)(theme, css))
   ipcMain.handle('applyTheme', (_e, theme) => ipcErrorWrapper(applyTheme)(theme))
   ipcMain.handle('copyEnv', (_e, type) => ipcErrorWrapper(copyEnv)(type))
+  // 使用自定义错误弹窗替代 dialog.showErrorBox
   ipcMain.handle('alert', (_e, msg) => {
-    dialog.showErrorBox('Clash Party', msg)
+    emitAppError(msg, { title: 'Clash Party' })
   })
   ipcMain.handle('showDetailedError', (_e, title, message) => {
-    dialog.showErrorBox(title, message)
+    emitAppError(message, { title })
   })
   ipcMain.handle('getSmartOverrideContent', async () => {
     const { getOverrideItem } = await import('../config')

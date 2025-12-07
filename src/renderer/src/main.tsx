@@ -14,6 +14,7 @@ import { OverrideConfigProvider } from './hooks/use-override-config'
 import { ProfileConfigProvider } from './hooks/use-profile-config'
 import { RulesProvider } from './hooks/use-rules'
 import { GroupsProvider } from './hooks/use-groups'
+import { ErrorCenterProvider } from './hooks/use-error-center'
 import './i18n'
 
 let F12Count = 0
@@ -46,21 +47,23 @@ init().then(() => {
       <HeroUIProvider>
         <NextThemesProvider attribute="class" enableSystem defaultTheme="dark">
           <BaseErrorBoundary>
-            <HashRouter>
-              <AppConfigProvider>
-                <ControledMihomoConfigProvider>
-                  <ProfileConfigProvider>
-                    <OverrideConfigProvider>
-                      <GroupsProvider>
-                        <RulesProvider>
-                          <App />
-                        </RulesProvider>
-                      </GroupsProvider>
-                    </OverrideConfigProvider>
-                  </ProfileConfigProvider>
-                </ControledMihomoConfigProvider>
-              </AppConfigProvider>
-            </HashRouter>
+            <ErrorCenterProvider>
+              <HashRouter>
+                <AppConfigProvider>
+                  <ControledMihomoConfigProvider>
+                    <ProfileConfigProvider>
+                      <OverrideConfigProvider>
+                        <GroupsProvider>
+                          <RulesProvider>
+                            <App />
+                          </RulesProvider>
+                        </GroupsProvider>
+                      </OverrideConfigProvider>
+                    </ProfileConfigProvider>
+                  </ControledMihomoConfigProvider>
+                </AppConfigProvider>
+              </HashRouter>
+            </ErrorCenterProvider>
           </BaseErrorBoundary>
         </NextThemesProvider>
       </HeroUIProvider>

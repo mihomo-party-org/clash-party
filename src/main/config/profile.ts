@@ -149,7 +149,9 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
     case 'remote': {
       const { userAgent, subscriptionTimeout = 30000 } = await getAppConfig()
       const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
-      if (!item.url) throw new Error('Empty URL')
+      if (!item.url) {
+        throw new Error('Empty URL')
+      }
       let res: chromeRequest.Response<string>
       if (newItem.substore) {
         const urlObj = new URL(`http://127.0.0.1:${subStorePort}${item.url}`)
