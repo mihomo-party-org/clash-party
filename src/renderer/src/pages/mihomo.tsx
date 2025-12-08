@@ -324,9 +324,10 @@ const Mihomo: React.FC = () => {
     setLoadingTags(true)
     try {
       const data = await fetchMihomoTags(forceRefresh)
-      setTags(data)
+      setTags(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Failed to fetch tags:', error)
+      setTags([])
       alert(t('mihomo.error.fetchTagsFailed'))
     } finally {
       setLoadingTags(false)
