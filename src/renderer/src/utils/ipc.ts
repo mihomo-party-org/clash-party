@@ -208,6 +208,10 @@ export async function setProfileStr(id: string, str: string): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setProfileStr', id, str))
 }
 
+export async function convertMrsRuleset(path: string, behavior: string): Promise<string> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('convertMrsRuleset', path, behavior))
+}
+
 export async function getOverrideConfig(force = false): Promise<IOverrideConfig> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getOverrideConfig', force))
 }

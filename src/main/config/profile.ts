@@ -100,7 +100,7 @@ export async function addProfileItem(item: Partial<IProfileItem>): Promise<void>
 export async function removeProfileItem(id: string): Promise<void> {
   // 先清理自动更新定时器，防止已删除的订阅重新出现
   await removeProfileUpdater(id)
-  
+
   const config = await getProfileConfig()
   config.items = config.items?.filter((item) => item.id !== id)
   let shouldRestart = false
@@ -191,7 +191,7 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
           timeout: subscriptionTimeout
         })
       }
-      
+
       // 检查状态码，例如：403
       if (res.status < 200 || res.status >= 300) {
         throw new Error(`Subscription failed: Request status code ${res.status}`)
@@ -199,7 +199,7 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
 
       const data = res.data
       const headers = res.headers
-      
+
       // 校验是否为对象结构 (拦截 HTML字符串、普通文本、乱码)
       const parsed = parse(data)
       if (typeof parsed !== 'object' || parsed === null) {
@@ -210,7 +210,7 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
       if (!profile.proxies && !profile['proxy-providers']) {
         throw new Error('Subscription failed: Profile missing proxies or providers')
       }
-      
+
       if (headers['content-disposition'] && newItem.name === 'Remote File') {
         newItem.name = parseFilename(headers['content-disposition'])
       }
@@ -327,5 +327,45 @@ export async function setFileStr(path: string, content: string): Promise<void> {
       content,
       'utf-8'
     )
+  }
+}
+
+export async function convertMrsRuleset(filePath: string, behavior: string): Promise<string> {
+  const { exec } = await import('child_process')
+  const { promisify } = await import('util')
+  const execAsync = promisify(exec)
+  const { mihomoCorePath } = await import('../utils/dirs')
+  const { getAppConfig } = await import('./app')
+  const { tmpdir } = await import('os')
+  const { randomBytes } = await import('crypto')
+  const { unlink } = await import('fs/promises')
+
+  const { core = 'mihomo' } = await getAppConfig()
+  const corePath = mihomoCorePath(core)
+  const { diffWorkDir = false } = await getAppConfig()
+  const { current } = await getProfileConfig()
+  let fullPath: string
+  if (isAbsolutePath(filePath)) {
+    fullPath = filePath
+  } else {
+    fullPath = join(diffWorkDir ? mihomoProfileWorkDir(current) : mihomoWorkDir(), filePath)
+  }
+
+  const tempFileName = `mrs-convert-${randomBytes(8).toString('hex')}.txt`
+  const tempFilePath = join(tmpdir(), tempFileName)
+
+  try {
+    // 使用 mihomo convert-ruleset 命令转换 MRS 文件为 text 格式
+    // 命令格式: mihomo convert-ruleset <behavior> <format> <source>
+    await execAsync(`"${corePath}" convert-ruleset ${behavior} mrs "${fullPath}" "${tempFilePath}"`)
+    const content = await readFile(tempFilePath, 'utf-8')
+    await unlink(tempFilePath)
+
+    return content
+  } catch (error) {
+    try {
+      await unlink(tempFilePath)
+    } catch {}
+    throw error
   }
 }

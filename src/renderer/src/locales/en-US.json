@@ -16,6 +16,7 @@
   "common.auto": "Auto",
   "common.default": "Default",
   "common.close": "Close",
+  "common.loading": "Loading...",
   "common.pinWindow": "Pin Window",
   "common.next": "Next",
   "common.prev": "Previous",

@@ -16,6 +16,7 @@
   "common.auto": "自动",
   "common.default": "默认",
   "common.close": "关闭",
+  "common.loading": "加载中...",
   "common.pinWindow": "窗口置顶",
   "common.next": "下一步",
   "common.prev": "上一步",
