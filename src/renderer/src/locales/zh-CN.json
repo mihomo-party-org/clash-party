@@ -158,7 +158,7 @@
   "mihomo.error.installCoreFailed": "安装内核失败",
   "mihomo.enableSmartCore": "启用 Smart 内核",
   "mihomo.enableSmartOverride": "使用自动 Smart 规则覆写",
-  "mihomo.smartOverrideTooltip": "使用 Party 自带的智能覆写脚本，替换 url-test 和 load-balance 为 Smart 规则组；如果没有上述规则组，则提取订阅中的所有节点，并替换默认规则，适合不想折腾的用户，功能一键生效；如果使用全局模式，请选择名称为“Smart Group 的节点",
+  "mihomo.smartOverrideTooltip": "使用 Party 自带的智能覆写脚本，替换 url-test 和 load-balance 为 Smart 规则组；如果没有上述规则组，则提取订阅中的所有节点，并替换默认规则，适合不想折腾的用户，功能一键生效；如果使用全局模式，请选择名称为“Smart Group”的节点",
   "mihomo.smartCoreUseLightGBM": "使用 LightGBM",
   "mihomo.smartCoreCollectData": "收集数据",
   "mihomo.smartCoreStrategy": "策略模式",
