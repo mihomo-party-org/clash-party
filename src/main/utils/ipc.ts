@@ -324,12 +324,6 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('writeTheme', (_e, theme, css) => ipcErrorWrapper(writeTheme)(theme, css))
   ipcMain.handle('applyTheme', (_e, theme) => ipcErrorWrapper(applyTheme)(theme))
   ipcMain.handle('copyEnv', (_e, type) => ipcErrorWrapper(copyEnv)(type))
-  ipcMain.handle('alert', (_e, msg) => {
-    dialog.showErrorBox('Clash Party', msg)
-  })
-  ipcMain.handle('showDetailedError', (_e, title, message) => {
-    dialog.showErrorBox(title, message)
-  })
   ipcMain.handle('getSmartOverrideContent', async () => {
     const { getOverrideItem } = await import('../config')
     try {

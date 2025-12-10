@@ -108,10 +108,6 @@ export async function mihomoSmartFlushCache(configName?: string): Promise<void> 
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoSmartFlushCache', configName))
 }
 
-export async function showDetailedError(title: string, message: string): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('showDetailedError', title, message))
-}
-
 export async function getSmartOverrideContent(): Promise<string | null> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getSmartOverrideContent'))
 }
