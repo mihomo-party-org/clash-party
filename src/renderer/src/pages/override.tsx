@@ -55,6 +55,8 @@ const Override: React.FC = () => {
         url,
         ext: urlObj.pathname.endsWith('.js') ? 'js' : 'yaml'
       })
+    } catch (e) {
+      toast.error(t('override.error.importFailed', { error: String(e) }))
     } finally {
       setImporting(false)
     }
@@ -174,6 +176,7 @@ const Override: React.FC = () => {
         <div className="flex p-2">
           <Input
             size="sm"
+            placeholder={t('override.input.placeholder')}
             value={url}
             onValueChange={setUrl}
             endContent={
