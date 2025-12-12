@@ -44,7 +44,11 @@ export async function registerShortcut(
           await triggerSysProxy(!enable)
           await patchAppConfig({ sysProxy: { enable: !enable } })
           new Notification({
-            title: i18next.t(!enable ? 'common.notification.systemProxyEnabled' : 'common.notification.systemProxyDisabled')
+            title: i18next.t(
+              !enable
+                ? 'common.notification.systemProxyEnabled'
+                : 'common.notification.systemProxyDisabled'
+            )
           }).show()
           mainWindow?.webContents.send('appConfigUpdated')
           floatingWindow?.webContents.send('appConfigUpdated')
@@ -68,7 +72,9 @@ export async function registerShortcut(
           }
           await restartCore()
           new Notification({
-            title: i18next.t(!enable ? 'common.notification.tunEnabled' : 'common.notification.tunDisabled')
+            title: i18next.t(
+              !enable ? 'common.notification.tunEnabled' : 'common.notification.tunDisabled'
+            )
           }).show()
           mainWindow?.webContents.send('controledMihomoConfigUpdated')
           floatingWindow?.webContents.send('appConfigUpdated')

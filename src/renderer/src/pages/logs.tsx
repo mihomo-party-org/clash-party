@@ -122,12 +122,7 @@ const Logs: React.FC = () => {
           ref={virtuosoRef}
           data={filteredLogs}
           itemContent={(i, log) => (
-            <LogItem
-              index={i}
-              time={log.time}
-              type={log.type}
-              payload={log.payload}
-            />
+            <LogItem index={i} time={log.time} type={log.type} payload={log.payload} />
           )}
         />
       </div>

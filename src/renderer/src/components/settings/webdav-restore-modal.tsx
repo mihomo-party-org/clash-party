@@ -31,45 +31,48 @@ const WebdavRestoreModal: React.FC<Props> = (props) => {
           {filenames.length === 0 ? (
             <div className="flex justify-center">{t('webdav.restore.noBackups')}</div>
           ) : (
-            filenames.sort().reverse().map((filename) => (
-              <div className="flex" key={filename}>
-                <Button
-                  size="sm"
-                  fullWidth
-                  isLoading={restoring}
-                  variant="flat"
-                  onPress={async () => {
-                    setRestoring(true)
-                    try {
-                      await webdavRestore(filename)
-                      await relaunchApp()
-                    } catch (e) {
-                      toast.error(t('common.error.restoreFailed', { error: e }))
-                    } finally {
-                      setRestoring(false)
-                    }
-                  }}
-                >
-                  {filename}
-                </Button>
-                <Button
-                  size="sm"
-                  color="warning"
-                  variant="flat"
-                  className="ml-2"
-                  onPress={async () => {
-                    try {
-                      await webdavDelete(filename)
-                      setFilenames(filenames.filter((name) => name !== filename))
-                    } catch (e) {
-                      toast.error(t('common.error.deleteFailed', { error: e }))
-                    }
-                  }}
-                >
-                  <MdDeleteForever className="text-lg" />
-                </Button>
-              </div>
-            ))
+            filenames
+              .sort()
+              .reverse()
+              .map((filename) => (
+                <div className="flex" key={filename}>
+                  <Button
+                    size="sm"
+                    fullWidth
+                    isLoading={restoring}
+                    variant="flat"
+                    onPress={async () => {
+                      setRestoring(true)
+                      try {
+                        await webdavRestore(filename)
+                        await relaunchApp()
+                      } catch (e) {
+                        toast.error(t('common.error.restoreFailed', { error: e }))
+                      } finally {
+                        setRestoring(false)
+                      }
+                    }}
+                  >
+                    {filename}
+                  </Button>
+                  <Button
+                    size="sm"
+                    color="warning"
+                    variant="flat"
+                    className="ml-2"
+                    onPress={async () => {
+                      try {
+                        await webdavDelete(filename)
+                        setFilenames(filenames.filter((name) => name !== filename))
+                      } catch (e) {
+                        toast.error(t('common.error.deleteFailed', { error: e }))
+                      }
+                    }}
+                  >
+                    <MdDeleteForever className="text-lg" />
+                  </Button>
+                </div>
+              ))
           )}
         </ModalBody>
         <ModalFooter>

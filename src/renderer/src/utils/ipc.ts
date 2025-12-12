@@ -10,12 +10,16 @@ function ipcErrorWrapper(response: any): any {
 }
 
 // GitHub版本管理相关IPC调用
-export async function fetchMihomoTags(forceRefresh = false): Promise<{name: string, zipball_url: string, tarball_url: string}[]> {
+export async function fetchMihomoTags(
+  forceRefresh = false
+): Promise<{ name: string; zipball_url: string; tarball_url: string }[]> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('fetchMihomoTags', forceRefresh))
 }
 
 export async function installSpecificMihomoCore(version: string): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('installSpecificMihomoCore', version))
+  return ipcErrorWrapper(
+    await window.electron.ipcRenderer.invoke('installSpecificMihomoCore', version)
+  )
 }
 
 export async function clearMihomoVersionCache(): Promise<void> {
@@ -101,11 +105,15 @@ export async function mihomoGroupDelay(group: string, url?: string): Promise<IMi
 }
 
 export async function mihomoSmartGroupWeights(groupName: string): Promise<Record<string, number>> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoSmartGroupWeights', groupName))
+  return ipcErrorWrapper(
+    await window.electron.ipcRenderer.invoke('mihomoSmartGroupWeights', groupName)
+  )
 }
 
 export async function mihomoSmartFlushCache(configName?: string): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoSmartFlushCache', configName))
+  return ipcErrorWrapper(
+    await window.electron.ipcRenderer.invoke('mihomoSmartFlushCache', configName)
+  )
 }
 
 export async function getSmartOverrideContent(): Promise<string | null> {
@@ -205,7 +213,9 @@ export async function setProfileStr(id: string, str: string): Promise<void> {
 }
 
 export async function convertMrsRuleset(path: string, behavior: string): Promise<string> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('convertMrsRuleset', path, behavior))
+  return ipcErrorWrapper(
+    await window.electron.ipcRenderer.invoke('convertMrsRuleset', path, behavior)
+  )
 }
 
 export async function getOverrideConfig(force = false): Promise<IOverrideConfig> {
@@ -281,7 +291,9 @@ export async function showTunPermissionDialog(): Promise<boolean> {
 }
 
 export async function showErrorDialog(title: string, message: string): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('showErrorDialog', title, message))
+  return ipcErrorWrapper(
+    await window.electron.ipcRenderer.invoke('showErrorDialog', title, message)
+  )
 }
 
 export async function getFilePath(ext: string[]): Promise<string[] | undefined> {
@@ -348,9 +360,7 @@ export async function webdavDelete(filename: string): Promise<void> {
 
 // WebDAV 备份调度器相关 IPC 调用
 export async function reinitWebdavBackupScheduler(): Promise<void> {
-  return ipcErrorWrapper(
-    await window.electron.ipcRenderer.invoke('reinitWebdavBackupScheduler')
-  )
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('reinitWebdavBackupScheduler'))
 }
 
 // 本地备份相关 IPC 调用

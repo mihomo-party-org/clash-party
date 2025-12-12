@@ -52,7 +52,7 @@ if (copiedCount > 0) {
   console.log('📋 现在 dist 目录包含以下文件:')
 
   const finalFiles = readdirSync(distDir).sort()
-  finalFiles.forEach(file => {
+  finalFiles.forEach((file) => {
     if (file.includes('clash-party') || file.includes('mihomo-party')) {
       const isLegacy = file.includes('mihomo-party')
       console.log(`   ${isLegacy ? '🔄' : '📦'} ${file}`)

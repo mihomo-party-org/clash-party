@@ -83,9 +83,7 @@ export async function getGistUrl(): Promise<string> {
   } else {
     await uploadRuntimeConfig()
     const gists = await listGists(githubToken)
-    const gist = gists.find(
-      (gist) => gist.description === 'Auto Synced Clash Party Runtime Config'
-    )
+    const gist = gists.find((gist) => gist.description === 'Auto Synced Clash Party Runtime Config')
     if (!gist) throw new Error('Gist not found')
     return gist.html_url
   }

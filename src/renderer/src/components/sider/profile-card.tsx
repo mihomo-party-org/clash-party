@@ -26,7 +26,11 @@ const ProfileCard: React.FC<Props> = (props) => {
   const { t } = useTranslation()
   const { appConfig, patchAppConfig } = useAppConfig()
   const { iconOnly } = props
-  const { profileCardStatus = 'col-span-2', profileDisplayDate = 'expire', disableAnimations = false } = appConfig || {}
+  const {
+    profileCardStatus = 'col-span-2',
+    profileDisplayDate = 'expire',
+    disableAnimations = false
+  } = appConfig || {}
   const location = useLocation()
   const navigate = useNavigate()
   const match = location.pathname.includes('/profiles')
@@ -158,7 +162,9 @@ const ProfileCard: React.FC<Props> = (props) => {
                       await patchAppConfig({ profileDisplayDate: 'update' })
                     }}
                   >
-                    {extra.expire ? dayjs.unix(extra.expire).format('YYYY-MM-DD') : t('sider.cards.neverExpire')}
+                    {extra.expire
+                      ? dayjs.unix(extra.expire).format('YYYY-MM-DD')
+                      : t('sider.cards.neverExpire')}
                   </Button>
                 ) : (
                   <Button

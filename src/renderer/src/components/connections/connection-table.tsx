@@ -35,8 +35,8 @@ const DEFAULT_COLUMNS: Omit<ColumnConfig, 'label'>[] = [
     width: 80,
     minWidth: 60,
     visible: true,
-    getValue: (conn) => conn.isActive ? 'active' : 'closed',
-    sortValue: (conn) => conn.isActive ? 1 : 0
+    getValue: (conn) => (conn.isActive ? 'active' : 'closed'),
+    sortValue: (conn) => (conn.isActive ? 1 : 0)
   },
   {
     key: 'establishTime',
@@ -53,7 +53,9 @@ const DEFAULT_COLUMNS: Omit<ColumnConfig, 'label'>[] = [
     visible: true,
     getValue: (conn) => `${conn.metadata.type}(${conn.metadata.network})`,
     render: (conn) => (
-      <span className="text-xs">{conn.metadata.type}({conn.metadata.network.toUpperCase()})</span>
+      <span className="text-xs">
+        {conn.metadata.type}({conn.metadata.network.toUpperCase()})
+      </span>
     )
   },
   {
@@ -210,135 +212,149 @@ const ConnectionTable: React.FC<Props> = ({
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(initialSortDirection || 'asc')
 
   // 状态列渲染函数
-  const renderStatus = useCallback((conn: IMihomoConnectionDetail) => (
-    <Chip
-      color={conn.isActive ? 'primary' : 'danger'}
-      size="sm"
-      radius="sm"
-      variant="dot"
-    >
-      {conn.isActive ? t('connections.active') : t('connections.closed')}
-    </Chip>
-  ), [t])
+  const renderStatus = useCallback(
+    (conn: IMihomoConnectionDetail) => (
+      <Chip color={conn.isActive ? 'primary' : 'danger'} size="sm" radius="sm" variant="dot">
+        {conn.isActive ? t('connections.active') : t('connections.closed')}
+      </Chip>
+    ),
+    [t]
+  )
 
   // 连接类型渲染函数
-  const renderType = useCallback((conn: IMihomoConnectionDetail) => (
-    <span className="text-xs">{conn.metadata.type}({conn.metadata.network.toUpperCase()})</span>
-  ), [])
+  const renderType = useCallback(
+    (conn: IMihomoConnectionDetail) => (
+      <span className="text-xs">
+        {conn.metadata.type}({conn.metadata.network.toUpperCase()})
+      </span>
+    ),
+    []
+  )
 
   // 翻译标签映射
-  const getLabelForColumn = useCallback((key: string): string => {
-    const translationMap: Record<string, string> = {
-      status: t('connections.detail.status'),
-      establishTime: t('connections.detail.establishTime'),
-      type: t('connections.detail.connectionType'),
-      host: t('connections.detail.host'),
-      sniffHost: t('connections.detail.sniffHost'),
-      process: t('connections.detail.processName'),
-      processPath: t('connections.detail.processPath'),
-      rule: t('connections.detail.rule'),
-      proxyChain: t('connections.detail.proxyChain'),
-      sourceIP: t('connections.detail.sourceIP'),
-      sourcePort: t('connections.detail.sourcePort'),
-      destinationPort: t('connections.detail.destinationPort'),
-      inboundIP: t('connections.detail.inboundIP'),
-      inboundPort: t('connections.detail.inboundPort'),
-      uploadSpeed: t('connections.uploadSpeed'),
-      downloadSpeed: t('connections.downloadSpeed'),
-      upload: t('connections.uploadAmount'),
-      download: t('connections.downloadAmount'),
-      dscp: t('connections.detail.dscp'),
-      remoteDestination: t('connections.detail.remoteDestination'),
-      dnsMode: t('connections.detail.dnsMode')
-    }
-    return translationMap[key] || key
-  }, [t])
+  const getLabelForColumn = useCallback(
+    (key: string): string => {
+      const translationMap: Record<string, string> = {
+        status: t('connections.detail.status'),
+        establishTime: t('connections.detail.establishTime'),
+        type: t('connections.detail.connectionType'),
+        host: t('connections.detail.host'),
+        sniffHost: t('connections.detail.sniffHost'),
+        process: t('connections.detail.processName'),
+        processPath: t('connections.detail.processPath'),
+        rule: t('connections.detail.rule'),
+        proxyChain: t('connections.detail.proxyChain'),
+        sourceIP: t('connections.detail.sourceIP'),
+        sourcePort: t('connections.detail.sourcePort'),
+        destinationPort: t('connections.detail.destinationPort'),
+        inboundIP: t('connections.detail.inboundIP'),
+        inboundPort: t('connections.detail.inboundPort'),
+        uploadSpeed: t('connections.uploadSpeed'),
+        downloadSpeed: t('connections.downloadSpeed'),
+        upload: t('connections.uploadAmount'),
+        download: t('connections.downloadAmount'),
+        dscp: t('connections.detail.dscp'),
+        remoteDestination: t('connections.detail.remoteDestination'),
+        dnsMode: t('connections.detail.dnsMode')
+      }
+      return translationMap[key] || key
+    },
+    [t]
+  )
 
   // 初始化列配置（保留宽度状态）
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>(() => {
     const widths: Record<string, number> = {}
-    DEFAULT_COLUMNS.forEach(col => {
+    DEFAULT_COLUMNS.forEach((col) => {
       widths[col.key] = initialColumnWidths?.[col.key] || col.width
     })
     return widths
   })
 
   // 更新列标签和可见性
-  const columnsWithLabels = useMemo(() =>
-    DEFAULT_COLUMNS.map(col => ({
-      ...col,
-      label: getLabelForColumn(col.key),
-      visible: visibleColumns.has(col.key),
-      width: columnWidths[col.key] || col.width
-    }))
-  , [getLabelForColumn, visibleColumns, columnWidths])
+  const columnsWithLabels = useMemo(
+    () =>
+      DEFAULT_COLUMNS.map((col) => ({
+        ...col,
+        label: getLabelForColumn(col.key),
+        visible: visibleColumns.has(col.key),
+        width: columnWidths[col.key] || col.width
+      })),
+    [getLabelForColumn, visibleColumns, columnWidths]
+  )
 
   // 处理列宽度调整
-  const handleMouseDown = useCallback((e: React.MouseEvent, columnKey: string) => {
-    e.preventDefault()
-    setResizingColumn(columnKey)
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent, columnKey: string) => {
+      e.preventDefault()
+      setResizingColumn(columnKey)
 
-    const startX = e.clientX
-    const column = DEFAULT_COLUMNS.find(c => c.key === columnKey)
-    if (!column) return
+      const startX = e.clientX
+      const column = DEFAULT_COLUMNS.find((c) => c.key === columnKey)
+      if (!column) return
 
-    let currentWidth = column.width
-    setColumnWidths(prev => {
-      currentWidth = prev[columnKey] || column.width
-      return prev
-    })
+      let currentWidth = column.width
+      setColumnWidths((prev) => {
+        currentWidth = prev[columnKey] || column.width
+        return prev
+      })
 
-    const handleMouseMove = (e: MouseEvent) => {
-      const diff = e.clientX - startX
-      const newWidth = Math.max(column.minWidth, currentWidth + diff)
+      const handleMouseMove = (e: MouseEvent) => {
+        const diff = e.clientX - startX
+        const newWidth = Math.max(column.minWidth, currentWidth + diff)
 
-      setColumnWidths(prev => ({
-        ...prev,
-        [columnKey]: newWidth
-      }))
-    }
-
-    const handleMouseUp = () => {
-      setResizingColumn(null)
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-      // 保存列宽度
-      if (onColumnWidthChange) {
-        setColumnWidths(currentWidths => {
-          onColumnWidthChange(currentWidths)
-          return currentWidths
-        })
+        setColumnWidths((prev) => ({
+          ...prev,
+          [columnKey]: newWidth
+        }))
       }
-    }
 
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseup', handleMouseUp)
-  }, [onColumnWidthChange])
+      const handleMouseUp = () => {
+        setResizingColumn(null)
+        document.removeEventListener('mousemove', handleMouseMove)
+        document.removeEventListener('mouseup', handleMouseUp)
+        // 保存列宽度
+        if (onColumnWidthChange) {
+          setColumnWidths((currentWidths) => {
+            onColumnWidthChange(currentWidths)
+            return currentWidths
+          })
+        }
+      }
+
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+    },
+    [onColumnWidthChange]
+  )
 
   // 处理排序
-  const handleSort = useCallback((columnKey: string) => {
-    let newDirection: 'asc' | 'desc' = 'asc'
-    let newColumn = columnKey
+  const handleSort = useCallback(
+    (columnKey: string) => {
+      let newDirection: 'asc' | 'desc' = 'asc'
+      let newColumn = columnKey
 
-    if (sortColumn === columnKey) {
-      newDirection = sortDirection === 'asc' ? 'desc' : 'asc'
-      setSortDirection(newDirection)
-    } else {
-      setSortColumn(columnKey)
-      setSortDirection('asc')
-    }
+      if (sortColumn === columnKey) {
+        newDirection = sortDirection === 'asc' ? 'desc' : 'asc'
+        setSortDirection(newDirection)
+      } else {
+        setSortColumn(columnKey)
+        setSortDirection('asc')
+      }
 
-    // 保存排序状态
-    if (onSortChange) {
-      onSortChange(newColumn, newDirection)
-    }
-  }, [sortColumn, sortDirection, onSortChange])
+      // 保存排序状态
+      if (onSortChange) {
+        onSortChange(newColumn, newDirection)
+      }
+    },
+    [sortColumn, sortDirection, onSortChange]
+  )
 
   // 排序连接
   const sortedConnections = useMemo(() => {
     if (!sortColumn) return connections
 
-    const column = columnsWithLabels.find(c => c.key === sortColumn)
+    const column = columnsWithLabels.find((c) => c.key === sortColumn)
     if (!column) return connections
 
     return [...connections].sort((a, b) => {
@@ -357,7 +373,7 @@ const ConnectionTable: React.FC<Props> = ({
     })
   }, [connections, sortColumn, sortDirection, columnsWithLabels])
 
-  const visibleColumnsFiltered = columnsWithLabels.filter(col => col.visible)
+  const visibleColumnsFiltered = columnsWithLabels.filter((col) => col.visible)
 
   return (
     <div className="h-full flex flex-col">
@@ -366,7 +382,7 @@ const ConnectionTable: React.FC<Props> = ({
         <table className="w-full border-collapse">
           <thead className="sticky top-0 z-10 bg-content2">
             <tr>
-              {visibleColumnsFiltered.map(col => (
+              {visibleColumnsFiltered.map((col) => (
                 <th
                   key={col.key}
                   className="relative border-b border-divider text-left text-xs font-semibold text-foreground-600 px-3 h-10"
@@ -379,9 +395,7 @@ const ConnectionTable: React.FC<Props> = ({
                     >
                       {col.label}
                       {sortColumn === col.key && (
-                        <span className="ml-1">
-                          {sortDirection === 'asc' ? '↑' : '↓'}
-                        </span>
+                        <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                       )}
                     </button>
                     <div
@@ -411,7 +425,7 @@ const ConnectionTable: React.FC<Props> = ({
                   setIsDetailModalOpen(true)
                 }}
               >
-                {visibleColumnsFiltered.map(col => {
+                {visibleColumnsFiltered.map((col) => {
                   let content: React.ReactNode
                   // 根据列类型选择渲染方式
                   if (col.key === 'status') {
@@ -429,7 +443,11 @@ const ConnectionTable: React.FC<Props> = ({
                       key={col.key}
                       className="px-3 text-sm text-foreground truncate"
                       style={{ maxWidth: col.width }}
-                      title={typeof col.getValue(connection) === 'string' ? col.getValue(connection) as string : ''}
+                      title={
+                        typeof col.getValue(connection) === 'string'
+                          ? (col.getValue(connection) as string)
+                          : ''
+                      }
                     >
                       {content}
                     </td>
@@ -445,7 +463,11 @@ const ConnectionTable: React.FC<Props> = ({
                       close(connection.id)
                     }}
                   >
-                    {connection.isActive ? <CgClose className="text-lg" /> : <CgTrash className="text-lg" />}
+                    {connection.isActive ? (
+                      <CgClose className="text-lg" />
+                    ) : (
+                      <CgTrash className="text-lg" />
+                    )}
                   </Button>
                 </td>
               </tr>

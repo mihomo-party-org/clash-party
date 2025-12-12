@@ -42,7 +42,9 @@ const TunSwitcher: React.FC<Props> = (props) => {
     if (enable) {
       try {
         // 检查内核权限
-        const hasPermissions = await window.electron.ipcRenderer.invoke('checkMihomoCorePermissions')
+        const hasPermissions = await window.electron.ipcRenderer.invoke(
+          'checkMihomoCorePermissions'
+        )
 
         if (!hasPermissions) {
           if (window.electron.process.platform === 'win32') {
@@ -55,7 +57,11 @@ const TunSwitcher: React.FC<Props> = (props) => {
                 return
               } catch (error) {
                 console.error('Failed to restart as admin:', error)
-                await window.electron.ipcRenderer.invoke('showErrorDialog', t('tun.permissions.failed'), String(error))
+                await window.electron.ipcRenderer.invoke(
+                  'showErrorDialog',
+                  t('tun.permissions.failed'),
+                  String(error)
+                )
                 updateTrayIconImmediate(sysProxyEnabled, false)
                 return
               }
@@ -69,7 +75,11 @@ const TunSwitcher: React.FC<Props> = (props) => {
               await window.electron.ipcRenderer.invoke('requestTunPermissions')
             } catch (error) {
               console.warn('Permission grant failed:', error)
-              await window.electron.ipcRenderer.invoke('showErrorDialog', t('tun.permissions.failed'), String(error))
+              await window.electron.ipcRenderer.invoke(
+                'showErrorDialog',
+                t('tun.permissions.failed'),
+                String(error)
+              )
               updateTrayIconImmediate(sysProxyEnabled, false)
               return
             }

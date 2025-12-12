@@ -6,7 +6,7 @@ const intervalPool: Record<string, Cron | NodeJS.Timeout> = {}
 export async function initProfileUpdater(): Promise<void> {
   const { items, current } = await getProfileConfig()
   const currentItem = await getCurrentProfileItem()
-  
+
   for (const item of items.filter((i) => i.id !== current)) {
     if (item.type === 'remote' && item.autoUpdate && item.interval) {
       if (typeof item.interval === 'number') {
@@ -31,7 +31,7 @@ export async function initProfileUpdater(): Promise<void> {
           }
         })
       }
-      
+
       try {
         await addProfileItem(item)
       } catch (e) {
@@ -52,7 +52,7 @@ export async function initProfileUpdater(): Promise<void> {
         },
         currentItem.interval * 60 * 1000
       )
-      
+
       setTimeout(
         async () => {
           try {
@@ -85,7 +85,7 @@ export async function addProfileUpdater(item: IProfileItem): Promise<void> {
   if (item.type === 'remote' && item.autoUpdate && item.interval) {
     if (intervalPool[item.id]) {
       if (intervalPool[item.id] instanceof Cron) {
-        (intervalPool[item.id] as Cron).stop()
+        ;(intervalPool[item.id] as Cron).stop()
       } else {
         clearInterval(intervalPool[item.id] as NodeJS.Timeout)
       }
@@ -117,7 +117,7 @@ export async function addProfileUpdater(item: IProfileItem): Promise<void> {
 export async function removeProfileUpdater(id: string): Promise<void> {
   if (intervalPool[id]) {
     if (intervalPool[id] instanceof Cron) {
-      (intervalPool[id] as Cron).stop()
+      ;(intervalPool[id] as Cron).stop()
     } else {
       clearInterval(intervalPool[id] as NodeJS.Timeout)
     }

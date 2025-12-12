@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 
 const Resources: React.FC = () => {
   const { t } = useTranslation()
-  
+
   return (
     <BasePage title={t('sider.cards.resources')}>
       <GeoData />

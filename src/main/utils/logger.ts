@@ -28,13 +28,16 @@ class Logger {
     } catch (logError) {
       // 如果写入日志文件失败，仍然输出到控制台
       console.error(`[Logger] Failed to write to log file:`, logError)
-      console.error(`[Logger] Original message: [${level.toUpperCase()}] [${this.moduleName}] ${message}`, error)
+      console.error(
+        `[Logger] Original message: [${level.toUpperCase()}] [${this.moduleName}] ${message}`,
+        error
+      )
     }
   }
 
   private logToConsole(level: LogLevel, message: string, error?: any): void {
     const prefix = `[${this.moduleName}] ${message}`
-    
+
     switch (level) {
       case 'debug':
         console.debug(prefix, error || '')

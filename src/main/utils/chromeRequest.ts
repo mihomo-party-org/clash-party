@@ -4,11 +4,13 @@ export interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
   headers?: Record<string, string>
   body?: string | Buffer
-  proxy?: {
-    protocol: 'http' | 'https' | 'socks5'
-    host: string
-    port: number
-  } | false
+  proxy?:
+    | {
+        protocol: 'http' | 'https' | 'socks5'
+        host: string
+        port: number
+      }
+    | false
   timeout?: number
   responseType?: 'text' | 'json' | 'arraybuffer'
   followRedirect?: boolean

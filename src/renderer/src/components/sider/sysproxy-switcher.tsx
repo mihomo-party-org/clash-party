@@ -40,14 +40,14 @@ const SysproxySwitcher: React.FC<Props> = (props) => {
   const onChange = async (enable: boolean): Promise<void> => {
     const previousState = !enable
     const tunEnabled = tun?.enable ?? false
-    
+
     // 立即更新图标
     updateTrayIconImmediate(enable, tunEnabled)
-    
+
     try {
       await patchAppConfig({ sysProxy: { enable } })
       await triggerSysProxy(enable)
-      
+
       window.electron.ipcRenderer.send('updateFloatingWindow')
       window.electron.ipcRenderer.send('updateTrayMenu')
       await updateTrayIcon()

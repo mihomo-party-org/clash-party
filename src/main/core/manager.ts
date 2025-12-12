@@ -46,15 +46,14 @@ import { managerLogger } from '../utils/logger'
 
 // 内核名称白名单
 const ALLOWED_CORES = ['mihomo', 'mihomo-alpha', 'mihomo-smart'] as const
-type AllowedCore = typeof ALLOWED_CORES[number]
+type AllowedCore = (typeof ALLOWED_CORES)[number]
 
 function isValidCoreName(core: string): core is AllowedCore {
   return ALLOWED_CORES.includes(core as AllowedCore)
 }
 
-  // 路径检查
+// 路径检查
 function validateCorePath(corePath: string): void {
-
   if (corePath.includes('..')) {
     throw new Error('Invalid core path: directory traversal detected')
   }
@@ -176,7 +175,9 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
     os.setPriority(child.pid, os.constants.priority[mihomoCpuPriority])
   }
   if (detached) {
-    await managerLogger.info(`Core process detached successfully on ${process.platform}, PID: ${child.pid}`)
+    await managerLogger.info(
+      `Core process detached successfully on ${process.platform}, PID: ${child.pid}`
+    )
     child.unref()
     return new Promise((resolve) => {
       resolve([new Promise(() => {})])
@@ -210,7 +211,8 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
         reject(i18next.t('tun.error.tunPermissionDenied'))
       }
 
-      if ((process.platform !== 'win32' && str.includes('External controller unix listen error')) ||
+      if (
+        (process.platform !== 'win32' && str.includes('External controller unix listen error')) ||
         (process.platform === 'win32' && str.includes('External controller pipe listen error'))
       ) {
         await managerLogger.error('External controller listen error detected:', str)
@@ -219,7 +221,7 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
           await managerLogger.info('Attempting Windows pipe cleanup and retry...')
           try {
             await cleanupWindowsNamedPipes()
-            await new Promise(resolve => setTimeout(resolve, 2000))
+            await new Promise((resolve) => setTimeout(resolve, 2000))
           } catch (cleanupError) {
             await managerLogger.error('Pipe cleanup failed:', cleanupError)
           }
@@ -235,7 +237,9 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
         resolve([
           new Promise((resolve) => {
             child.stdout?.on('data', async (data) => {
-              if (data.toString().toLowerCase().includes('start initial compatible provider default')) {
+              if (
+                data.toString().toLowerCase().includes('start initial compatible provider default')
+              ) {
                 try {
                   mainWindow?.webContents.send('groupsUpdated')
                   mainWindow?.webContents.send('rulesUpdated')
@@ -337,7 +341,7 @@ async function cleanupWindowsNamedPipes(): Promise<void> {
           await managerLogger.warn('Failed to parse process list JSON:', parseError)
 
           // 回退到文本解析
-          const lines = stdout.split('\n').filter(line => line.includes('mihomo'))
+          const lines = stdout.split('\n').filter((line) => line.includes('mihomo'))
           for (const line of lines) {
             const match = line.match(/(\d+)/)
             if (match) {
@@ -361,8 +365,7 @@ async function cleanupWindowsNamedPipes(): Promise<void> {
       await managerLogger.warn('Failed to check mihomo processes:', error)
     }
 
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
+    await new Promise((resolve) => setTimeout(resolve, 1000))
   } catch (error) {
     await managerLogger.error('Windows named pipe cleanup failed:', error)
   }
@@ -451,10 +454,7 @@ export async function quitWithoutCore(): Promise<void> {
 }
 
 async function checkProfile(): Promise<void> {
-  const {
-    core = 'mihomo',
-    diffWorkDir = false
-  } = await getAppConfig()
+  const { core = 'mihomo', diffWorkDir = false } = await getAppConfig()
   const { current } = await getProfileConfig()
   const corePath = mihomoCorePath(core)
   const execFilePromise = promisify(execFile)
@@ -484,13 +484,15 @@ async function checkProfile(): Promise<void> {
           }
           return line.trim()
         })
-        .filter(line => line.length > 0)
+        .filter((line) => line.length > 0)
 
       if (errorLines.length === 0) {
-        const allLines = stdout.split('\n').filter(line => line.trim().length > 0)
+        const allLines = stdout.split('\n').filter((line) => line.trim().length > 0)
         throw new Error(`${i18next.t('mihomo.error.profileCheckFailed')}:\n${allLines.join('\n')}`)
       } else {
-        throw new Error(`${i18next.t('mihomo.error.profileCheckFailed')}:\n${errorLines.join('\n')}`)
+        throw new Error(
+          `${i18next.t('mihomo.error.profileCheckFailed')}:\n${errorLines.join('\n')}`
+        )
       }
     } else {
       throw new Error(`${i18next.t('mihomo.error.profileCheckFailed')}: ${error}`)
@@ -570,7 +572,7 @@ async function waitForCoreReady(): Promise<void> {
         return
       }
 
-      await new Promise(resolve => setTimeout(resolve, retryInterval))
+      await new Promise((resolve) => setTimeout(resolve, retryInterval))
     }
   }
 }
@@ -598,7 +600,9 @@ export async function checkAdminPrivileges(): Promise<boolean> {
       return true
     } catch (netSessionError: any) {
       const netErrorCode = netSessionError?.code || 0
-      await managerLogger.debug(`Both fltmc and net session failed, no admin privileges. Error codes: fltmc=${errorCode}, net=${netErrorCode}`)
+      await managerLogger.debug(
+        `Both fltmc and net session failed, no admin privileges. Error codes: fltmc=${errorCode}, net=${netErrorCode}`
+      )
       return false
     }
   }
@@ -613,11 +617,14 @@ export async function showTunPermissionDialog(): Promise<boolean> {
   await managerLogger.info(`i18next available: ${typeof i18next.t === 'function'}`)
 
   const title = i18next.t('tun.permissions.title') || '需要管理员权限'
-  const message = i18next.t('tun.permissions.message') || '启用TUN模式需要管理员权限，是否现在重启应用获取权限？'
+  const message =
+    i18next.t('tun.permissions.message') || '启用TUN模式需要管理员权限，是否现在重启应用获取权限？'
   const confirmText = i18next.t('common.confirm') || '确认'
   const cancelText = i18next.t('common.cancel') || '取消'
 
-  await managerLogger.info(`Dialog texts - Title: "${title}", Message: "${message}", Confirm: "${confirmText}", Cancel: "${cancelText}"`)
+  await managerLogger.info(
+    `Dialog texts - Title: "${title}", Message: "${message}", Confirm: "${confirmText}", Cancel: "${cancelText}"`
+  )
 
   const choice = dialog.showMessageBoxSync({
     type: 'warning',
@@ -759,8 +766,11 @@ async function checkHighPrivilegeMihomoProcess(): Promise<boolean> {
 
       for (const executable of mihomoExecutables) {
         try {
-          const { stdout } = await execPromise(`chcp 65001 >nul 2>&1 && tasklist /FI "IMAGENAME eq ${executable}" /FO CSV`, { encoding: 'utf8' })
-          const lines = stdout.split('\n').filter(line => line.includes(executable))
+          const { stdout } = await execPromise(
+            `chcp 65001 >nul 2>&1 && tasklist /FI "IMAGENAME eq ${executable}" /FO CSV`,
+            { encoding: 'utf8' }
+          )
+          const lines = stdout.split('\n').filter((line) => line.includes(executable))
 
           if (lines.length > 0) {
             await managerLogger.info(`Found ${lines.length} ${executable} processes running`)
@@ -781,7 +791,9 @@ async function checkHighPrivilegeMihomoProcess(): Promise<boolean> {
                     return true
                   }
                 } catch (error) {
-                  await managerLogger.info(`Cannot get info for process ${pid}, might be high privilege`)
+                  await managerLogger.info(
+                    `Cannot get info for process ${pid}, might be high privilege`
+                  )
                 }
               }
             }
@@ -802,7 +814,9 @@ async function checkHighPrivilegeMihomoProcess(): Promise<boolean> {
         for (const executable of mihomoExecutables) {
           try {
             const { stdout } = await execPromise(`ps aux | grep ${executable} | grep -v grep`)
-            const lines = stdout.split('\n').filter(line => line.trim() && line.includes(executable))
+            const lines = stdout
+              .split('\n')
+              .filter((line) => line.trim() && line.includes(executable))
 
             if (lines.length > 0) {
               foundProcesses = true
@@ -820,8 +834,7 @@ async function checkHighPrivilegeMihomoProcess(): Promise<boolean> {
                 }
               }
             }
-          } catch (error) {
-          }
+          } catch (error) {}
         }
 
         if (!foundProcesses) {

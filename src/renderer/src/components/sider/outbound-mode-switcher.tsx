@@ -34,9 +34,21 @@ const OutboundModeSwitcher: React.FC = () => {
       }}
       onSelectionChange={(key: Key) => onChangeMode(key as OutboundMode)}
     >
-      <Tab className={`${mode === 'rule' ? 'font-bold' : ''}`} key="rule" title={t('sider.cards.outbound.rule')} />
-      <Tab className={`${mode === 'global' ? 'font-bold' : ''}`} key="global" title={t('sider.cards.outbound.global')} />
-      <Tab className={`${mode === 'direct' ? 'font-bold' : ''}`} key="direct" title={t('sider.cards.outbound.direct')} />
+      <Tab
+        className={`${mode === 'rule' ? 'font-bold' : ''}`}
+        key="rule"
+        title={t('sider.cards.outbound.rule')}
+      />
+      <Tab
+        className={`${mode === 'global' ? 'font-bold' : ''}`}
+        key="global"
+        title={t('sider.cards.outbound.global')}
+      />
+      <Tab
+        className={`${mode === 'direct' ? 'font-bold' : ''}`}
+        key="direct"
+        title={t('sider.cards.outbound.direct')}
+      />
     </Tabs>
   )
 }

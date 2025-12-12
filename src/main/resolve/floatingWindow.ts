@@ -19,9 +19,8 @@ async function createFloatingWindow(): Promise<void> {
     const { customTheme = 'default.css', floatingWindowCompatMode = true } = await getAppConfig()
 
     const safeMode = process.env.FLOATING_SAFE_MODE === 'true'
-    const useCompatMode = floatingWindowCompatMode ||
-                         process.env.FLOATING_COMPAT_MODE === 'true' ||
-                         safeMode
+    const useCompatMode =
+      floatingWindowCompatMode || process.env.FLOATING_COMPAT_MODE === 'true' || safeMode
 
     const windowOptions: Electron.BrowserWindowConstructorOptions = {
       width: 120,
@@ -38,7 +37,7 @@ async function createFloatingWindow(): Promise<void> {
       maximizable: safeMode,
       fullscreenable: false,
       closable: safeMode,
-      backgroundColor: safeMode ? '#ffffff' : (useCompatMode ? '#f0f0f0' : '#00000000'),
+      backgroundColor: safeMode ? '#ffffff' : useCompatMode ? '#f0f0f0' : '#00000000',
       webPreferences: {
         preload: join(__dirname, '../preload/index.js'),
         spellcheck: false,
@@ -81,9 +80,10 @@ async function createFloatingWindow(): Promise<void> {
     })
 
     // 加载页面
-    const url = is.dev && process.env['ELECTRON_RENDERER_URL']
-      ? `${process.env['ELECTRON_RENDERER_URL']}/floating.html`
-      : join(__dirname, '../renderer/floating.html')
+    const url =
+      is.dev && process.env['ELECTRON_RENDERER_URL']
+        ? `${process.env['ELECTRON_RENDERER_URL']}/floating.html`
+        : join(__dirname, '../renderer/floating.html')
 
     is.dev ? await floatingWindow.loadURL(url) : await floatingWindow.loadFile(url)
   } catch (error) {

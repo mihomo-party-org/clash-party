@@ -19,4 +19,4 @@ updateDayjsLocale()
 // 监听语言变化
 i18n.on('languageChanged', updateDayjsLocale)
 
-export default dayjs 
+export default dayjs

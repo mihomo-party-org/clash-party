@@ -84,7 +84,7 @@ async function enableSysProxy(): Promise<void> {
           triggerAutoProxy(true, `http://${host || '127.0.0.1'}:${pacPort}/pac`)
         }
       } else if (process.platform === 'darwin') {
-        await helperRequest(() => 
+        await helperRequest(() =>
           axios.post(
             'http://localhost/pac',
             { url: `http://${host || '127.0.0.1'}:${pacPort}/pac` },
@@ -167,14 +167,14 @@ async function requestSocketRecreation(): Promise<void> {
     const { exec } = require('child_process')
     const { promisify } = require('util')
     const execPromise = promisify(exec)
-    
+
     // Use osascript with administrator privileges (same pattern as grantTunPermissions)
     const shell = `pkill -USR1 -f party.mihomo.helper`
     const command = `do shell script "${shell}" with administrator privileges`
     await execPromise(`osascript -e '${command}'`)
-    
+
     // Wait a bit for socket recreation
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await new Promise((resolve) => setTimeout(resolve, 1000))
   } catch (error) {
     await proxyLogger.error('Failed to send signal to helper', error)
     throw error
@@ -184,21 +184,24 @@ async function requestSocketRecreation(): Promise<void> {
 // Wrapper function for helper requests with auto-retry on socket issues
 async function helperRequest(requestFn: () => Promise<unknown>, maxRetries = 1): Promise<unknown> {
   let lastError: Error | null = null
-  
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await requestFn()
     } catch (error) {
       lastError = error as Error
-      
+
       // Check if it's a connection error and socket file doesn't exist
-      if (attempt < maxRetries && 
-          ((error as NodeJS.ErrnoException).code === 'ECONNREFUSED' || 
-           (error as NodeJS.ErrnoException).code === 'ENOENT' || 
-           (error as Error).message?.includes('connect ECONNREFUSED') ||
-           (error as Error).message?.includes('ENOENT'))) {
-        
-        await proxyLogger.info(`Helper request failed (attempt ${attempt + 1}), checking socket file...`)
+      if (
+        attempt < maxRetries &&
+        ((error as NodeJS.ErrnoException).code === 'ECONNREFUSED' ||
+          (error as NodeJS.ErrnoException).code === 'ENOENT' ||
+          (error as Error).message?.includes('connect ECONNREFUSED') ||
+          (error as Error).message?.includes('ENOENT'))
+      ) {
+        await proxyLogger.info(
+          `Helper request failed (attempt ${attempt + 1}), checking socket file...`
+        )
 
         if (!isSocketFileExists()) {
           await proxyLogger.info('Socket file missing, requesting recreation...')
@@ -211,13 +214,13 @@ async function helperRequest(requestFn: () => Promise<unknown>, maxRetries = 1):
           }
         }
       }
-      
+
       // If not a connection error or we've exhausted retries, throw the error
       if (attempt === maxRetries) {
         throw lastError
       }
     }
   }
-  
+
   throw lastError
 }

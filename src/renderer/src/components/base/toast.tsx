@@ -50,7 +50,8 @@ export const toast = {
   error: (message: string, title?: string): void => addToast('error', message, title, 1800),
   warning: (message: string, title?: string): void => addToast('warning', message, title),
   info: (message: string, title?: string): void => addToast('info', message, title),
-  detailedError: (message: string, title?: string): void => addDetailedToast('error', message, title)
+  detailedError: (message: string, title?: string): void =>
+    addDetailedToast('error', message, title)
 }
 
 const ToastItem: React.FC<{
@@ -76,7 +77,7 @@ const ToastItem: React.FC<{
     },
     error: {
       icon: <IoClose className="text-white text-sm" />,
-      bg: 'bg-content1', 
+      bg: 'bg-content1',
       iconBg: 'bg-danger'
     },
     warning: {
@@ -119,7 +120,9 @@ const ToastItem: React.FC<{
       >
         <div className="flex items-center justify-between overflow-visible">
           <div className="flex items-center gap-3">
-            <div className={`flex-shrink-0 w-8 h-8 ${iconBg} rounded-full flex items-center justify-center`}>
+            <div
+              className={`flex-shrink-0 w-8 h-8 ${iconBg} rounded-full flex items-center justify-center`}
+            >
               {icon}
             </div>
             <p className="text-base font-semibold text-foreground">{data.title || '错误'}</p>
@@ -130,11 +133,18 @@ const ToastItem: React.FC<{
               className="p-2 rounded-lg hover:bg-default-200 transition-colors"
             >
               <div className="relative w-4 h-4">
-                <IoCopy className={`absolute inset-0 text-base text-foreground-500 transition-all duration-200 ${copied ? 'opacity-0 scale-50' : 'opacity-100 scale-100'}`} />
-                <IoCheckmark className={`absolute inset-0 text-base text-success transition-all duration-200 ${copied ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`} />
+                <IoCopy
+                  className={`absolute inset-0 text-base text-foreground-500 transition-all duration-200 ${copied ? 'opacity-0 scale-50' : 'opacity-100 scale-100'}`}
+                />
+                <IoCheckmark
+                  className={`absolute inset-0 text-base text-success transition-all duration-200 ${copied ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}
+                />
               </div>
             </button>
-            <div className={`absolute top-full mt-1 left-1/2 -translate-x-1/2 px-2 py-1 text-xs text-foreground bg-content2 border border-default-200 rounded shadow-md whitespace-nowrap transition-all duration-200 ${copied ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1 pointer-events-none'}`} style={{ zIndex: 99999 }}>
+            <div
+              className={`absolute top-full mt-1 left-1/2 -translate-x-1/2 px-2 py-1 text-xs text-foreground bg-content2 border border-default-200 rounded shadow-md whitespace-nowrap transition-all duration-200 ${copied ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1 pointer-events-none'}`}
+              style={{ zIndex: 99999 }}
+            >
               已复制
             </div>
           </div>
@@ -166,16 +176,14 @@ const ToastItem: React.FC<{
       `}
       style={{ width: 340 }}
     >
-      <div className={`flex-shrink-0 w-7 h-7 ${iconBg} rounded-full flex items-center justify-center`}>
+      <div
+        className={`flex-shrink-0 w-7 h-7 ${iconBg} rounded-full flex items-center justify-center`}
+      >
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        {data.title && (
-          <p className="text-sm font-medium text-foreground">{data.title}</p>
-        )}
-        <p className="text-sm text-foreground-500 break-words select-text">
-          {data.message}
-        </p>
+        {data.title && <p className="text-sm font-medium text-foreground">{data.title}</p>}
+        <p className="text-sm text-foreground-500 break-words select-text">{data.message}</p>
       </div>
       <button
         onClick={handleClose}

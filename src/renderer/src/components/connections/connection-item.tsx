@@ -68,7 +68,8 @@ const ConnectionItem: React.FC<Props> = (props) => {
                 </Chip>
                 {info.uploadSpeed !== 0 || info.downloadSpeed !== 0 ? (
                   <Chip color="primary" size="sm" radius="sm" variant="bordered">
-                    ↑ {calcTraffic(info.uploadSpeed || 0)}/s ↓ {calcTraffic(info.downloadSpeed || 0)}
+                    ↑ {calcTraffic(info.uploadSpeed || 0)}/s ↓{' '}
+                    {calcTraffic(info.downloadSpeed || 0)}
                     /s
                   </Chip>
                 ) : null}

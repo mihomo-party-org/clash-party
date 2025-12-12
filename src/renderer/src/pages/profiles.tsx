@@ -325,61 +325,65 @@ const Profiles: React.FC = () => {
                     <SubStoreIcon className="text-lg" />
                   </Button>
                 </DropdownTrigger>
-              <DropdownMenu
-                className="max-h-[calc(100vh-200px)] overflow-y-auto"
-                onAction={async (key) => {
-                  if (key === 'open-substore') {
-                    navigate('/substore')
-                  } else if (key.toString().startsWith('sub-')) {
-                    setSubStoreImporting(true)
-                    try {
-                      const sub = subs.find(
-                        (sub) => sub.name === key.toString().replace('sub-', '')
-                      )
-                      await addProfileItem({
-                        name: sub?.displayName || sub?.name || '',
-                        substore: !useCustomSubStore,
-                        type: 'remote',
-                        url: useCustomSubStore
-                          ? `${customSubStoreUrl}/download/${key.toString().replace('sub-', '')}?target=ClashMeta`
-                          : `/download/${key.toString().replace('sub-', '')}`,
-                        useProxy
-                      })
-                    } catch (e) {
-                      toast.error(String(e))
-                    } finally {
-                      setSubStoreImporting(false)
+                <DropdownMenu
+                  className="max-h-[calc(100vh-200px)] overflow-y-auto"
+                  onAction={async (key) => {
+                    if (key === 'open-substore') {
+                      navigate('/substore')
+                    } else if (key.toString().startsWith('sub-')) {
+                      setSubStoreImporting(true)
+                      try {
+                        const sub = subs.find(
+                          (sub) => sub.name === key.toString().replace('sub-', '')
+                        )
+                        await addProfileItem({
+                          name: sub?.displayName || sub?.name || '',
+                          substore: !useCustomSubStore,
+                          type: 'remote',
+                          url: useCustomSubStore
+                            ? `${customSubStoreUrl}/download/${key.toString().replace('sub-', '')}?target=ClashMeta`
+                            : `/download/${key.toString().replace('sub-', '')}`,
+                          useProxy
+                        })
+                      } catch (e) {
+                        toast.error(String(e))
+                      } finally {
+                        setSubStoreImporting(false)
+                      }
+                    } else if (key.toString().startsWith('collection-')) {
+                      setSubStoreImporting(true)
+                      try {
+                        const collection = collections.find(
+                          (collection) =>
+                            collection.name === key.toString().replace('collection-', '')
+                        )
+                        await addProfileItem({
+                          name: collection?.displayName || collection?.name || '',
+                          type: 'remote',
+                          substore: !useCustomSubStore,
+                          url: useCustomSubStore
+                            ? `${customSubStoreUrl}/download/collection/${key.toString().replace('collection-', '')}?target=ClashMeta`
+                            : `/download/collection/${key.toString().replace('collection-', '')}`,
+                          useProxy
+                        })
+                      } catch (e) {
+                        toast.error(String(e))
+                      } finally {
+                        setSubStoreImporting(false)
+                      }
                     }
-                  } else if (key.toString().startsWith('collection-')) {
-                    setSubStoreImporting(true)
-                    try {
-                      const collection = collections.find(
-                        (collection) =>
-                          collection.name === key.toString().replace('collection-', '')
-                      )
-                      await addProfileItem({
-                        name: collection?.displayName || collection?.name || '',
-                        type: 'remote',
-                        substore: !useCustomSubStore,
-                        url: useCustomSubStore
-                          ? `${customSubStoreUrl}/download/collection/${key.toString().replace('collection-', '')}?target=ClashMeta`
-                          : `/download/collection/${key.toString().replace('collection-', '')}`,
-                        useProxy
-                      })
-                    } catch (e) {
-                      toast.error(String(e))
-                    } finally {
-                      setSubStoreImporting(false)
-                    }
-                  }
-                }}
-              >
-                {subStoreMenuItems.map((item) => (
-                  <DropdownItem startContent={item?.icon} key={item.key} showDivider={item.divider}>
-                    {item.children}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
+                  }}
+                >
+                  {subStoreMenuItems.map((item) => (
+                    <DropdownItem
+                      startContent={item?.icon}
+                      key={item.key}
+                      showDivider={item.divider}
+                    >
+                      {item.children}
+                    </DropdownItem>
+                  ))}
+                </DropdownMenu>
               </Dropdown>
             )}
             <Dropdown>

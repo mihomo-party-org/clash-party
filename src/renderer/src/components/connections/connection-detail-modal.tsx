@@ -33,60 +33,67 @@ const CopyableSettingItem: React.FC<{
     domain.split('.').length <= 2
       ? [domain]
       : domain
-        .split('.')
-        .map((_, i, parts) => parts.slice(i).join('.'))
-        .slice(0, -1)
+          .split('.')
+          .map((_, i, parts) => parts.slice(i).join('.'))
+          .slice(0, -1)
   const isIPv6 = (ip: string) => ip.includes(':')
 
   const menuItems = [
     { key: 'raw', text: displayName || (Array.isArray(value) ? value.join(', ') : value) },
     ...(Array.isArray(value)
-      ? value.map((v, i) => {
-          const p = prefix[i]
-          if (!p || !v) return null
-  
-          if (p === 'DOMAIN-SUFFIX') {
-            return getSubDomains(v).map((subV) => ({
-              key: `${p},${subV}`,
-              text: `${p},${subV}`
-            }))
-          }
-  
-          if (p === 'IP-ASN' || p === 'SRC-IP-ASN') {
-            return {
-              key: `${p},${v.split(' ')[0]}`,
-              text: `${p},${v.split(' ')[0]}`
+      ? value
+          .map((v, i) => {
+            const p = prefix[i]
+            if (!p || !v) return null
+
+            if (p === 'DOMAIN-SUFFIX') {
+              return getSubDomains(v).map((subV) => ({
+                key: `${p},${subV}`,
+                text: `${p},${subV}`
+              }))
             }
-          }
-  
-          const suffix = (p === 'IP-CIDR' || p === 'SRC-IP-CIDR') ? (isIPv6(v) ? '/128' : '/32') : ''
-          return {
-            key: `${p},${v}${suffix}`,
-            text: `${p},${v}${suffix}`
-          }
-        }).filter(Boolean).flat()
-      : prefix.map(p => {
-          const v = value as string
-          if (p === 'DOMAIN-SUFFIX') {
-            return getSubDomains(v).map((subV) => ({
-              key: `${p},${subV}`,
-              text: `${p},${subV}`
-            }))
-          }
-  
-          if (p === 'IP-ASN' || p === 'SRC-IP-ASN') {
-            return {
-              key: `${p},${v.split(' ')[0]}`,
-              text: `${p},${v.split(' ')[0]}`
+
+            if (p === 'IP-ASN' || p === 'SRC-IP-ASN') {
+              return {
+                key: `${p},${v.split(' ')[0]}`,
+                text: `${p},${v.split(' ')[0]}`
+              }
             }
-          }
-  
-          const suffix = (p === 'IP-CIDR' || p === 'SRC-IP-CIDR') ? (isIPv6(v) ? '/128' : '/32') : ''
-          return {
-            key: `${p},${v}${suffix}`,
-            text: `${p},${v}${suffix}`
-          }
-        }).flat())
+
+            const suffix =
+              p === 'IP-CIDR' || p === 'SRC-IP-CIDR' ? (isIPv6(v) ? '/128' : '/32') : ''
+            return {
+              key: `${p},${v}${suffix}`,
+              text: `${p},${v}${suffix}`
+            }
+          })
+          .filter(Boolean)
+          .flat()
+      : prefix
+          .map((p) => {
+            const v = value as string
+            if (p === 'DOMAIN-SUFFIX') {
+              return getSubDomains(v).map((subV) => ({
+                key: `${p},${subV}`,
+                text: `${p},${subV}`
+              }))
+            }
+
+            if (p === 'IP-ASN' || p === 'SRC-IP-ASN') {
+              return {
+                key: `${p},${v.split(' ')[0]}`,
+                text: `${p},${v.split(' ')[0]}`
+              }
+            }
+
+            const suffix =
+              p === 'IP-CIDR' || p === 'SRC-IP-CIDR' ? (isIPv6(v) ? '/128' : '/32') : ''
+            return {
+              key: `${p},${v}${suffix}`,
+              text: `${p},${v}${suffix}`
+            }
+          })
+          .flat())
   ]
 
   return (
@@ -137,16 +144,28 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
       <ModalContent className="flag-emoji break-all">
         <ModalHeader className="flex app-drag">{t('connections.detail.title')}</ModalHeader>
         <ModalBody>
-          <SettingItem title={t('connections.detail.establishTime')}>{dayjs(connection.start).fromNow()}</SettingItem>
+          <SettingItem title={t('connections.detail.establishTime')}>
+            {dayjs(connection.start).fromNow()}
+          </SettingItem>
           <SettingItem title={t('connections.detail.rule')}>
             {connection.rule}
             {connection.rulePayload ? `(${connection.rulePayload})` : ''}
           </SettingItem>
-          <SettingItem title={t('connections.detail.proxyChain')}>{[...connection.chains].reverse().join('>>')}</SettingItem>
-          <SettingItem title={t('connections.uploadSpeed')}>{calcTraffic(connection.uploadSpeed || 0)}/s</SettingItem>
-          <SettingItem title={t('connections.downloadSpeed')}>{calcTraffic(connection.downloadSpeed || 0)}/s</SettingItem>
-          <SettingItem title={t('connections.uploadAmount')}>{calcTraffic(connection.upload)}</SettingItem>
-          <SettingItem title={t('connections.downloadAmount')}>{calcTraffic(connection.download)}</SettingItem>
+          <SettingItem title={t('connections.detail.proxyChain')}>
+            {[...connection.chains].reverse().join('>>')}
+          </SettingItem>
+          <SettingItem title={t('connections.uploadSpeed')}>
+            {calcTraffic(connection.uploadSpeed || 0)}/s
+          </SettingItem>
+          <SettingItem title={t('connections.downloadSpeed')}>
+            {calcTraffic(connection.downloadSpeed || 0)}/s
+          </SettingItem>
+          <SettingItem title={t('connections.uploadAmount')}>
+            {calcTraffic(connection.upload)}
+          </SettingItem>
+          <SettingItem title={t('connections.downloadAmount')}>
+            {calcTraffic(connection.download)}
+          </SettingItem>
           <CopyableSettingItem
             title={t('connections.detail.connectionType')}
             value={[connection.metadata.type, connection.metadata.network]}
@@ -278,16 +297,24 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
           />
 
           {connection.metadata.remoteDestination && (
-            <SettingItem title={t('connections.detail.remoteDestination')}>{connection.metadata.remoteDestination}</SettingItem>
+            <SettingItem title={t('connections.detail.remoteDestination')}>
+              {connection.metadata.remoteDestination}
+            </SettingItem>
           )}
           {connection.metadata.dnsMode && (
-            <SettingItem title={t('connections.detail.dnsMode')}>{connection.metadata.dnsMode}</SettingItem>
+            <SettingItem title={t('connections.detail.dnsMode')}>
+              {connection.metadata.dnsMode}
+            </SettingItem>
           )}
           {connection.metadata.specialProxy && (
-            <SettingItem title={t('connections.detail.specialProxy')}>{connection.metadata.specialProxy}</SettingItem>
+            <SettingItem title={t('connections.detail.specialProxy')}>
+              {connection.metadata.specialProxy}
+            </SettingItem>
           )}
           {connection.metadata.specialRules && (
-            <SettingItem title={t('connections.detail.specialRules')}>{connection.metadata.specialRules}</SettingItem>
+            <SettingItem title={t('connections.detail.specialRules')}>
+              {connection.metadata.specialRules}
+            </SettingItem>
           )}
         </ModalBody>
         <ModalFooter>

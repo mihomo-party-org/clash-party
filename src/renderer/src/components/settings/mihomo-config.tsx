@@ -183,9 +183,13 @@ const MihomoConfig: React.FC = () => {
           >
             <SelectItem key="PRIORITY_HIGHEST">{t('mihomo.cpuPriority.realtime')}</SelectItem>
             <SelectItem key="PRIORITY_HIGH">{t('mihomo.cpuPriority.high')}</SelectItem>
-            <SelectItem key="PRIORITY_ABOVE_NORMAL">{t('mihomo.cpuPriority.aboveNormal')}</SelectItem>
+            <SelectItem key="PRIORITY_ABOVE_NORMAL">
+              {t('mihomo.cpuPriority.aboveNormal')}
+            </SelectItem>
             <SelectItem key="PRIORITY_NORMAL">{t('mihomo.cpuPriority.normal')}</SelectItem>
-            <SelectItem key="PRIORITY_BELOW_NORMAL">{t('mihomo.cpuPriority.belowNormal')}</SelectItem>
+            <SelectItem key="PRIORITY_BELOW_NORMAL">
+              {t('mihomo.cpuPriority.belowNormal')}
+            </SelectItem>
             <SelectItem key="PRIORITY_LOW">{t('mihomo.cpuPriority.low')}</SelectItem>
           </Select>
         </SettingItem>
@@ -214,7 +218,6 @@ const MihomoConfig: React.FC = () => {
           }}
         />
       </SettingItem>
-
 
       <SettingItem title={t('mihomo.autoCloseConnection')} divider>
         <Switch

@@ -15,7 +15,11 @@ const SubStoreCard: React.FC<Props> = (props) => {
   const { t } = useTranslation()
   const { appConfig } = useAppConfig()
   const { iconOnly } = props
-  const { substoreCardStatus = 'col-span-1', useSubStore = true, disableAnimations = false } = appConfig || {}
+  const {
+    substoreCardStatus = 'col-span-1',
+    useSubStore = true,
+    disableAnimations = false
+  } = appConfig || {}
   const location = useLocation()
   const navigate = useNavigate()
   const match = location.pathname.includes('/substore')

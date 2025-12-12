@@ -190,12 +190,12 @@ export const mihomoUpgradeUI = async (): Promise<void> => {
 
 export const mihomoUpgradeConfig = async (): Promise<void> => {
   console.log('[mihomoApi] mihomoUpgradeConfig called')
-  
+
   try {
     const instance = await getAxios()
     console.log('[mihomoApi] axios instance obtained')
     const { diffWorkDir = false } = await getAppConfig()
-    const { current } = await import('../config').then(mod => mod.getProfileConfig(true))
+    const { current } = await import('../config').then((mod) => mod.getProfileConfig(true))
     const { mihomoWorkConfigPath } = await import('../utils/dirs')
     const configPath = diffWorkDir ? mihomoWorkConfigPath(current) : mihomoWorkConfigPath('work')
     console.log('[mihomoApi] config path:', configPath)
@@ -441,7 +441,10 @@ export const TunStatus = async (): Promise<boolean> => {
   return config?.tun?.enable === true
 }
 
-export function calculateTrayIconStatus(sysProxyEnabled: boolean, tunEnabled: boolean): 'white' | 'blue' | 'green' | 'red' {
+export function calculateTrayIconStatus(
+  sysProxyEnabled: boolean,
+  tunEnabled: boolean
+): 'white' | 'blue' | 'green' | 'red' {
   if (sysProxyEnabled && tunEnabled) {
     return 'red' // 系统代理 + TUN 同时启用（警告状态）
   } else if (sysProxyEnabled) {

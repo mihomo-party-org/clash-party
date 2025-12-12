@@ -96,8 +96,7 @@ export async function enableAutoRun(): Promise<void> {
         await execPromise(
           `powershell  -NoProfile -Command "Start-Process schtasks -Verb RunAs -ArgumentList '/create', '/tn', '${appName}', '/xml', '${taskFilePath}', '/f' -WindowStyle Hidden"`
         )
-      }
-      catch (e) {
+      } catch (e) {
         await managerLogger.info('Maybe the user rejected the UAC dialog?')
       }
     }

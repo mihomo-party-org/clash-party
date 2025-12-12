@@ -131,9 +131,13 @@ export async function downloadAndInstallUpdate(version: string): Promise<void> {
           await appLogger.info('Opened installer with shell.openPath as fallback')
         } catch (fallbackError) {
           await appLogger.error('Fallback method also failed', fallbackError)
-          const installerErrorMessage = installerError instanceof Error ? installerError.message : String(installerError)
-          const fallbackErrorMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
-          throw new Error(`Failed to execute installer: ${installerErrorMessage}. Fallback also failed: ${fallbackErrorMessage}`)
+          const installerErrorMessage =
+            installerError instanceof Error ? installerError.message : String(installerError)
+          const fallbackErrorMessage =
+            fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+          throw new Error(
+            `Failed to execute installer: ${installerErrorMessage}. Fallback also failed: ${fallbackErrorMessage}`
+          )
         }
       }
     }

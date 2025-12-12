@@ -66,7 +66,7 @@ const Settings: React.FC = () => {
       <WebdavConfig />
       <MihomoConfig />
       <ShortcutConfig />
-      <LocalBackupConfig /> 
+      <LocalBackupConfig />
       <Actions />
     </BasePage>
   )

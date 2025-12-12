@@ -125,8 +125,6 @@ const OverrideItem: React.FC<Props> = (props) => {
     }
   }
 
-
-
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -170,12 +168,7 @@ const OverrideItem: React.FC<Props> = (props) => {
           setOpenFileEditor(true)
         }}
       >
-        <div
-          ref={setNodeRef}
-          {...attributes}
-          {...listeners}
-          className="h-full w-full"
-        >
+        <div ref={setNodeRef} {...attributes} {...listeners} className="h-full w-full">
           <CardBody>
             <div className="flex justify-between h-[32px]">
               <h3
@@ -211,10 +204,7 @@ const OverrideItem: React.FC<Props> = (props) => {
                   </Button>
                 )}
 
-                <Dropdown
-                  isOpen={dropdownOpen}
-                  onOpenChange={setDropdownOpen}
-                >
+                <Dropdown isOpen={dropdownOpen} onOpenChange={setDropdownOpen}>
                   <DropdownTrigger>
                     <Button isIconOnly size="sm" variant="light" color="default">
                       <IoMdMore color="default" className={`text-[24px]`} />

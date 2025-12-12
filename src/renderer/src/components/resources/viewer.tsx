@@ -54,13 +54,17 @@ const Viewer: React.FC<Props> = (props) => {
       try {
         const parsedYaml = yaml.load(fileContent)
         if (privderType === 'proxy-providers') {
-          setCurrData(yaml.dump({
-            'proxies': parsedYaml[privderType][title].payload
-          }))
+          setCurrData(
+            yaml.dump({
+              proxies: parsedYaml[privderType][title].payload
+            })
+          )
         } else {
-          setCurrData(yaml.dump({
-            'rules': parsedYaml[privderType][title].payload
-          }))
+          setCurrData(
+            yaml.dump({
+              rules: parsedYaml[privderType][title].payload
+            })
+          )
         }
       } catch (error) {
         setCurrData(fileContent)

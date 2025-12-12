@@ -222,7 +222,7 @@ const ProfileItem: React.FC<Props> = (props) => {
           updateProfileItem={updateProfileItem}
         />
       )}
-      
+
       <Card
         as="div"
         fullWidth
@@ -270,17 +270,9 @@ const ProfileItem: React.FC<Props> = (props) => {
                   </Tooltip>
                 )}
 
-                <Dropdown
-                  isOpen={dropdownOpen}
-                  onOpenChange={setDropdownOpen}
-                >
+                <Dropdown isOpen={dropdownOpen} onOpenChange={setDropdownOpen}>
                   <DropdownTrigger>
-                    <Button
-                      isIconOnly
-                      size="sm"
-                      variant="light"
-                      color="default"
-                    >
+                    <Button isIconOnly size="sm" variant="light" color="default">
                       <IoMdMore
                         color="default"
                         className={`text-[24px] ${isCurrent ? 'text-primary-foreground' : 'text-foreground'}`}
@@ -316,7 +308,9 @@ const ProfileItem: React.FC<Props> = (props) => {
                       await patchAppConfig({ profileDisplayDate: 'update' })
                     }}
                   >
-                    {extra.expire ? dayjs.unix(extra.expire).format('YYYY-MM-DD') : t('profiles.neverExpire')}
+                    {extra.expire
+                      ? dayjs.unix(extra.expire).format('YYYY-MM-DD')
+                      : t('profiles.neverExpire')}
                   </Button>
                 ) : (
                   <Button
@@ -343,7 +337,7 @@ const ProfileItem: React.FC<Props> = (props) => {
                   variant="bordered"
                   className={`${isCurrent ? 'text-primary-foreground border-primary-foreground' : 'border-primary text-primary'}`}
                 >
-                    {t('profiles.remote')}
+                  {t('profiles.remote')}
                 </Chip>
                 <small>{dayjs(info.updated).fromNow()}</small>
               </div>
@@ -357,14 +351,14 @@ const ProfileItem: React.FC<Props> = (props) => {
                   variant="bordered"
                   className={`${isCurrent ? 'text-primary-foreground border-primary-foreground' : 'border-primary text-primary'}`}
                 >
-                    {t('profiles.local')}
+                  {t('profiles.local')}
                 </Chip>
               </div>
             )}
             {extra && (
               <Progress
                 className="w-full"
-                  aria-label={t('profiles.trafficUsage')}
+                aria-label={t('profiles.trafficUsage')}
                 classNames={{
                   indicator: isCurrent ? 'bg-primary-foreground' : 'bg-foreground'
                 }}

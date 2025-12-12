@@ -57,20 +57,12 @@ const LocalBackupConfig: React.FC = () => {
       />
       <SettingCard title={t('localBackup.title')}>
         <SettingItem title={t('localBackup.export.title')} divider>
-          <Button
-            isLoading={exporting}
-            size="sm"
-            onPress={handleExport}
-          >
+          <Button isLoading={exporting} size="sm" onPress={handleExport}>
             {t('localBackup.export.button')}
           </Button>
         </SettingItem>
         <SettingItem title={t('localBackup.import.title')}>
-          <Button
-            isLoading={importing}
-            size="sm"
-            onPress={onOpen}
-          >
+          <Button isLoading={importing} size="sm" onPress={onOpen}>
             {t('localBackup.import.button')}
           </Button>
         </SettingItem>

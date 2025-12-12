@@ -138,7 +138,7 @@ export async function initWebdavBackupScheduler(): Promise<void> {
     }
 
     const { webdavBackupCron } = await getAppConfig()
-    
+
     // 如果配置了Cron表达式，则启动定时任务
     if (webdavBackupCron) {
       backupCronJob = new Cron(webdavBackupCron, async () => {
@@ -149,7 +149,7 @@ export async function initWebdavBackupScheduler(): Promise<void> {
           await systemLogger.error('Failed to execute WebDAV backup via cron job', error)
         }
       })
-      
+
       await systemLogger.info(`WebDAV backup scheduler initialized with cron: ${webdavBackupCron}`)
       await systemLogger.info(`WebDAV backup scheduler nextRun: ${backupCronJob.nextRun()}`)
     } else {
@@ -214,7 +214,7 @@ export async function exportLocalBackup(): Promise<boolean> {
   if (existsSync(rulesDir())) {
     zip.addLocalFolder(rulesDir(), 'rules')
   }
-  
+
   const date = new Date()
   const zipFileName = `clash-party-backup-${dayjs(date).format('YYYY-MM-DD_HH-mm-ss')}.zip`
   const result = await dialog.showSaveDialog({
@@ -225,7 +225,7 @@ export async function exportLocalBackup(): Promise<boolean> {
       { name: 'All Files', extensions: ['*'] }
     ]
   })
-  
+
   if (!result.canceled && result.filePath) {
     zip.writeZip(result.filePath)
     await systemLogger.info(`Local backup exported to: ${result.filePath}`)
@@ -246,7 +246,7 @@ export async function importLocalBackup(): Promise<boolean> {
     ],
     properties: ['openFile']
   })
-  
+
   if (!result.canceled && result.filePaths.length > 0) {
     const filePath = result.filePaths[0]
     const zip = new AdmZip(filePath)

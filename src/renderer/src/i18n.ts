@@ -15,4 +15,4 @@ i18n.on('languageChanged', (lng) => {
   window.electron.ipcRenderer.invoke('changeLanguage', lng)
 })
 
-export default i18n 
+export default i18n

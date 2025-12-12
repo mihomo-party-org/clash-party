@@ -15,12 +15,25 @@ import pngIconBlue from '../../../resources/icon_blue.png?asset'
 import pngIconRed from '../../../resources/icon_red.png?asset'
 import pngIconGreen from '../../../resources/icon_green.png?asset'
 import templateIcon from '../../../resources/iconTemplate.png?asset'
-import { mihomoChangeProxy, mihomoCloseAllConnections, mihomoGroups, patchMihomoConfig, getTrayIconStatus, calculateTrayIconStatus } from '../core/mihomoApi'
+import {
+  mihomoChangeProxy,
+  mihomoCloseAllConnections,
+  mihomoGroups,
+  patchMihomoConfig,
+  getTrayIconStatus,
+  calculateTrayIconStatus
+} from '../core/mihomoApi'
 import { mainWindow, showMainWindow, triggerMainWindow } from '..'
 import { app, clipboard, ipcMain, Menu, nativeImage, shell, Tray } from 'electron'
 import { dataDir, logDir, mihomoCoreDir, mihomoWorkDir } from '../utils/dirs'
 import { triggerSysProxy } from '../sys/sysproxy'
-import { quitWithoutCore, restartCore, checkMihomoCorePermissions, requestTunPermissions, restartAsAdmin } from '../core/manager'
+import {
+  quitWithoutCore,
+  restartCore,
+  checkMihomoCorePermissions,
+  requestTunPermissions,
+  restartAsAdmin
+} from '../core/manager'
 import { floatingWindow, triggerFloatingWindow } from './floatingWindow'
 import { t } from 'i18next'
 import { trayLogger } from '../utils/logger'
@@ -30,8 +43,14 @@ export let tray: Tray | null = null
 export const buildContextMenu = async (): Promise<Menu> => {
   // 添加调试日志
   await trayLogger.debug('Current translation for tray.showWindow', t('tray.showWindow'))
-  await trayLogger.debug('Current translation for tray.hideFloatingWindow', t('tray.hideFloatingWindow'))
-  await trayLogger.debug('Current translation for tray.showFloatingWindow', t('tray.showFloatingWindow'))
+  await trayLogger.debug(
+    'Current translation for tray.hideFloatingWindow',
+    t('tray.hideFloatingWindow')
+  )
+  await trayLogger.debug(
+    'Current translation for tray.showFloatingWindow',
+    t('tray.showFloatingWindow')
+  )
 
   const { mode, tun } = await getControledMihomoConfig()
   const {
@@ -55,8 +74,8 @@ export const buildContextMenu = async (): Promise<Menu> => {
     try {
       const groups = await mihomoGroups()
       groupsMenu = groups.map((group) => {
-        const groupLabel = showCurrentProxyInTray ? `${group.name} | ${group.now}` : group.name;
-        
+        const groupLabel = showCurrentProxyInTray ? `${group.name} | ${group.now}` : group.name
+
         return {
           id: group.name,
           label: groupLabel,
@@ -106,7 +125,9 @@ export const buildContextMenu = async (): Promise<Menu> => {
     {
       id: 'show-floating',
       accelerator: showFloatingWindowShortcut,
-      label: floatingWindow?.isVisible() ? t('tray.hideFloatingWindow') : t('tray.showFloatingWindow'),
+      label: floatingWindow?.isVisible()
+        ? t('tray.hideFloatingWindow')
+        : t('tray.showFloatingWindow'),
       type: 'normal',
       click: async (): Promise<void> => {
         await triggerFloatingWindow()
@@ -487,7 +508,7 @@ export function updateTrayIconImmediate(sysProxyEnabled: boolean, tunEnabled: bo
 
   const status = calculateTrayIconStatus(sysProxyEnabled, tunEnabled)
   const iconPaths = getIconPaths()
-  
+
   getAppConfig().then(({ disableTrayIconColor = false }) => {
     if (!tray) return
     const iconPath = disableTrayIconColor ? iconPaths.white : iconPaths[status]

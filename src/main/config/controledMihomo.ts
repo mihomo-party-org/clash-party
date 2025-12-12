@@ -17,12 +17,16 @@ export async function getControledMihomoConfig(force = false): Promise<Partial<I
     } else {
       controledMihomoConfig = defaultControledMihomoConfig
       try {
-        await writeFile(controledMihomoConfigPath(), stringify(defaultControledMihomoConfig), 'utf-8')
+        await writeFile(
+          controledMihomoConfigPath(),
+          stringify(defaultControledMihomoConfig),
+          'utf-8'
+        )
       } catch (error) {
         console.error('Failed to create mihomo.yaml file:', error)
       }
     }
-    
+
     // 确保配置包含所有必要的默认字段，处理升级场景
     controledMihomoConfig = deepMerge(defaultControledMihomoConfig, controledMihomoConfig)
   }

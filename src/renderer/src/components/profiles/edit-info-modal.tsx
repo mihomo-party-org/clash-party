@@ -21,7 +21,7 @@ import { restartCore, addProfileUpdater } from '@renderer/utils/ipc'
 import { MdDeleteForever } from 'react-icons/md'
 import { FaPlus } from 'react-icons/fa6'
 import { useTranslation } from 'react-i18next'
-import { isValidCron } from 'cron-validator';
+import { isValidCron } from 'cron-validator'
 
 interface Props {
   item: IProfileItem
@@ -44,7 +44,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
           (i) =>
             overrideItems.find((t) => t.id === i) && !overrideItems.find((t) => t.id === i)?.global
         )
-      };
+      }
       await updateProfileItem(updatedItem)
       await addProfileUpdater(updatedItem)
       await restartCore()
@@ -132,10 +132,10 @@ const EditInfoModal: React.FC<Props> = (props) => {
                         className={cn(
                           inputWidth,
                           // 不合法
-                          typeof values.interval === 'string' && 
-                          !/^\d+$/.test(values.interval) && 
-                          !isValidCron(values.interval, { seconds: false }) && 
-                          'border-red-500'
+                          typeof values.interval === 'string' &&
+                            !/^\d+$/.test(values.interval) &&
+                            !isValidCron(values.interval, { seconds: false }) &&
+                            'border-red-500'
                         )}
                         value={values.interval?.toString() ?? ''}
                         onValueChange={(v) => {
@@ -143,12 +143,12 @@ const EditInfoModal: React.FC<Props> = (props) => {
                           if (/^[\d\s*\-,\/]*$/.test(v)) {
                             // 纯数字
                             if (/^\d+$/.test(v)) {
-                              setValues({ ...values, interval: parseInt(v, 10) || 0 });
-                              return;
+                              setValues({ ...values, interval: parseInt(v, 10) || 0 })
+                              return
                             }
                             // 非纯数字
                             try {
-                              setValues({ ...values, interval: v });
+                              setValues({ ...values, interval: v })
                             } catch (e) {
                               // ignore
                             }
@@ -158,22 +158,24 @@ const EditInfoModal: React.FC<Props> = (props) => {
                       />
 
                       {/* 动态提示信息 */}
-                      <div className="text-xs" style={{
-                        color: typeof values.interval === 'string' && 
-                              !/^\d+$/.test(values.interval) &&
-                              !isValidCron(values.interval, { seconds: false }) 
+                      <div
+                        className="text-xs"
+                        style={{
+                          color:
+                            typeof values.interval === 'string' &&
+                            !/^\d+$/.test(values.interval) &&
+                            !isValidCron(values.interval, { seconds: false })
                               ? '#ef4444'
                               : '#6b7280'
-                      }}>
-                        {typeof values.interval === 'number' ? (
-                          t('profiles.editInfo.intervalMinutes')
-                        ) : /^\d+$/.test(values.interval?.toString() || '') ? (
-                          t('profiles.editInfo.intervalMinutes')
-                        ) : isValidCron(values.interval?.toString() || '', { seconds: false }) ? (
-                          t('profiles.editInfo.intervalCron')
-                        ) : (
-                          t('profiles.editInfo.intervalHint')
-                        )}
+                        }}
+                      >
+                        {typeof values.interval === 'number'
+                          ? t('profiles.editInfo.intervalMinutes')
+                          : /^\d+$/.test(values.interval?.toString() || '')
+                            ? t('profiles.editInfo.intervalMinutes')
+                            : isValidCron(values.interval?.toString() || '', { seconds: false })
+                              ? t('profiles.editInfo.intervalCron')
+                              : t('profiles.editInfo.intervalHint')}
                       </div>
                     </div>
                   </SettingItem>

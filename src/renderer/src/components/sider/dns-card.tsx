@@ -18,7 +18,11 @@ const DNSCard: React.FC<Props> = (props) => {
   const { t } = useTranslation()
   const { appConfig, patchAppConfig } = useAppConfig()
   const { iconOnly } = props
-  const { dnsCardStatus = 'col-span-1', controlDns = true, disableAnimations = false } = appConfig || {}
+  const {
+    dnsCardStatus = 'col-span-1',
+    controlDns = true,
+    disableAnimations = false
+  } = appConfig || {}
   const location = useLocation()
   const navigate = useNavigate()
   const match = location.pathname.includes('/dns')

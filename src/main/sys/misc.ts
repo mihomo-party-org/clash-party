@@ -77,8 +77,6 @@ export function setNativeTheme(theme: 'system' | 'light' | 'dark'): void {
   nativeTheme.themeSource = theme
 }
 
-
-
 export function resetAppConfig(): void {
   if (process.platform === 'win32') {
     spawn(

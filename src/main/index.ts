@@ -3,7 +3,15 @@ import { registerIpcMainHandlers } from './utils/ipc'
 import windowStateKeeper from 'electron-window-state'
 import { app, shell, BrowserWindow, Menu, dialog, Notification, powerMonitor } from 'electron'
 import { addProfileItem, getAppConfig, patchAppConfig } from './config'
-import { quitWithoutCore, startCore, stopCore, checkAdminRestartForTun, checkHighPrivilegeCore, restartAsAdmin, initAdminStatus } from './core/manager'
+import {
+  quitWithoutCore,
+  startCore,
+  stopCore,
+  checkAdminRestartForTun,
+  checkHighPrivilegeCore,
+  restartAsAdmin,
+  initAdminStatus
+} from './core/manager'
 import { triggerSysProxy } from './sys/sysproxy'
 import icon from '../../resources/icon.png?asset'
 import { createTray, hideDockIcon, showDockIcon } from './resolve/tray'
@@ -22,7 +30,6 @@ import { initI18n } from '../shared/i18n'
 import i18next from 'i18next'
 import { logger } from './utils/logger'
 import { initWebdavBackupScheduler } from './resolve/backup'
-
 
 async function fixUserDataPermissions(): Promise<void> {
   if (process.platform !== 'darwin') return
@@ -60,11 +67,10 @@ async function initApp(): Promise<void> {
   await fixUserDataPermissions()
 }
 
-initApp()
-  .catch((e) => {
-    safeShowErrorBox('common.error.initFailed', `${e}`)
-    app.quit()
-  })
+initApp().catch((e) => {
+  safeShowErrorBox('common.error.initFailed', `${e}`)
+  app.quit()
+})
 
 export function customRelaunch(): void {
   const script = `while kill -0 ${process.pid} 2>/dev/null; do
@@ -111,7 +117,8 @@ async function checkHighPrivilegeCoreEarly(): Promise<void> {
     if (hasHighPrivilegeCore) {
       try {
         const appConfig = await getAppConfig()
-        const language = appConfig.language || (app.getLocale().startsWith('zh') ? 'zh-CN' : 'en-US')
+        const language =
+          appConfig.language || (app.getLocale().startsWith('zh') ? 'zh-CN' : 'en-US')
         await initI18n({ lng: language })
       } catch {
         await initI18n({ lng: 'zh-CN' })
@@ -223,8 +230,8 @@ app.whenReady().then(async () => {
   try {
     const [startPromise] = await startCore()
     startPromise.then(async () => {
-    await initProfileUpdater()
-    await initWebdavBackupScheduler() // 初始化WebDAV定时备份任务
+      await initProfileUpdater()
+      await initWebdavBackupScheduler() // 初始化WebDAV定时备份任务
       // 上次是否为了开启 TUN 而重启
       await checkAdminRestartForTun()
     })
@@ -412,18 +419,18 @@ export async function createWindow(): Promise<void> {
 export function triggerMainWindow(force?: boolean): void {
   if (mainWindow) {
     getAppConfig()
-    .then(({ triggerMainWindowBehavior = 'toggle' }) => {
-      if (force === true || triggerMainWindowBehavior === 'toggle') {
-        if (mainWindow?.isVisible()) {
-          closeMainWindow()
+      .then(({ triggerMainWindowBehavior = 'toggle' }) => {
+        if (force === true || triggerMainWindowBehavior === 'toggle') {
+          if (mainWindow?.isVisible()) {
+            closeMainWindow()
+          } else {
+            showMainWindow()
+          }
         } else {
           showMainWindow()
         }
-      } else {
-        showMainWindow()
-      }
-    })
-    .catch(showMainWindow)
+      })
+      .catch(showMainWindow)
   }
 }
 

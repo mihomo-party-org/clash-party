@@ -1,4 +1,12 @@
-import { Button, Code, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from '@heroui/react'
+import {
+  Button,
+  Code,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader
+} from '@heroui/react'
 import { toast } from '@renderer/components/base/toast'
 import ReactMarkdown from 'react-markdown'
 import React, { useState } from 'react'

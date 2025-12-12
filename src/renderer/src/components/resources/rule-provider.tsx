@@ -32,7 +32,7 @@ const RuleProvider: React.FC = () => {
     if (showDetails.title) {
       const fetchProviderPath = async (name: string): Promise<void> => {
         try {
-          const providers= await getRuntimeConfig()
+          const providers = await getRuntimeConfig()
           const provider = providers['rule-providers'][name]
           if (provider) {
             setShowDetails((prev) => ({
@@ -97,7 +97,17 @@ const RuleProvider: React.FC = () => {
           format={showDetails.format}
           privderType={showDetails.privderType}
           behavior={showDetails.behavior}
-          onClose={() => setShowDetails({ show: false, path: '', type: '', title: '', format: '', privderType: '', behavior: '' })}
+          onClose={() =>
+            setShowDetails({
+              show: false,
+              path: '',
+              type: '',
+              title: '',
+              format: '',
+              privderType: '',
+              behavior: ''
+            })
+          }
         />
       )}
       <SettingItem title={t('resources.ruleProviders.title')} divider>
@@ -127,7 +137,9 @@ const RuleProvider: React.FC = () => {
               <div>{dayjs(provider.updatedAt).fromNow()}</div>
               <Button
                 isIconOnly
-                title={provider.vehicleType == 'File' ? t('common.editor.edit') : t('common.viewer.view')}
+                title={
+                  provider.vehicleType == 'File' ? t('common.editor.edit') : t('common.viewer.view')
+                }
                 className="ml-2"
                 size="sm"
                 onPress={() => {

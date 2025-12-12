@@ -30,8 +30,18 @@ const Connections: React.FC = () => {
     connectionOrderBy = 'time',
     connectionViewMode = 'list',
     connectionTableColumns = [
-      'status', 'establishTime', 'type', 'host', 'process', 'rule',
-      'proxyChain', 'remoteDestination', 'uploadSpeed', 'downloadSpeed', 'upload', 'download'
+      'status',
+      'establishTime',
+      'type',
+      'host',
+      'process',
+      'rule',
+      'proxyChain',
+      'remoteDestination',
+      'uploadSpeed',
+      'downloadSpeed',
+      'upload',
+      'download'
     ],
     connectionTableColumnWidths,
     connectionTableSortColumn,
@@ -64,26 +74,33 @@ const Connections: React.FC = () => {
     )
   }, [selected, activeConnections, closedConnections])
 
-  const handleColumnWidthChange = useCallback(async (widths: Record<string, number>) => {
-    await patchAppConfig({ connectionTableColumnWidths: widths })
-  }, [patchAppConfig])
+  const handleColumnWidthChange = useCallback(
+    async (widths: Record<string, number>) => {
+      await patchAppConfig({ connectionTableColumnWidths: widths })
+    },
+    [patchAppConfig]
+  )
 
-  const handleSortChange = useCallback(async (column: string | null, direction: 'asc' | 'desc') => {
-    await patchAppConfig({
-      connectionTableSortColumn: column || undefined,
-      connectionTableSortDirection: direction
-    })
-  }, [patchAppConfig])
+  const handleSortChange = useCallback(
+    async (column: string | null, direction: 'asc' | 'desc') => {
+      await patchAppConfig({
+        connectionTableSortColumn: column || undefined,
+        connectionTableSortDirection: direction
+      })
+    },
+    [patchAppConfig]
+  )
 
   const filteredConnections = useMemo(() => {
     const connections = tab === 'active' ? activeConnections : closedConnections
 
-    const filtered = filter === ''
-      ? connections
-      : connections.filter((connection) => {
-          const raw = JSON.stringify(connection)
-          return includesIgnoreCase(raw, filter)
-        })
+    const filtered =
+      filter === ''
+        ? connections
+        : connections.filter((connection) => {
+            const raw = JSON.stringify(connection)
+            return includesIgnoreCase(raw, filter)
+          })
 
     if (viewMode === 'list' && connectionOrderBy) {
       return [...filtered].sort((a, b) => {
@@ -110,15 +127,26 @@ const Connections: React.FC = () => {
     }
 
     return filtered
-  }, [activeConnections, closedConnections, tab, filter, connectionDirection, connectionOrderBy, viewMode])
+  }, [
+    activeConnections,
+    closedConnections,
+    tab,
+    filter,
+    connectionDirection,
+    connectionOrderBy,
+    viewMode
+  ])
 
   const closeAllConnections = useCallback((): void => {
     tab === 'active' ? mihomoCloseAllConnections() : trashAllClosedConnection()
   }, [tab])
 
-  const closeConnection = useCallback((id: string): void => {
-    tab === 'active' ? mihomoCloseConnection(id) : trashClosedConnection(id)
-  }, [tab])
+  const closeConnection = useCallback(
+    (id: string): void => {
+      tab === 'active' ? mihomoCloseConnection(id) : trashClosedConnection(id)
+    },
+    [tab]
+  )
 
   const trashAllClosedConnection = (): void => {
     setClosedConnections((closedConns) => {
@@ -211,7 +239,11 @@ const Connections: React.FC = () => {
           >
             <Button
               className="app-nodrag ml-1"
-              title={viewMode === 'list' ? t('connections.table.switchToTable') : t('connections.table.switchToList')}
+              title={
+                viewMode === 'list'
+                  ? t('connections.table.switchToTable')
+                  : t('connections.table.switchToList')
+              }
               isIconOnly
               size="sm"
               variant="light"
@@ -221,7 +253,11 @@ const Connections: React.FC = () => {
                 await patchAppConfig({ connectionViewMode: newMode })
               }}
             >
-              {viewMode === 'list' ? <MdTableChart className="text-lg" /> : <MdViewList className="text-lg" />}
+              {viewMode === 'list' ? (
+                <MdTableChart className="text-lg" />
+              ) : (
+                <MdViewList className="text-lg" />
+              )}
             </Button>
             <Button
               className="app-nodrag ml-1"
@@ -256,7 +292,10 @@ const Connections: React.FC = () => {
       }
     >
       {isDetailModalOpen && selectedConnection && (
-        <ConnectionDetailModal onClose={() => setIsDetailModalOpen(false)} connection={selectedConnection} />
+        <ConnectionDetailModal
+          onClose={() => setIsDetailModalOpen(false)}
+          connection={selectedConnection}
+        />
       )}
       <div className="overflow-x-auto sticky top-0 z-40">
         <div className="flex p-2 gap-2">
@@ -333,7 +372,9 @@ const Connections: React.FC = () => {
                 }}
               >
                 <DropdownItem key="status">{t('connections.detail.status')}</DropdownItem>
-                <DropdownItem key="establishTime">{t('connections.detail.establishTime')}</DropdownItem>
+                <DropdownItem key="establishTime">
+                  {t('connections.detail.establishTime')}
+                </DropdownItem>
                 <DropdownItem key="type">{t('connections.detail.connectionType')}</DropdownItem>
                 <DropdownItem key="host">{t('connections.detail.host')}</DropdownItem>
                 <DropdownItem key="sniffHost">{t('connections.detail.sniffHost')}</DropdownItem>
@@ -343,7 +384,9 @@ const Connections: React.FC = () => {
                 <DropdownItem key="proxyChain">{t('connections.detail.proxyChain')}</DropdownItem>
                 <DropdownItem key="sourceIP">{t('connections.detail.sourceIP')}</DropdownItem>
                 <DropdownItem key="sourcePort">{t('connections.detail.sourcePort')}</DropdownItem>
-                <DropdownItem key="destinationPort">{t('connections.detail.destinationPort')}</DropdownItem>
+                <DropdownItem key="destinationPort">
+                  {t('connections.detail.destinationPort')}
+                </DropdownItem>
                 <DropdownItem key="inboundIP">{t('connections.detail.inboundIP')}</DropdownItem>
                 <DropdownItem key="inboundPort">{t('connections.detail.inboundPort')}</DropdownItem>
                 <DropdownItem key="uploadSpeed">{t('connections.uploadSpeed')}</DropdownItem>
@@ -351,7 +394,9 @@ const Connections: React.FC = () => {
                 <DropdownItem key="upload">{t('connections.uploadAmount')}</DropdownItem>
                 <DropdownItem key="download">{t('connections.downloadAmount')}</DropdownItem>
                 <DropdownItem key="dscp">{t('connections.detail.dscp')}</DropdownItem>
-                <DropdownItem key="remoteDestination">{t('connections.detail.remoteDestination')}</DropdownItem>
+                <DropdownItem key="remoteDestination">
+                  {t('connections.detail.remoteDestination')}
+                </DropdownItem>
                 <DropdownItem key="dnsMode">{t('connections.detail.dnsMode')}</DropdownItem>
               </DropdownMenu>
             </Dropdown>

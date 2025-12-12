@@ -1,7 +1,7 @@
 import { execSync } from 'child_process'
 import { readFileSync } from 'fs'
 
- // 获取Git commit hash
+// 获取Git commit hash
 export function getGitCommitHash(short = true) {
   try {
     const command = short ? 'git rev-parse --short HEAD' : 'git rev-parse HEAD'
@@ -12,7 +12,7 @@ export function getGitCommitHash(short = true) {
   }
 }
 
- // 获取当前月份日期
+// 获取当前月份日期
 export function getCurrentMonthDate() {
   const now = new Date()
   const month = String(now.getMonth() + 1).padStart(2, '0')
@@ -20,7 +20,7 @@ export function getCurrentMonthDate() {
   return `${month}${day}`
 }
 
- // 从package.json读取基础版本号
+// 从package.json读取基础版本号
 export function getBaseVersion() {
   try {
     const pkg = readFileSync('package.json', 'utf-8')
@@ -33,7 +33,7 @@ export function getBaseVersion() {
   }
 }
 
- // 生成dev版本号
+// 生成dev版本号
 export function getDevVersion() {
   const baseVersion = getBaseVersion()
   const monthDate = getCurrentMonthDate()
@@ -42,14 +42,16 @@ export function getDevVersion() {
   return `${baseVersion}-d${monthDate}.${commitHash}`
 }
 
- // 检查当前环境是否为dev构建
+// 检查当前环境是否为dev构建
 export function isDevBuild() {
-  return process.env.NODE_ENV === 'development' || 
-         process.argv.includes('--dev') ||
-         process.env.GITHUB_EVENT_NAME === 'workflow_dispatch'
+  return (
+    process.env.NODE_ENV === 'development' ||
+    process.argv.includes('--dev') ||
+    process.env.GITHUB_EVENT_NAME === 'workflow_dispatch'
+  )
 }
 
- // 获取处理后的版本号
+// 获取处理后的版本号
 export function getProcessedVersion() {
   if (isDevBuild()) {
     return getDevVersion()
@@ -58,7 +60,7 @@ export function getProcessedVersion() {
   }
 }
 
- // 生成下载URL
+// 生成下载URL
 export function getDownloadUrl(isDev, version) {
   if (isDev) {
     return 'https://github.com/mihomo-party-org/clash-party/releases/download/dev'
@@ -81,6 +83,6 @@ export function generateDownloadLinksMarkdown(downloadUrl, version) {
   links += '\n#### Linux：\n\n'
   links += `- DEB：[64位](${downloadUrl}/clash-party-linux-${version}-amd64.deb) | [ARM64](${downloadUrl}/clash-party-linux-${version}-arm64.deb)\n\n`
   links += `- RPM：[64位](${downloadUrl}/clash-party-linux-${version}-x86_64.rpm) | [ARM64](${downloadUrl}/clash-party-linux-${version}-aarch64.rpm)`
-  
+
   return links
 }

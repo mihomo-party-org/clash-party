@@ -1,4 +1,4 @@
-import { app, dialog, ipcMain } from 'electron'
+import { app, ipcMain } from 'electron'
 import {
   mihomoChangeProxy,
   mihomoCloseAllConnections,
@@ -86,9 +86,22 @@ import {
   setupFirewall
 } from '../sys/misc'
 import { getRuntimeConfig, getRuntimeConfigStr } from '../core/factory'
-import { listWebdavBackups, webdavBackup, webdavDelete, webdavRestore, exportLocalBackup, importLocalBackup } from '../resolve/backup'
+import {
+  listWebdavBackups,
+  webdavBackup,
+  webdavDelete,
+  webdavRestore,
+  exportLocalBackup,
+  importLocalBackup
+} from '../resolve/backup'
 import { getInterfaces } from '../sys/interface'
-import { closeTrayIcon, copyEnv, showTrayIcon, updateTrayIcon, updateTrayIconImmediate } from '../resolve/tray'
+import {
+  closeTrayIcon,
+  copyEnv,
+  showTrayIcon,
+  updateTrayIcon,
+  updateTrayIconImmediate
+} from '../resolve/tray'
 import { registerShortcut } from '../resolve/shortcut'
 import { closeMainWindow, mainWindow, showMainWindow, triggerMainWindow } from '..'
 import {
@@ -135,7 +148,9 @@ function ipcErrorWrapper<T>( // eslint-disable-next-line @typescript-eslint/no-e
 }
 
 // GitHub版本管理相关IPC处理程序
-export async function fetchMihomoTags(forceRefresh = false): Promise<{name: string, zipball_url: string, tarball_url: string}[]> {
+export async function fetchMihomoTags(
+  forceRefresh = false
+): Promise<{ name: string; zipball_url: string; tarball_url: string }[]> {
   return await getGitHubTags('MetaCubeX', 'mihomo', forceRefresh)
 }
 
@@ -216,7 +231,9 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('getProfileStr', (_e, id) => ipcErrorWrapper(getProfileStr)(id))
   ipcMain.handle('getFileStr', (_e, path) => ipcErrorWrapper(getFileStr)(path))
   ipcMain.handle('setFileStr', (_e, path, str) => ipcErrorWrapper(setFileStr)(path, str))
-  ipcMain.handle('convertMrsRuleset', (_e, path, behavior) => ipcErrorWrapper(convertMrsRuleset)(path, behavior))
+  ipcMain.handle('convertMrsRuleset', (_e, path, behavior) =>
+    ipcErrorWrapper(convertMrsRuleset)(path, behavior)
+  )
   ipcMain.handle('setProfileStr', (_e, id, str) => ipcErrorWrapper(setProfileStr)(id, str))
   ipcMain.handle('updateProfileItem', (_e, item) => ipcErrorWrapper(updateProfileItem)(item))
   ipcMain.handle('changeCurrentProfile', (_e, id) => ipcErrorWrapper(changeCurrentProfile)(id))
@@ -242,7 +259,9 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('requestTunPermissions', () => ipcErrorWrapper(requestTunPermissions)())
   ipcMain.handle('checkHighPrivilegeCore', () => ipcErrorWrapper(checkHighPrivilegeCore)())
   ipcMain.handle('showTunPermissionDialog', () => ipcErrorWrapper(showTunPermissionDialog)())
-  ipcMain.handle('showErrorDialog', (_, title: string, message: string) => ipcErrorWrapper(showErrorDialog)(title, message))
+  ipcMain.handle('showErrorDialog', (_, title: string, message: string) =>
+    ipcErrorWrapper(showErrorDialog)(title, message)
+  )
 
   ipcMain.handle('checkTunPermissions', () => ipcErrorWrapper(checkTunPermissions)())
   ipcMain.handle('grantTunPermissions', () => ipcErrorWrapper(grantTunPermissions)())
@@ -347,16 +366,20 @@ export function registerIpcMainHandlers(): void {
     // 触发托盘菜单更新
     ipcMain.emit('updateTrayMenu')
   })
-  
+
   // 注册获取Mihomo标签的IPC处理程序
-  ipcMain.handle('fetchMihomoTags', (_e, forceRefresh) => ipcErrorWrapper(fetchMihomoTags)(forceRefresh))
+  ipcMain.handle('fetchMihomoTags', (_e, forceRefresh) =>
+    ipcErrorWrapper(fetchMihomoTags)(forceRefresh)
+  )
 
   // 注册安装特定版本Mihomo核心的IPC处理程序
-  ipcMain.handle('installSpecificMihomoCore', (_e, version) => ipcErrorWrapper(installSpecificMihomoCore)(version))
+  ipcMain.handle('installSpecificMihomoCore', (_e, version) =>
+    ipcErrorWrapper(installSpecificMihomoCore)(version)
+  )
 
   // 注册清除版本缓存的IPC处理程序
   ipcMain.handle('clearMihomoVersionCache', () => ipcErrorWrapper(clearMihomoVersionCache)())
-  
+
   // 规则相关IPC处理程序
   ipcMain.handle('getRuleStr', (_e, id) => ipcErrorWrapper(getRuleStr)(id))
   ipcMain.handle('setRuleStr', (_e, id, str) => ipcErrorWrapper(setRuleStr)(id, str))

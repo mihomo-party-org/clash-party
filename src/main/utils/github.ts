@@ -48,9 +48,13 @@ const versionCache = new Map<string, VersionCache>()
  * @param forceRefresh 是否强制刷新缓存
  * @returns 标签列表
  */
-export async function getGitHubTags(owner: string, repo: string, forceRefresh = false): Promise<GitHubTag[]> {
+export async function getGitHubTags(
+  owner: string,
+  repo: string,
+  forceRefresh = false
+): Promise<GitHubTag[]> {
   const cacheKey = `${owner}/${repo}`
-  
+
   // 检查缓存
   if (!forceRefresh && versionCache.has(cacheKey)) {
     const cache = versionCache.get(cacheKey)!
@@ -60,7 +64,7 @@ export async function getGitHubTags(owner: string, repo: string, forceRefresh = 
       return cache.data
     }
   }
-  
+
   try {
     console.log(`[GitHub] Fetching tags for ${owner}/${repo}`)
     const response = await chromeRequest.get<GitHubTag[]>(
@@ -135,45 +139,45 @@ async function downloadGitHubAsset(url: string, outputPath: string): Promise<voi
 export async function installMihomoCore(version: string): Promise<void> {
   try {
     console.log(`[GitHub] Installing mihomo core version ${version}`)
-    
+
     const plat = platform()
     let arch = process.arch
-    
+
     // 映射平台和架构到GitHub Release文件名
     const key = `${plat}-${arch}`
     const name = PLATFORM_MAP[key]
-    
+
     if (!name) {
       throw new Error(`Unsupported platform "${plat}-${arch}"`)
     }
-    
+
     const isWin = plat === 'win32'
     const urlExt = isWin ? 'zip' : 'gz'
     const downloadURL = `https://github.com/MetaCubeX/mihomo/releases/download/${version}/${name}-${version}.${urlExt}`
-    
+
     const coreDir = mihomoCoreDir()
     const tempZip = join(coreDir, `temp-core.${urlExt}`)
     const exeFile = `${name}${isWin ? '.exe' : ''}`
     const targetFile = `mihomo-specific${isWin ? '.exe' : ''}`
     const targetPath = join(coreDir, targetFile)
-    
+
     // 如果目标文件已存在，先停止核心
     if (existsSync(targetPath)) {
       console.log('[GitHub] Stopping core before extracting new core file')
       // 先停止核心
       await stopCore(true)
     }
-    
+
     // 下载文件
     await downloadGitHubAsset(downloadURL, tempZip)
-    
+
     // 解压文件
     if (urlExt === 'zip') {
       console.log(`[GitHub] Extracting ZIP file ${tempZip}`)
       const zip = new AdmZip(tempZip)
       const entries = zip.getEntries()
-      const entry = entries.find(e => e.entryName.includes(exeFile))
-      
+      const entry = entries.find((e) => e.entryName.includes(exeFile))
+
       if (entry) {
         zip.extractEntryTo(entry, coreDir, false, true, false, targetFile)
         console.log(`[GitHub] Successfully extracted ${exeFile} to ${targetPath}`)
@@ -185,13 +189,13 @@ export async function installMihomoCore(version: string): Promise<void> {
       console.log(`[GitHub] Extracting GZ file ${tempZip}`)
       const readStream = createReadStream(tempZip)
       const writeStream = createWriteStream(targetPath)
-      
+
       await new Promise<void>((resolve, reject) => {
         const onError = (error: Error) => {
           console.error('[GitHub] Gzip decompression failed:', error.message)
           reject(new Error(`Gzip decompression failed: ${error.message}`))
         }
-        
+
         readStream
           .pipe(createGunzip().on('error', onError))
           .pipe(writeStream)
@@ -208,14 +212,16 @@ export async function installMihomoCore(version: string): Promise<void> {
           .on('error', onError)
       })
     }
-    
+
     // 清理临时文件
     console.log(`[GitHub] Cleaning up temporary file ${tempZip}`)
     rmSync(tempZip)
-    
+
     console.log(`[GitHub] Successfully installed mihomo core version ${version}`)
   } catch (error) {
     console.error('[GitHub] Failed to install mihomo core:', error)
-    throw new Error(`Failed to install core: ${error instanceof Error ? error.message : String(error)}`)
+    throw new Error(
+      `Failed to install core: ${error instanceof Error ? error.message : String(error)}`
+    )
   }
 }

@@ -23,7 +23,7 @@ export function taskDir(): string {
   if (!existsSync(userDataDir)) {
     mkdirSync(userDataDir, { recursive: true })
   }
-  
+
   const dir = path.join(userDataDir, 'tasks')
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true })

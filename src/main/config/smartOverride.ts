@@ -7,7 +7,12 @@ const SMART_OVERRIDE_ID = 'smart-core-override'
 /**
  * Smart 内核的覆写配置模板
  */
-function generateSmartOverrideTemplate(useLightGBM: boolean, collectData: boolean, strategy: string, collectorSize: number): string {
+function generateSmartOverrideTemplate(
+  useLightGBM: boolean,
+  collectData: boolean,
+  strategy: string,
+  collectorSize: number
+): string {
   return `
 // 配置会在启用 Smart 内核时自动应用
 

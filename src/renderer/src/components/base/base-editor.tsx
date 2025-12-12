@@ -141,7 +141,7 @@ export const BaseEditor: React.FC<Props> = (props) => {
       }}
       editorWillMount={editorWillMount}
       editorDidMount={editorDidMount}
-      editorWillUnmount={(): void => { }}
+      editorWillUnmount={(): void => {}}
       onChange={onChange}
     />
   )

@@ -65,8 +65,8 @@ const Actions: React.FC = () => {
                   setChangelog(version.changelog)
                   setOpenUpdate(true)
                 } else {
-                  new window.Notification(t('actions.update.upToDate.title'), { 
-                    body: t('actions.update.upToDate.body') 
+                  new window.Notification(t('actions.update.upToDate.title'), {
+                    body: t('actions.update.upToDate.body')
                   })
                 }
               } catch (e) {
