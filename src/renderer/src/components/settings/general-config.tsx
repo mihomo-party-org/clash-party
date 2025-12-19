@@ -51,6 +51,7 @@ const GeneralConfig: React.FC = () => {
     showTraffic = false,
     proxyInTray = true,
     showCurrentProxyInTray = false,
+    trayProxyGroupStyle = 'default',
     disableTray = false,
     swapTrayClick = false,
     disableTrayIconColor = false,
@@ -360,15 +361,30 @@ const GeneralConfig: React.FC = () => {
               />
             </SettingItem>
             {proxyInTray && (
-              <SettingItem title={t('settings.showCurrentProxyInTray')} divider>
-                <Switch
-                  size="sm"
-                  isSelected={showCurrentProxyInTray}
-                  onValueChange={async (v) => {
-                    await patchAppConfig({ showCurrentProxyInTray: v })
-                  }}
-                />
-              </SettingItem>
+              <>
+                <SettingItem title={t('settings.showCurrentProxyInTray')} divider>
+                  <Switch
+                    size="sm"
+                    isSelected={showCurrentProxyInTray}
+                    onValueChange={async (v) => {
+                      await patchAppConfig({ showCurrentProxyInTray: v })
+                    }}
+                  />
+                </SettingItem>
+                <SettingItem title={t('settings.trayProxyGroupStyle')} divider>
+                  <Tabs
+                    size="sm"
+                    color="primary"
+                    selectedKey={trayProxyGroupStyle}
+                    onSelectionChange={(key) => {
+                      patchAppConfig({ trayProxyGroupStyle: key as 'default' | 'submenu' })
+                    }}
+                  >
+                    <Tab key="default" title={t('settings.trayProxyGroupStyleDefault')} />
+                    <Tab key="submenu" title={t('settings.trayProxyGroupStyleSubmenu')} />
+                  </Tabs>
+                </SettingItem>
+              </>
             )}
             <SettingItem
               title={t('settings.showTraffic', {

@@ -59,6 +59,7 @@ export const buildContextMenu = async (): Promise<Menu> => {
     autoCloseConnection,
     proxyInTray = true,
     showCurrentProxyInTray = false,
+    trayProxyGroupStyle = 'default',
     triggerSysProxyShortcut = '',
     showFloatingWindowShortcut = '',
     showWindowShortcut = '',
@@ -73,13 +74,13 @@ export const buildContextMenu = async (): Promise<Menu> => {
   if (proxyInTray && process.platform !== 'linux') {
     try {
       const groups = await mihomoGroups()
-      groupsMenu = groups.map((group) => {
+      const groupItems: Electron.MenuItemConstructorOptions[] = groups.map((group) => {
         const groupLabel = showCurrentProxyInTray ? `${group.name} | ${group.now}` : group.name
 
         return {
           id: group.name,
           label: groupLabel,
-          type: 'submenu',
+          type: 'submenu' as const,
           submenu: group.all.map((proxy) => {
             const delay = proxy.history.length ? proxy.history[proxy.history.length - 1].delay : -1
             let displayDelay = `(${delay}ms)`
@@ -92,7 +93,7 @@ export const buildContextMenu = async (): Promise<Menu> => {
             return {
               id: proxy.name,
               label: `${proxy.name}   ${displayDelay}`,
-              type: 'radio',
+              type: 'radio' as const,
               checked: proxy.name === group.now,
               click: async (): Promise<void> => {
                 await mihomoChangeProxy(group.name, proxy.name)
@@ -104,7 +105,21 @@ export const buildContextMenu = async (): Promise<Menu> => {
           })
         }
       })
-      groupsMenu.unshift({ type: 'separator' })
+
+      if (trayProxyGroupStyle === 'submenu') {
+        groupsMenu = [
+          { type: 'separator' },
+          {
+            id: 'proxy-groups',
+            label: t('tray.proxyGroups'),
+            type: 'submenu',
+            submenu: groupItems
+          }
+        ]
+      } else {
+        groupsMenu = groupItems
+        groupsMenu.unshift({ type: 'separator' })
+      }
     } catch (e) {
       // ignore
       // 避免出错时无法创建托盘菜单
