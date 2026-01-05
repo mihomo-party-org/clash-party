@@ -261,17 +261,19 @@ const App: React.FC = () => {
           <div className="mt-2 mx-2">
             <OutboundModeSwitcher />
           </div>
-          <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={onDragEnd}>
-            <div className="grid grid-cols-2 gap-2 m-2">
-              <SortableContext items={order}>
-                {order.map((key: string) => {
-                  const Component = componentMap[key]
-                  if (!Component) return null
-                  return <Component key={key} />
-                })}
-              </SortableContext>
-            </div>
-          </DndContext>
+          <div style={{ overflowX: 'clip' }}>
+            <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={onDragEnd}>
+              <div className="grid grid-cols-2 gap-2 m-2">
+                <SortableContext items={order}>
+                  {order.map((key: string) => {
+                    const Component = componentMap[key]
+                    if (!Component) return null
+                    return <Component key={key} />
+                  })}
+                </SortableContext>
+              </div>
+            </DndContext>
+          </div>
         </div>
       )}
 
