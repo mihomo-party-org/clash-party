@@ -342,6 +342,8 @@
   "actions.version.title": "App Version",
   "theme.editor.title": "Edit Theme",
   "proxies.title": "Proxy Groups & Nodes",
+  "proxies.hideUnavailable.enabled": "Show Unavailable Proxies",
+  "proxies.hideUnavailable.disabled": "Hide Unavailable Proxies",
   "proxies.card.title": "ProxyGrp",
   "proxies.delay.test": "Test",
   "proxies.delay.timeout": "Timeout",

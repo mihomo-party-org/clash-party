@@ -318,6 +318,8 @@
   "actions.version.title": "نسخه برنامه",
   "theme.editor.title": "ویرایش پوسته",
   "proxies.title": "گروه‌های پراکسی و گره‌ها",
+  "proxies.hideUnavailable.enabled": "نمایش گره‌های غیرفعال",
+  "proxies.hideUnavailable.disabled": "پنهان کردن گره‌های غیرفعال",
   "proxies.card.title": "گروه‌پراکسی",
   "proxies.delay.test": "تست",
   "proxies.delay.timeout": "وقفه",

@@ -342,6 +342,8 @@
   "actions.version.title": "應用程式版本",
   "theme.editor.title": "編輯主題",
   "proxies.title": "代理組與節點",
+  "proxies.hideUnavailable.enabled": "顯示不可用節點",
+  "proxies.hideUnavailable.disabled": "隱藏不可用節點",
   "proxies.card.title": "代理組",
   "proxies.delay.test": "測試",
   "proxies.delay.timeout": "逾時",

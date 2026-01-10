@@ -318,6 +318,8 @@
   "actions.version.title": "Версия приложения",
   "theme.editor.title": "Редактор темы",
   "proxies.title": "Прокси группы и узлы",
+  "proxies.hideUnavailable.enabled": "Показать недоступные узлы",
+  "proxies.hideUnavailable.disabled": "Скрыть недоступные узлы",
   "proxies.card.title": "Прокси группы",
   "proxies.delay.test": "Тест",
   "proxies.delay.timeout": "Таймаут",

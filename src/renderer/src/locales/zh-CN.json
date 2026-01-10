@@ -342,6 +342,8 @@
   "actions.version.title": "应用版本",
   "theme.editor.title": "编辑主题",
   "proxies.title": "代理组与节点",
+  "proxies.hideUnavailable.enabled": "显示不可用节点",
+  "proxies.hideUnavailable.disabled": "隐藏不可用节点",
   "proxies.card.title": "代理组",
   "proxies.delay.test": "测试",
   "proxies.delay.timeout": "超时",
