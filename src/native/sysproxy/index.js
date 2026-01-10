@@ -46,10 +46,10 @@ function getBindingName() {
 function loadBinding() {
   const bindingName = getBindingName()
 
-  // 查找项目根目录的 extra/sidecar
+  // 查找项目根目录的 sidecar
   let currentDir = __dirname
   while (currentDir !== require('path').dirname(currentDir)) {
-    const sidecarPath = join(currentDir, 'extra', 'sidecar', bindingName)
+    const sidecarPath = join(currentDir, 'sidecar', bindingName)
     if (existsSync(sidecarPath)) {
       try {
         nativeBinding = require(sidecarPath)
