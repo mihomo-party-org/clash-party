@@ -163,6 +163,8 @@
   "mihomo.workDir.tooltip": "启用后可避免不同订阅中存在相同名称的代理组时发生冲突",
   "mihomo.controlSniff": "控制域名嗅探",
   "mihomo.autoCloseConnection": "自动关闭连接",
+  "mihomo.testProfileOnStart": "启动时检查配置文件",
+  "mihomo.testProfileOnStartTooltip": "启动内核前检查配置文件是否有效，若无效则阻止启动并显示错误信息",
   "mihomo.pauseSSID.title": "指定 WiFi SSID 直连",
   "mihomo.pauseSSID.placeholder": "输入 SSID",
   "mihomo.coreVersion": "内核版本",

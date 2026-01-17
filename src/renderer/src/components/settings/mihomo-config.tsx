@@ -21,6 +21,7 @@ const MihomoConfig: React.FC = () => {
     delayTestTimeout,
     githubToken = '',
     autoCloseConnection = true,
+    testProfileOnStart = true,
     pauseSSID = [],
     delayTestUrl,
     userAgent,
@@ -225,6 +226,25 @@ const MihomoConfig: React.FC = () => {
           isSelected={autoCloseConnection}
           onValueChange={(v) => {
             patchAppConfig({ autoCloseConnection: v })
+          }}
+        />
+      </SettingItem>
+      <SettingItem
+        title={t('mihomo.testProfileOnStart')}
+        actions={
+          <Tooltip content={t('mihomo.testProfileOnStartTooltip')}>
+            <Button isIconOnly size="sm" variant="light">
+              <IoIosHelpCircle className="text-lg" />
+            </Button>
+          </Tooltip>
+        }
+        divider
+      >
+        <Switch
+          size="sm"
+          isSelected={testProfileOnStart}
+          onValueChange={(v) => {
+            patchAppConfig({ testProfileOnStart: v })
           }}
         />
       </SettingItem>

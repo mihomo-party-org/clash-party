@@ -141,6 +141,8 @@
   "mihomo.workDir.tooltip": "برای جلوگیری از تداخل گروه‌های پراکسی با نام یکسان در اشتراک‌های مختلف",
   "mihomo.controlSniff": "کنترل تشخیص دامنه",
   "mihomo.autoCloseConnection": "بستن خودکار اتصال",
+  "mihomo.testProfileOnStart": "بررسی پروفایل در شروع",
+  "mihomo.testProfileOnStartTooltip": "قبل از شروع هسته، فایل پیکربندی را بررسی کنید. اگر نامعتبر باشد، شروع مسدود شده و پیام خطا نمایش داده می‌شود",
   "mihomo.pauseSSID.title": "اتصال مستقیم برای SSID‌های خاص",
   "mihomo.pauseSSID.placeholder": "SSID را وارد کنید",
   "mihomo.coreVersion": "نسخه هسته",

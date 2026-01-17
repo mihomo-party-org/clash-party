@@ -144,7 +144,8 @@ async function prepareCore(detached: boolean): Promise<CoreConfig> {
     core = 'mihomo',
     autoSetDNS = true,
     diffWorkDir = false,
-    mihomoCpuPriority = 'PRIORITY_NORMAL'
+    mihomoCpuPriority = 'PRIORITY_NORMAL',
+    testProfileOnStart = true
   } = appConfig
 
   const { 'log-level': logLevel = 'info' as LogLevel, tun } = mihomoConfig
@@ -167,7 +168,9 @@ async function prepareCore(detached: boolean): Promise<CoreConfig> {
 
   // generateProfile 返回实际使用的 current
   const current = await generateProfile()
-  await checkProfile(current, core, diffWorkDir)
+  if (testProfileOnStart) {
+    await checkProfile(current, core, diffWorkDir)
+  }
   await stopCore()
   await cleanupSocketFile()
 

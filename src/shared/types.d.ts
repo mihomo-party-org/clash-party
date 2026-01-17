@@ -328,6 +328,7 @@ interface IAppConfig {
   enableRedirPort?: boolean
   showTproxyPort?: number
   enableTproxyPort?: boolean
+  testProfileOnStart?: boolean
 }
 
 interface IMihomoTunConfig {

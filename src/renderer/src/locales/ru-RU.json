@@ -141,6 +141,8 @@
   "mihomo.workDir.tooltip": "Включите для избежания конфликтов при наличии групп прокси с одинаковыми именами в разных подписках",
   "mihomo.controlSniff": "Управление сниффингом доменов",
   "mihomo.autoCloseConnection": "Автозакрытие соединений",
+  "mihomo.testProfileOnStart": "Проверять профиль при запуске",
+  "mihomo.testProfileOnStartTooltip": "Проверять конфигурационный файл перед запуском ядра. Если файл недействителен, запуск будет заблокирован с отображением сообщения об ошибке",
   "mihomo.pauseSSID.title": "Прямое подключение для определённых WiFi SSID",
   "mihomo.pauseSSID.placeholder": "Введите SSID",
   "mihomo.coreVersion": "Версия ядра",

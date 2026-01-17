@@ -160,6 +160,8 @@
   "mihomo.workDir.tooltip": "Enable to avoid conflicts when different subscriptions have proxy groups with the same name",
   "mihomo.controlSniff": "Control Domain Sniffing",
   "mihomo.autoCloseConnection": "Auto Close Connection",
+  "mihomo.testProfileOnStart": "Test Profile on Start",
+  "mihomo.testProfileOnStartTooltip": "Check if the configuration file is valid before starting the core. If invalid, prevent startup and display an error message",
   "mihomo.pauseSSID.title": "Direct Connection for Specific WiFi SSIDs",
   "mihomo.pauseSSID.placeholder": "Enter SSID",
   "mihomo.title": "Core Settings",
