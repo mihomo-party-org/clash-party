@@ -471,6 +471,7 @@
   "profiles.editInfo.url": "Subscription URL",
   "profiles.editInfo.authToken": "Authorization Token",
   "profiles.editInfo.authTokenPlaceholder": "Bearer token or other auth header value",
+  "profiles.editInfo.updateTimeout": "Update Timeout",
   "profiles.editInfo.useProxy": "Use Proxy to Update",
   "profiles.editInfo.interval": "Upd. Interval",
   "profiles.editInfo.intervalPlaceholder": "e.g.: 30 or '0 * * * *'",

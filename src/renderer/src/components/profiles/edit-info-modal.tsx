@@ -104,6 +104,24 @@ const EditInfoModal: React.FC<Props> = (props) => {
                   placeholder={t('profiles.editInfo.authTokenPlaceholder')}
                 />
               </SettingItem>
+              <SettingItem title={t('profiles.editInfo.updateTimeout')}>
+                <Input
+                  size="sm"
+                  type="number"
+                  className={cn(inputWidth)}
+                  value={values.updateTimeout?.toString() ?? ''}
+                  onValueChange={(v) => {
+                    const val = parseInt(v)
+                    setValues({ ...values, updateTimeout: isNaN(val) ? undefined : val })
+                  }}
+                  placeholder="5"
+                  endContent={
+                    <div className="pointer-events-none flex items-center">
+                      <span className="text-default-400 text-small">s</span>
+                    </div>
+                  }
+                />
+              </SettingItem>
               <SettingItem title={t('profiles.editInfo.useProxy')}>
                 <Switch
                   size="sm"

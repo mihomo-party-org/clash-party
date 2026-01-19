@@ -447,6 +447,7 @@
   "profiles.editInfo.title": "Редактировать информацию",
   "profiles.editInfo.name": "Имя",
   "profiles.editInfo.url": "URL подписки",
+  "profiles.editInfo.updateTimeout": "Таймаут обновления",
   "profiles.editInfo.useProxy": "Использовать прокси для обновления",
   "profiles.editInfo.interval": "Интервал обн.",
   "profiles.editInfo.fixedInterval": "Фиксированный интервал обновления",

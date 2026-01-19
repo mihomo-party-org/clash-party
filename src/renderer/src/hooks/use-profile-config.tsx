@@ -38,8 +38,21 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
 }
 
 const ProfileConfigContextWrapper: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { config, mutate } = useConfig()
+  const { config: rawConfig, mutate } = useConfig()
   const { t } = useTranslation()
+
+  // Fix the missing default configuration values in the old version
+  const config = React.useMemo(() => {
+    if (!rawConfig) return undefined;
+    return {
+      ...rawConfig,
+      items: (rawConfig.items || []).map((item) => ({
+        ...item,
+        updateTimeout: 5,
+      })),
+    } as IProfileConfig;
+  }, [rawConfig]);
+
   const targetProfileId = useRef<string | null>(null)
   const pendingTask = useRef<Promise<void> | null>(null)
 
