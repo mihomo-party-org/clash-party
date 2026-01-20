@@ -489,6 +489,8 @@
   "profiles.editInfo.override.global": "全局",
   "profiles.editInfo.override.noAvailable": "沒有可用的覆寫",
   "profiles.editInfo.override.add": "添加覆寫",
+  "profiles.editInfo.updateTimeout": "更新逾時時間",
+  "profiles.editInfo.updateTimeoutPlaceholder": "以秒為單位的超時時間",
   "profiles.editFile.title": "編輯訂閱",
   "profiles.editFile.notice": "注意：此處編輯配置更新訂閱後會還原，如需要自定義配置請使用",
   "profiles.editFile.override": "覆寫",

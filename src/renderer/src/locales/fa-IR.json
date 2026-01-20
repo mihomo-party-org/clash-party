@@ -454,6 +454,8 @@
   "profiles.editInfo.override.global": "جهانی",
   "profiles.editInfo.override.noAvailable": "جایگزینی‌ای در دسترس نیست",
   "profiles.editInfo.override.add": "افزودن جایگزینی",
+  "profiles.editInfo.updateTimeout": "زمان انتظار به‌روزرسانی",
+  "profiles.editInfo.updateTimeoutPlaceholder": "زمان پایان دادن به ثانیه",
   "profiles.editInfo.intervalPlaceholder": "مثال: 30 یا '0 * * * *'",
   "profiles.editInfo.intervalInvalid": "نامعتبر",
   "profiles.editInfo.intervalMinutes": "فاصله زمانی ثابت به دقیقه",

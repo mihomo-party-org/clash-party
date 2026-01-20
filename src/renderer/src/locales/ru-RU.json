@@ -454,6 +454,8 @@
   "profiles.editInfo.override.global": "Глобальный",
   "profiles.editInfo.override.noAvailable": "Нет доступных переопределений",
   "profiles.editInfo.override.add": "Добавить переопределение",
+  "profiles.editInfo.updateTimeout": "Таймаут обновления",
+  "profiles.editInfo.updateTimeoutPlaceholder": "Время ожидания в секундах",
   "profiles.editInfo.intervalPlaceholder": "например: 30 или '0 * * * *'",
   "profiles.editInfo.intervalInvalid": "Недействительно",
   "profiles.editInfo.intervalMinutes": "Фиксированный интервал в минутах",

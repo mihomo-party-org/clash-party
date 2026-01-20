@@ -484,6 +484,8 @@
   "profiles.editInfo.override.global": "Global",
   "profiles.editInfo.override.noAvailable": "No available overrides",
   "profiles.editInfo.override.add": "Add Override",
+  "profiles.editInfo.updateTimeout": "Update Timeout",
+  "profiles.editInfo.updateTimeoutPlaceholder": "Timeout in seconds",
   "profiles.editFile.title": "Edit Profile",
   "profiles.editFile.notice": "Note: Changes made here will be reset after profile update. For custom configurations, please use",
   "profiles.editFile.override": "Override",

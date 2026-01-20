@@ -218,10 +218,10 @@ async function fetchAndValidateSubscription(options: FetchOptions): Promise<Fetc
 
 export async function createProfile(item: Partial<IProfileItem>): Promise<IProfileItem> {
   const id = item.id || new Date().getTime().toString(16)
-  const newItem = {
+  const newItem: IProfileItem = {
     id,
     name: item.name || (item.type === 'remote' ? 'Remote File' : 'Local File'),
-    type: item.type,
+    type: item.type!,
     url: item.url,
     substore: item.substore || false,
     interval: item.interval || 0,
@@ -230,85 +230,66 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
     allowFixedInterval: item.allowFixedInterval || false,
     autoUpdate: item.autoUpdate ?? false,
     authToken: item.authToken,
-    updated: new Date().getTime()
-  } as IProfileItem
+    updated: new Date().getTime(),
+    updateTimeout: item.updateTimeout || 5
+  }
 
-  switch (newItem.type) {
-    case 'remote': {
-      const { userAgent, subscriptionTimeout = 30000 } = await getAppConfig()
-      const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
-      if (!item.url) throw new Error('Empty URL')
+  // Local
+  if (newItem.type === 'local') {
+    await setProfileStr(id, item.file || '')
+    return newItem
+  }
 
-      const baseOptions: Omit<FetchOptions, 'useProxy' | 'timeout'> = {
-        url: item.url,
-        mixedPort,
-        userAgent: userAgent || `mihomo.party/v${app.getVersion()} (clash.meta)`,
-        authToken: item.authToken,
-        substore: newItem.substore || false
-      }
+  // Remote
+  if (!item.url) throw new Error('Empty URL')
 
-      let result: FetchResult
-      let finalUseProxy = newItem.useProxy
+  const { userAgent, subscriptionTimeout = 30000 } = await getAppConfig()
+  const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
+  const userItemTimeoutMs = (newItem.updateTimeout || 5) * 1000
 
-      if (newItem.useProxy) {
-        result = await fetchAndValidateSubscription({
-          ...baseOptions,
-          useProxy: true,
-          timeout: subscriptionTimeout
-        })
-      } else if (newItem.substore) {
-        // SubStore requests (especially collections) need more time as they fetch and merge multiple subscriptions
-        // Use the full subscriptionTimeout since SubStore is a local server and doesn't need smart fallback
-        result = await fetchAndValidateSubscription({
-          ...baseOptions,
-          useProxy: false,
-          timeout: subscriptionTimeout
-        })
-      } else {
-        const smartTimeout = 5000
-        try {
-          result = await fetchAndValidateSubscription({
-            ...baseOptions,
-            useProxy: false,
-            timeout: smartTimeout
-          })
-        } catch (directError) {
-          try {
-            result = await fetchAndValidateSubscription({
-              ...baseOptions,
-              useProxy: true,
-              timeout: smartTimeout
-            })
-            finalUseProxy = true
-          } catch {
-            throw directError
-          }
-        }
-      }
+  const baseOptions: Omit<FetchOptions, 'useProxy' | 'timeout'> = {
+    url: item.url,
+    mixedPort,
+    userAgent: userAgent || `mihomo.party/v${app.getVersion()} (clash.meta)`,
+    authToken: item.authToken,
+    substore: newItem.substore || false
+  }
 
-      newItem.useProxy = finalUseProxy
-      const { data, headers } = result
+  const fetchSub = (useProxy: boolean, timeout: number) => 
+    fetchAndValidateSubscription({ ...baseOptions, useProxy, timeout })
 
-      if (headers['content-disposition'] && newItem.name === 'Remote File') {
-        newItem.name = parseFilename(headers['content-disposition'])
+  let result: FetchResult
+  if (newItem.useProxy || newItem.substore) {
+    result = await fetchSub(newItem.useProxy!, userItemTimeoutMs)
+  } else {
+    try {
+      result = await fetchSub(false, userItemTimeoutMs)
+    } catch (directError) {
+      try {
+        // smart fallback 
+        result = await fetchSub(true, subscriptionTimeout)
+      } catch {
+        throw directError
       }
-      if (headers['profile-web-page-url']) {
-        newItem.home = headers['profile-web-page-url']
-      }
-      if (headers['profile-update-interval'] && !item.allowFixedInterval) {
-        newItem.interval = parseInt(headers['profile-update-interval']) * 60
-      }
-      if (headers['subscription-userinfo']) {
-        newItem.extra = parseSubinfo(headers['subscription-userinfo'])
-      }
-      await setProfileStr(id, data)
-      break
-    }
-    case 'local': {
-      await setProfileStr(id, item.file || '')
-      break
     }
   }
+
+  const { data, headers } = result
+
+  if (headers['content-disposition'] && newItem.name === 'Remote File') {
+    newItem.name = parseFilename(headers['content-disposition'])
+  }
+  if (headers['profile-web-page-url']) {
+    newItem.home = headers['profile-web-page-url']
+  }
+  if (headers['profile-update-interval'] && !item.allowFixedInterval) {
+    newItem.interval = parseInt(headers['profile-update-interval']) * 60
+  }
+  if (headers['subscription-userinfo']) {
+    newItem.extra = parseSubinfo(headers['subscription-userinfo'])
+  }
+
+  await setProfileStr(id, data)
   return newItem
 }
 
