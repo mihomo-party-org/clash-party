@@ -12,25 +12,16 @@ const CollapseInput: React.FC<CollapseInputProps> = (props) => {
   const inputRef = useRef<HTMLInputElement>(null)
   const isComposingRef = useRef(false)
   const [localValue, setLocalValue] = useState(value || '')
+  const lastValueRef = useRef(value)
 
-  // 同步外部 value 变化
+  // 同步外部 value 变化（但不在组合输入时同步）
   React.useEffect(() => {
-    if (!isComposingRef.current) {
+    // 只有当外部值真正改变且不在组合输入时才同步
+    if (!isComposingRef.current && value !== lastValueRef.current) {
       setLocalValue(value || '')
+      lastValueRef.current = value
     }
   }, [value])
-
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const newValue = e.target.value
-      setLocalValue(newValue)
-      // 只在非组合输入时触发外部更新
-      if (!isComposingRef.current) {
-        onValueChange?.(newValue)
-      }
-    },
-    [onValueChange]
-  )
 
   const handleCompositionStart = useCallback(() => {
     isComposingRef.current = true
@@ -39,8 +30,25 @@ const CollapseInput: React.FC<CollapseInputProps> = (props) => {
   const handleCompositionEnd = useCallback(
     (e: React.CompositionEvent<HTMLInputElement>) => {
       isComposingRef.current = false
+      const composedValue = e.currentTarget.value
+      setLocalValue(composedValue)
+      lastValueRef.current = composedValue
       // 组合输入结束后，触发一次更新
-      onValueChange?.(e.currentTarget.value)
+      onValueChange?.(composedValue)
+    },
+    [onValueChange]
+  )
+
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newValue = e.target.value
+      // 在组合输入时也更新本地状态，保证输入框显示正确
+      setLocalValue(newValue)
+      // 只在非组合输入时触发外部更新
+      if (!isComposingRef.current) {
+        lastValueRef.current = newValue
+        onValueChange?.(newValue)
+      }
     },
     [onValueChange]
   )
