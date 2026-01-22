@@ -117,6 +117,10 @@ function setupWindowEvents(
     windowState.saveState(window)
   })
 
+  window.on('unmaximize', () => {
+    windowState.saveState(window)
+  })
+
   window.on('move', () => {
     windowState.saveState(window)
   })
