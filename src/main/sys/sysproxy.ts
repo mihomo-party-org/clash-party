@@ -114,9 +114,7 @@ async function disableSysProxy(): Promise<void> {
   await stopPacServer()
 
   if (process.platform === 'darwin') {
-    await helperRequest(() =>
-      axios.get('http://localhost/off', { socketPath: helperSocketPath })
-    )
+    await helperRequest(() => axios.get('http://localhost/off', { socketPath: helperSocketPath }))
   } else {
     // Windows / Linux 直接使用 sysproxy-rs
     try {

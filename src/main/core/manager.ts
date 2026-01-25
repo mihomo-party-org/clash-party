@@ -135,10 +135,7 @@ interface CoreConfig {
 
 // 准备核心配置
 async function prepareCore(detached: boolean, skipStop = false): Promise<CoreConfig> {
-  const [appConfig, mihomoConfig] = await Promise.all([
-    getAppConfig(),
-    getControledMihomoConfig()
-  ])
+  const [appConfig, mihomoConfig] = await Promise.all([getAppConfig(), getControledMihomoConfig()])
 
   const {
     core = 'mihomo',
@@ -215,7 +212,10 @@ function spawnCoreProcess(config: CoreConfig): ChildProcess {
   })
 
   if (process.platform === 'win32' && proc.pid) {
-    os.setPriority(proc.pid, os.constants.priority[cpuPriority as keyof typeof os.constants.priority])
+    os.setPriority(
+      proc.pid,
+      os.constants.priority[cpuPriority as keyof typeof os.constants.priority]
+    )
   }
 
   if (!detached) {
@@ -294,7 +294,10 @@ function setupCoreListeners(
         new Promise((innerResolve) => {
           proc.stdout?.on('data', async (innerData) => {
             if (
-              innerData.toString().toLowerCase().includes('start initial compatible provider default')
+              innerData
+                .toString()
+                .toLowerCase()
+                .includes('start initial compatible provider default')
             ) {
               try {
                 mainWindow?.webContents.send('groupsUpdated')

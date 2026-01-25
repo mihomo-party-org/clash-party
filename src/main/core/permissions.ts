@@ -191,7 +191,9 @@ async function checkHighPrivilegeMihomoProcess(): Promise<boolean> {
       for (const executable of mihomoExecutables) {
         try {
           const { stdout } = await execPromise(`ps aux | grep ${executable} | grep -v grep`)
-          const lines = stdout.split('\n').filter((line) => line.trim() && line.includes(executable))
+          const lines = stdout
+            .split('\n')
+            .filter((line) => line.trim() && line.includes(executable))
 
           if (lines.length > 0) {
             foundProcesses = true
@@ -337,7 +339,9 @@ export async function showErrorDialog(title: string, message: string): Promise<v
   })
 }
 
-export async function validateTunPermissionsOnStartup(_restartCore: () => Promise<void>): Promise<void> {
+export async function validateTunPermissionsOnStartup(
+  _restartCore: () => Promise<void>
+): Promise<void> {
   const { getControledMihomoConfig } = await import('../config')
   const { tun } = await getControledMihomoConfig()
 
@@ -349,7 +353,9 @@ export async function validateTunPermissionsOnStartup(_restartCore: () => Promis
 
   if (!hasPermissions) {
     // 启动时没有权限，静默禁用 TUN，不弹窗打扰用户
-    managerLogger.warn('TUN is enabled but insufficient permissions detected, auto-disabling TUN...')
+    managerLogger.warn(
+      'TUN is enabled but insufficient permissions detected, auto-disabling TUN...'
+    )
     await patchControledMihomoConfig({ tun: { enable: false } })
 
     const { mainWindow } = await import('../index')

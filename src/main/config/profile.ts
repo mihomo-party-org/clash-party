@@ -67,8 +67,7 @@ export async function changeCurrentProfile(id: string): Promise<void> {
   // 使用队列确保 profile 切换串行执行，避免竞态条件
   let taskError: unknown = null
   changeProfileQueue = changeProfileQueue
-    .catch(() => {
-    })
+    .catch(() => {})
     .then(async () => {
       const { current } = await getProfileConfig()
       if (current === id) return
@@ -221,7 +220,7 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
   const newItem: IProfileItem = {
     id,
     name: item.name || (item.type === 'remote' ? 'Remote File' : 'Local File'),
-    type: item.type!,
+    type: item.type || 'local',
     url: item.url,
     substore: item.substore || false,
     interval: item.interval || 0,
@@ -255,18 +254,18 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
     substore: newItem.substore || false
   }
 
-  const fetchSub = (useProxy: boolean, timeout: number) => 
+  const fetchSub = (useProxy: boolean, timeout: number) =>
     fetchAndValidateSubscription({ ...baseOptions, useProxy, timeout })
 
   let result: FetchResult
   if (newItem.useProxy || newItem.substore) {
-    result = await fetchSub(newItem.useProxy!, userItemTimeoutMs)
+    result = await fetchSub(Boolean(newItem.useProxy), userItemTimeoutMs)
   } else {
     try {
       result = await fetchSub(false, userItemTimeoutMs)
     } catch (directError) {
       try {
-        // smart fallback 
+        // smart fallback
         result = await fetchSub(true, subscriptionTimeout)
       } catch {
         throw directError

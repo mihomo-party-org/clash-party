@@ -13,7 +13,10 @@ export async function cropAndPadTransparent(
   const canvas = document.createElement('canvas')
   canvas.width = img.width
   canvas.height = img.height
-  const ctx = canvas.getContext('2d')!
+  const ctx = canvas.getContext('2d')
+  if (!ctx) {
+    throw new Error('Failed to get 2D context')
+  }
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   ctx.drawImage(img, 0, 0)
 
@@ -59,7 +62,10 @@ export async function cropAndPadTransparent(
   const outCanvas = document.createElement('canvas')
   outCanvas.width = finalSize
   outCanvas.height = finalSize
-  const outCtx = outCanvas.getContext('2d')!
+  const outCtx = outCanvas.getContext('2d')
+  if (!outCtx) {
+    throw new Error('Failed to get 2D context')
+  }
   outCtx.clearRect(0, 0, finalSize, finalSize)
   outCtx.drawImage(
     canvas,

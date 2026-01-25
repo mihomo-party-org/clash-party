@@ -1,8 +1,8 @@
 import fs from 'fs'
 import path from 'path'
+import { spawnSync } from 'child_process'
 import plist from 'plist'
 import { findBestAppPath, isIOSApp } from './icon'
-import { spawnSync } from 'child_process'
 
 export async function getAppName(appPath: string): Promise<string> {
   if (process.platform === 'darwin') {
@@ -20,7 +20,7 @@ export async function getAppName(appPath: string): Promise<string> {
       try {
         const appName = getLocalizedAppName(targetPath)
         if (appName) return appName
-      } catch (err) {
+      } catch {
         // ignore
       }
 
@@ -33,7 +33,7 @@ export async function getAppName(appPath: string): Promise<string> {
       } else {
         // ignore
       }
-    } catch (err) {
+    } catch {
       // ignore
     }
   }

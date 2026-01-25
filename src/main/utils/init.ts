@@ -190,7 +190,10 @@ async function initFiles(): Promise<void> {
         } catch (error: unknown) {
           const code = (error as NodeJS.ErrnoException).code
           // 文件被占用或权限问题，如果目标已存在则跳过
-          if ((code === 'EPERM' || code === 'EBUSY' || code === 'EACCES') && existsSync(targetPath)) {
+          if (
+            (code === 'EPERM' || code === 'EBUSY' || code === 'EACCES') &&
+            existsSync(targetPath)
+          ) {
             await initLogger.warn(`Skipping ${file}: file is in use or permission denied`)
             return
           }
@@ -318,7 +321,11 @@ async function migrateMihomoConfig(): Promise<void> {
     config['skip-auth-prefixes'][0] === '127.0.0.1/32' &&
     !config['skip-auth-prefixes'].includes('::1/128')
   ) {
-    patches['skip-auth-prefixes'] = ['127.0.0.1/32', '::1/128', ...config['skip-auth-prefixes'].slice(1)]
+    patches['skip-auth-prefixes'] = [
+      '127.0.0.1/32',
+      '::1/128',
+      ...config['skip-auth-prefixes'].slice(1)
+    ]
   }
 
   // 其他默认值

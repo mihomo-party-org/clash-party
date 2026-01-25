@@ -37,7 +37,10 @@ export async function getControledMihomoConfig(force = false): Promise<Partial<I
     // 清理端口字段中的 NaN 值，恢复为默认值
     const portFields = ['mixed-port', 'socks-port', 'port', 'redir-port', 'tproxy-port'] as const
     for (const field of portFields) {
-      if (typeof controledMihomoConfig[field] !== 'number' || Number.isNaN(controledMihomoConfig[field])) {
+      if (
+        typeof controledMihomoConfig[field] !== 'number' ||
+        Number.isNaN(controledMihomoConfig[field])
+      ) {
         controledMihomoConfig[field] = defaultControledMihomoConfig[field]
       }
     }

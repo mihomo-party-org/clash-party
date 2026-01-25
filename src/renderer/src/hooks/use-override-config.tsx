@@ -53,12 +53,14 @@ const OverrideConfigContextWrapper: React.FC<{ children: ReactNode }> = ({ child
   )
 
   const setOverrideConfig = useCallback(
-    (cfg: IOverrideConfig) => withErrorHandling(() => set(cfg), 'common.error.saveOverrideConfigFailed')(),
+    (cfg: IOverrideConfig) =>
+      withErrorHandling(() => set(cfg), 'common.error.saveOverrideConfigFailed')(),
     [withErrorHandling]
   )
 
   const addOverrideItem = useCallback(
-    (item: Partial<IOverrideItem>) => withErrorHandling(() => add(item), 'common.error.addOverrideFailed')(),
+    (item: Partial<IOverrideItem>) =>
+      withErrorHandling(() => add(item), 'common.error.addOverrideFailed')(),
     [withErrorHandling]
   )
 
@@ -68,7 +70,8 @@ const OverrideConfigContextWrapper: React.FC<{ children: ReactNode }> = ({ child
   )
 
   const updateOverrideItem = useCallback(
-    (item: IOverrideItem) => withErrorHandling(() => update(item), 'common.error.updateOverrideFailed')(),
+    (item: IOverrideItem) =>
+      withErrorHandling(() => update(item), 'common.error.updateOverrideFailed')(),
     [withErrorHandling]
   )
 

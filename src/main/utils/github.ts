@@ -1,4 +1,4 @@
-import { createWriteStream, createReadStream , existsSync, rmSync } from 'fs'
+import { createWriteStream, createReadStream, existsSync, rmSync } from 'fs'
 import { writeFile } from 'fs/promises'
 import { execSync } from 'child_process'
 import { platform } from 'os'

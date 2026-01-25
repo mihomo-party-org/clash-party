@@ -44,11 +44,7 @@ async function getOriginDNS(): Promise<void> {
 async function setDNS(dns: string): Promise<void> {
   const service = await getDefaultService()
   try {
-    await axios.post(
-      'http://localhost/dns',
-      { service, dns },
-      { socketPath: helperSocketPath }
-    )
+    await axios.post('http://localhost/dns', { service, dns }, { socketPath: helperSocketPath })
   } catch {
     // fallback to osascript if helper not available
     const shell = `networksetup -setdnsservers "${service}" ${dns}`

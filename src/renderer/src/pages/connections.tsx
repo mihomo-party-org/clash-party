@@ -1,7 +1,25 @@
 import BasePage from '@renderer/components/base/base-page'
-import { mihomoCloseAllConnections, mihomoCloseConnection, getIconDataURL, getAppName } from '@renderer/utils/ipc'
+import {
+  mihomoCloseAllConnections,
+  mihomoCloseConnection,
+  getIconDataURL,
+  getAppName
+} from '@renderer/utils/ipc'
 import { Key, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Badge, Button, Divider, Input, Select, SelectItem, Tab, Tabs , Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@heroui/react'
+import {
+  Badge,
+  Button,
+  Divider,
+  Input,
+  Select,
+  SelectItem,
+  Tab,
+  Tabs,
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem
+} from '@heroui/react'
 import { calcTraffic } from '@renderer/utils/calc'
 import ConnectionItem from '@renderer/components/connections/connection-item'
 import ConnectionTable from '@renderer/components/connections/connection-table'
@@ -239,7 +257,7 @@ const Connections: React.FC = () => {
           : `data:image/png;base64,${rawBase64}`
 
         let processedDataURL = fullDataURL
-        if (platform != 'darwin') {
+        if (platform !== 'darwin') {
           processedDataURL = await cropAndPadTransparent(fullDataURL)
         }
 

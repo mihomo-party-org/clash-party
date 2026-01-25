@@ -138,7 +138,9 @@ const RuleProvider: React.FC = () => {
               <Button
                 isIconOnly
                 title={
-                  provider.vehicleType === 'File' ? t('common.editor.edit') : t('common.viewer.view')
+                  provider.vehicleType === 'File'
+                    ? t('common.editor.edit')
+                    : t('common.viewer.view')
                 }
                 className="ml-2"
                 size="sm"

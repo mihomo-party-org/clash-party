@@ -74,8 +74,7 @@ export async function request<T = unknown>(
       }
     }
 
-    const cleanup = (): void => {
-    }
+    const cleanup = (): void => {}
 
     setupProxy()
       .then(() => {
