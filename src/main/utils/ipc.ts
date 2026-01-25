@@ -122,6 +122,8 @@ import { startMonitor } from '../resolve/trafficMonitor'
 import { closeFloatingWindow, showContextMenu, showFloatingWindow } from '../resolve/floatingWindow'
 import { addProfileUpdater, removeProfileUpdater } from '../core/profileUpdater'
 import { getImageDataURL } from './image'
+import { getIconDataURL } from './icon'
+import { getAppName } from './appName'
 import { logDir, rulePath } from './dirs'
 import { installMihomoCore, getGitHubTags, clearVersionCache } from './github'
 
@@ -321,6 +323,8 @@ const asyncHandlers: Record<string, AsyncFn> = {
   // Misc
   getGistUrl,
   getImageDataURL,
+  getIconDataURL,
+  getAppName,
   changeLanguage,
   setTitleBarOverlay,
   registerShortcut

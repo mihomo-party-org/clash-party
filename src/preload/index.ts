@@ -146,6 +146,8 @@ const validInvokeChannels = [
   // Misc
   'getGistUrl',
   'getImageDataURL',
+  'getIconDataURL',
+  'getAppName',
   'changeLanguage'
 ] as const
 

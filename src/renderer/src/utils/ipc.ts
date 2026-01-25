@@ -349,3 +349,13 @@ export async function setTitleBarOverlay(overlay: TitleBarOverlayOptions): Promi
 export function updateTrayIconImmediate(sysProxyEnabled: boolean, tunEnabled: boolean): void {
   window.electron.ipcRenderer.invoke('updateTrayIconImmediate', sysProxyEnabled, tunEnabled)
 }
+
+// getAppName: 获取应用程序名称
+export async function getAppName(appPath: string): Promise<string> {
+  return invoke<string>('getAppName', appPath)
+}
+
+// getIconDataURL: 获取应用图标的Base64数据
+export async function getIconDataURL(appPath: string): Promise<string> {
+  return invoke<string>('getIconDataURL', appPath)
+}
