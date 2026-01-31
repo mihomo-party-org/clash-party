@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { toast } from '@renderer/components/base/toast'
 import { Button, useDisclosure } from '@heroui/react'
-import { exportLocalBackup, importLocalBackup } from '@renderer/utils/ipc'
+import { exportLocalBackup, importLocalBackup, restartCore } from '@renderer/utils/ipc'
 import { useTranslation } from 'react-i18next'
 import SettingItem from '../base/base-setting-item'
 import SettingCard from '../base/base-setting-card'
@@ -30,10 +30,24 @@ const LocalBackupConfig: React.FC = () => {
   }
 
   const handleImport = async (): Promise<void> => {
+    onClose();
     setImporting(true)
     try {
       const success = await importLocalBackup()
       if (success) {
+        window.electron.ipcRenderer.send('updateAppConfig')
+        window.electron.ipcRenderer.send('updateTrayMenu')
+        window.electron.ipcRenderer.send('appConfigUpdated')
+        window.electron.ipcRenderer.send('controledMihomoConfigUpdated')
+        window.electron.ipcRenderer.send('profileConfigUpdated')
+        
+        try {
+          await restartCore()
+        } catch (error) {
+          console.error('Failed to restart core after import:', error)
+          toast.error(t('common.error.restartCoreFailed', { error: error }))
+        }
+        
         new window.Notification(t('localBackup.notification.importSuccess.title'), {
           body: t('localBackup.notification.importSuccess.body')
         })
@@ -42,7 +56,6 @@ const LocalBackupConfig: React.FC = () => {
       toast.error(t('common.error.importFailed', { error: e }))
     } finally {
       setImporting(false)
-      onClose()
     }
   }
 
