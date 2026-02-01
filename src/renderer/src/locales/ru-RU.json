@@ -58,6 +58,8 @@
   "common.error.dnsConfigSaveFailed": "Не удалось сохранить конфигурацию DNS",
   "common.copied": "Скопировано",
   "common.ok": "ОК",
+  "common.generateSecret": "Сгенерировать ключ",
+  "common.refresh": "Обновить",
   "common.error.autoUpdateNotSupported": "Автообновление не поддерживается, пожалуйста, скачайте вручную",
   "common.dialog.selectSubscriptionFile": "Выберите файл подписки",
   "core.highPrivilege.title": "High Privilege Core Detected",

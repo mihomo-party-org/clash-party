@@ -28,7 +28,9 @@ import {
   IoMdCloudDownload,
   IoMdInformationCircleOutline,
   IoMdRefresh,
-  IoMdShuffle
+  IoMdShuffle,
+  IoMdEye,
+  IoMdEyeOff
 } from 'react-icons/io'
 import PubSub from 'pubsub-js'
 import {
@@ -137,6 +139,7 @@ const Mihomo: React.FC = () => {
   const [tproxyPortInput, setTproxyPortInput] = useState(showTproxyPort ?? tproxyPort)
   const [externalControllerInput, setExternalControllerInput] = useState(externalController)
   const [secretInput, setSecretInput] = useState(secret)
+  const [isSecretVisible, setIsSecretVisible] = useState(false)
   const [lanAllowedIpsInput, setLanAllowedIpsInput] = useState(lanAllowedIps)
   const [lanDisallowedIpsInput, setLanDisallowedIpsInput] = useState(lanDisallowedIps)
   const [authenticationInput, setAuthenticationInput] = useState(authentication)
@@ -1019,7 +1022,27 @@ const Mihomo: React.FC = () => {
               />
             </div>
           </SettingItem>
-          <SettingItem title={t('mihomo.externalControllerSecret')} divider>
+          <SettingItem
+            title={t('mihomo.externalControllerSecret')}
+            actions={
+              <Button
+                size="sm"
+                isIconOnly
+                title={t('common.generateSecret')}
+                variant="light"
+                onPress={() => {
+                  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                  const randomSecret = Array.from({ length: 8 }, () => 
+                    chars[Math.floor(Math.random() * chars.length)]
+                  ).join('');
+                  setSecretInput(randomSecret);
+                }}
+              >
+                <IoMdRefresh className="text-lg" />
+              </Button>
+            }
+            divider
+          >
             <div className="flex">
               {secretInput !== secret && (
                 <Button
@@ -1036,12 +1059,25 @@ const Mihomo: React.FC = () => {
 
               <Input
                 size="sm"
-                type="password"
+                type={isSecretVisible ? 'text' : 'password'}
                 className="w-[200px]"
                 value={secretInput}
                 onValueChange={(v) => {
                   setSecretInput(v)
                 }}
+                startContent={
+                  <button
+                    type="button"
+                    onClick={() => setIsSecretVisible(prev => !prev)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    {isSecretVisible ? (
+                      <IoMdEyeOff className="w-4 h-4" />
+                    ) : (
+                      <IoMdEye className="w-4 h-4" />
+                    )}
+                  </button>
+                }
               />
             </div>
           </SettingItem>
