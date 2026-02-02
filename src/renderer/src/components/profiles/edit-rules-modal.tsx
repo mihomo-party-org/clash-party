@@ -1234,11 +1234,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
                     value={newRule.payload}
                     onValueChange={(value) => setNewRule({ ...newRule, payload: value })}
                     isDisabled={newRule.type === 'MATCH'}
-                    color={
-                      newRule.payload && newRule.type !== 'MATCH' && !isPayloadValid
-                        ? 'danger'
-                        : 'default'
-                    }
+                    className={`${newRule.payload && newRule.type !== 'MATCH' && !isPayloadValid ? 'border-red-500 ring-1 ring-red-500 rounded-lg' : ''}`}
                   />
 
                 <Autocomplete
