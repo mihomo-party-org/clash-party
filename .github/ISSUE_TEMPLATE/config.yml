@@ -2,7 +2,7 @@ blank_issues_enabled: false
 contact_links:
   - name: '常见问题'
     about: '提出问题前请先查看常见问题'
-    url: 'https://mihomo.party/docs/issues/common'
+    url: 'https://clashparty.org/docs/issues/common'
   - name: '交流群组'
     about: '提问/讨论性质的问题请勿提交issue'
     url: 'https://t.me/mihomo_party_group'

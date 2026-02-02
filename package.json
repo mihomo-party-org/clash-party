@@ -5,7 +5,7 @@
   "type": "module",
   "main": "./out/main/index.js",
   "author": "mihomo-party-org",
-  "homepage": "https://mihomo.party",
+  "homepage": "https://clashparty.org",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",

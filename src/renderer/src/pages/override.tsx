@@ -152,7 +152,7 @@ const Override: React.FC = () => {
             isIconOnly
             className="app-nodrag"
             onPress={() => {
-              open('https://mihomo.party/docs/guide/override')
+              open('https://clashparty.org/docs/guide/override')
             }}
           >
             <HiOutlineDocumentText className="text-lg" />
