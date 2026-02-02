@@ -31,6 +31,33 @@ import { IoMdTrash, IoMdArrowUp, IoMdArrowDown, IoMdUndo } from 'react-icons/io'
 import { MdVerticalAlignTop, MdVerticalAlignBottom } from 'react-icons/md'
 import { platform } from '@renderer/utils/init'
 import { toast } from '@renderer/components/base/toast'
+import {
+  domainValidator,
+  domainSuffixValidator,
+  domainKeywordValidator,
+  domainRegexValidator,
+  domainWildcardValidator,
+  geositeValidator,
+  geoipValidator,
+  asnValidator,
+  uidValidator,
+  dscpValidator,
+  networkValidator,
+  processPathValidator,
+  processPathWildcardValidator,
+  processPathRegexValidator,
+  processNameValidator,
+  processNameWildcardValidator,
+  processNameRegexValidator,
+  inTypeValidator,
+  inUserValidator,
+  inNameValidator,
+  ruleSetValidator,
+  logicRuleValidator,
+  subRuleValidator,
+  portRangeValidator,
+  ipCIDRValidator
+} from '@renderer/utils/validate'
 
 interface Props {
   id: string
@@ -43,53 +70,6 @@ interface RuleItem {
   proxy: string
   additionalParams?: string[]
   offset?: number
-}
-
-const domainValidator = (value: string): boolean => {
-  if (value.length > 253 || value.length < 2) return false
-
-  return (
-    new RegExp('^(?:(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)\\.)+[a-zA-Z]{2,}$').test(
-      value
-    ) || ['localhost', 'local', 'localdomain'].includes(value.toLowerCase())
-  )
-}
-
-const domainSuffixValidator = (value: string): boolean => {
-  return new RegExp(
-    '^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\\.)*[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\\.[a-zA-Z]{2,}$'
-  ).test(value)
-}
-
-const domainKeywordValidator = (value: string): boolean => {
-  return value.length > 0 && !value.includes(',') && !value.includes(' ')
-}
-
-const domainRegexValidator = (value: string): boolean => {
-  try {
-    new RegExp(value)
-    return true
-  } catch {
-    return false
-  }
-}
-
-const portValidator = (value: string): boolean => {
-  return new RegExp(
-    '^(?:[1-9]\\d{0,3}|[1-5]\\d{4}|6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])$'
-  ).test(value)
-}
-
-const ipv4CIDRValidator = (value: string): boolean => {
-  return new RegExp(
-    '^(?:(?:[1-9]?[0-9]|1[0-9][0-9]|2(?:[0-4][0-9]|5[0-5]))\\.){3}(?:[1-9]?[0-9]|1[0-9][0-9]|2(?:[0-4][0-9]|5[0-5]))(?:\\/(?:[12]?[0-9]|3[0-2]))$'
-  ).test(value)
-}
-
-const ipv6CIDRValidator = (value: string): boolean => {
-  return new RegExp(
-    '^([0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4}){7}|::|:(?::[0-9a-fA-F]{1,4}){1,6}|[0-9a-fA-F]{1,4}:(?::[0-9a-fA-F]{1,4}){1,5}|(?:[0-9a-fA-F]{1,4}:){2}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){3}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){4}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){5}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,6}:)\\/(?:12[0-8]|1[01][0-9]|[1-9]?[0-9])$'
-  ).test(value)
 }
 
 // 内置路由规则 https://wiki.metacubex.one/config/rules/
@@ -137,10 +117,19 @@ const ruleDefinitionsMap = new Map<
     }
   ],
   [
+    'DOMAIN-WILDCARD',
+    {
+      name: 'DOMAIN-WILDCARD',
+      example: '*.google.com',
+      validator: (value) => domainWildcardValidator(value)
+    }
+  ],
+  [
     'GEOSITE',
     {
       name: 'GEOSITE',
-      example: 'youtube'
+      example: 'youtube',
+      validator: (value) => geositeValidator(value)
     }
   ],
   [
@@ -149,14 +138,16 @@ const ruleDefinitionsMap = new Map<
       name: 'GEOIP',
       example: 'CN',
       noResolve: true,
-      src: true
+      src: true,
+      validator: (value) => geoipValidator(value)
     }
   ],
   [
     'SRC-GEOIP',
     {
       name: 'SRC-GEOIP',
-      example: 'CN'
+      example: 'CN',
+      validator: (value) => geoipValidator(value)
     }
   ],
   [
@@ -166,7 +157,7 @@ const ruleDefinitionsMap = new Map<
       example: '13335',
       noResolve: true,
       src: true,
-      validator: (value) => (+value ? true : false)
+      validator: (value) => asnValidator(value)
     }
   ],
   [
@@ -174,7 +165,7 @@ const ruleDefinitionsMap = new Map<
     {
       name: 'SRC-IP-ASN',
       example: '9808',
-      validator: (value) => (+value ? true : false)
+      validator: (value) => asnValidator(value)
     }
   ],
   [
@@ -184,7 +175,7 @@ const ruleDefinitionsMap = new Map<
       example: '127.0.0.0/8',
       noResolve: true,
       src: true,
-      validator: (value) => ipv4CIDRValidator(value) || ipv6CIDRValidator(value)
+      validator: (value) => ipCIDRValidator(value)
     }
   ],
   [
@@ -194,7 +185,7 @@ const ruleDefinitionsMap = new Map<
       example: '2620:0:2d0:200::7/32',
       noResolve: true,
       src: true,
-      validator: (value) => ipv4CIDRValidator(value) || ipv6CIDRValidator(value)
+      validator: (value) => ipCIDRValidator(value)
     }
   ],
   [
@@ -202,7 +193,7 @@ const ruleDefinitionsMap = new Map<
     {
       name: 'SRC-IP-CIDR',
       example: '192.168.1.201/32',
-      validator: (value) => ipv4CIDRValidator(value) || ipv6CIDRValidator(value)
+      validator: (value) => ipCIDRValidator(value)
     }
   ],
   [
@@ -212,7 +203,7 @@ const ruleDefinitionsMap = new Map<
       example: '8.8.8.8/24',
       noResolve: true,
       src: true,
-      validator: (value) => ipv4CIDRValidator(value) || ipv6CIDRValidator(value)
+      validator: (value) => ipCIDRValidator(value)
     }
   ],
   [
@@ -220,7 +211,7 @@ const ruleDefinitionsMap = new Map<
     {
       name: 'SRC-IP-SUFFIX',
       example: '192.168.1.201/8',
-      validator: (value) => ipv4CIDRValidator(value) || ipv6CIDRValidator(value)
+      validator: (value) => ipCIDRValidator(value)
     }
   ],
   [
@@ -228,7 +219,7 @@ const ruleDefinitionsMap = new Map<
     {
       name: 'SRC-PORT',
       example: '7777',
-      validator: (value) => portValidator(value)
+      validator: (value) => portRangeValidator(value)
     }
   ],
   [
@@ -236,7 +227,7 @@ const ruleDefinitionsMap = new Map<
     {
       name: 'DST-PORT',
       example: '80',
-      validator: (value) => portValidator(value)
+      validator: (value) => portRangeValidator(value)
     }
   ],
   [
@@ -244,21 +235,23 @@ const ruleDefinitionsMap = new Map<
     {
       name: 'IN-PORT',
       example: '7897',
-      validator: (value) => portValidator(value)
+      validator: (value) => portRangeValidator(value)
     }
   ],
   [
     'DSCP',
     {
       name: 'DSCP',
-      example: '4'
+      example: '4',
+      validator: (value) => dscpValidator(value)
     }
   ],
   [
     'PROCESS-NAME',
     {
       name: 'PROCESS-NAME',
-      example: platform === 'win32' ? 'chrome.exe' : 'curl'
+      example: platform === 'win32' ? 'chrome.exe' : 'curl',
+      validator: (value) => processNameValidator(value)
     }
   ],
   [
@@ -268,21 +261,40 @@ const ruleDefinitionsMap = new Map<
       example:
         platform === 'win32'
           ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
-          : '/usr/bin/wget'
+          : '/usr/bin/wget',
+      validator: (value) => processPathValidator(value)
+    }
+  ],
+  [
+    'PROCESS-NAME-WILDCARD',
+    {
+      name: 'PROCESS-NAME-WILDCARD',
+      example: '*telegram*',
+      validator: (value) => processNameWildcardValidator(value)
     }
   ],
   [
     'PROCESS-NAME-REGEX',
     {
       name: 'PROCESS-NAME-REGEX',
-      example: '.*telegram.*'
+      example: '.*telegram.*',
+      validator: (value) => processNameRegexValidator(value)
+    }
+  ],
+  [
+    'PROCESS-PATH-WILDCARD',
+    {
+      name: 'PROCESS-PATH-WILDCARD',
+      example: platform === 'win32' ? '*\\chrome.exe' : '/usr/*/wget',
+      validator: (value) => processPathWildcardValidator(value)
     }
   ],
   [
     'PROCESS-PATH-REGEX',
     {
       name: 'PROCESS-PATH-REGEX',
-      example: platform === 'win32' ? '(?i).*Application\\chrome.*' : '.*bin/wget'
+      example: platform === 'win32' ? '(?i).*Application\\\\chrome.*' : '.*bin/wget',
+      validator: (value) => processPathRegexValidator(value)
     }
   ],
   [
@@ -290,7 +302,7 @@ const ruleDefinitionsMap = new Map<
     {
       name: 'NETWORK',
       example: 'udp',
-      validator: (value) => ['tcp', 'udp'].includes(value)
+      validator: (value) => networkValidator(value)
     }
   ],
   [
@@ -298,35 +310,39 @@ const ruleDefinitionsMap = new Map<
     {
       name: 'UID',
       example: '1001',
-      validator: (value) => (+value ? true : false)
+      validator: (value) => uidValidator(value)
     }
   ],
   [
     'IN-TYPE',
     {
       name: 'IN-TYPE',
-      example: 'SOCKS/HTTP'
+      example: 'SOCKS/HTTP',
+      validator: (value) => inTypeValidator(value)
     }
   ],
   [
     'IN-USER',
     {
       name: 'IN-USER',
-      example: 'mihomo'
+      example: 'mihomo',
+      validator: (value) => inUserValidator(value)
     }
   ],
   [
     'IN-NAME',
     {
       name: 'IN-NAME',
-      example: 'ss'
+      example: 'ss',
+      validator: (value) => inNameValidator(value)
     }
   ],
   [
     'SUB-RULE',
     {
       name: 'SUB-RULE',
-      example: '(NETWORK,tcp)'
+      example: '(NETWORK,tcp)',
+      validator: (value) => subRuleValidator(value)
     }
   ],
   [
@@ -335,28 +351,32 @@ const ruleDefinitionsMap = new Map<
       name: 'RULE-SET',
       example: 'providername',
       noResolve: true,
-      src: true
+      src: true,
+      validator: (value) => ruleSetValidator(value)
     }
   ],
   [
     'AND',
     {
       name: 'AND',
-      example: '((DOMAIN,baidu.com),(NETWORK,UDP))'
+      example: '((DOMAIN,baidu.com),(NETWORK,UDP))',
+      validator: (value) => logicRuleValidator(value)
     }
   ],
   [
     'OR',
     {
       name: 'OR',
-      example: '((NETWORK,UDP),(DOMAIN,baidu.com))'
+      example: '((NETWORK,UDP),(DOMAIN,baidu.com))',
+      validator: (value) => logicRuleValidator(value)
     }
   ],
   [
     'NOT',
     {
       name: 'NOT',
-      example: '((DOMAIN,baidu.com))'
+      example: '((DOMAIN,baidu.com))',
+      validator: (value) => logicRuleValidator(value)
     }
   ],
   [
@@ -1205,21 +1225,21 @@ const EditRulesModal: React.FC<Props> = (props) => {
                     <SelectItem key={type}>{type}</SelectItem>
                   ))}
                 </Select>
-
-                <Input
-                  label={t('profiles.editRules.payload')}
-                  placeholder={
-                    getRuleExample(newRule.type) || t('profiles.editRules.payloadPlaceholder')
-                  }
-                  value={newRule.payload}
-                  onValueChange={(value) => setNewRule({ ...newRule, payload: value })}
-                  isDisabled={newRule.type === 'MATCH'}
-                  color={
-                    newRule.payload && newRule.type !== 'MATCH' && !isPayloadValid
-                      ? 'danger'
-                      : 'default'
-                  }
-                />
+              
+                  <Input
+                    label={t('profiles.editRules.payload')}
+                    placeholder={
+                      getRuleExample(newRule.type) || t('profiles.editRules.payloadPlaceholder')
+                    }
+                    value={newRule.payload}
+                    onValueChange={(value) => setNewRule({ ...newRule, payload: value })}
+                    isDisabled={newRule.type === 'MATCH'}
+                    color={
+                      newRule.payload && newRule.type !== 'MATCH' && !isPayloadValid
+                        ? 'danger'
+                        : 'default'
+                    }
+                  />
 
                 <Autocomplete
                   label={t('profiles.editRules.proxy')}

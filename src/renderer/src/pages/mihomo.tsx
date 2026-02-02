@@ -20,6 +20,7 @@ import { toast } from '@renderer/components/base/toast'
 import { showError } from '@renderer/utils/error-display'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
+import { isValidListenAddress, getError, isValid } from '@renderer/utils/validate'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { platform } from '@renderer/utils/init'
@@ -138,6 +139,10 @@ const Mihomo: React.FC = () => {
   const [redirPortInput, setRedirPortInput] = useState(showRedirPort ?? redirPort)
   const [tproxyPortInput, setTproxyPortInput] = useState(showTproxyPort ?? tproxyPort)
   const [externalControllerInput, setExternalControllerInput] = useState(externalController)
+  const [externalControllerError, setExternalControllerError] = useState<string | null>(() => {
+    const result = isValidListenAddress(externalController)
+    return isValid(result) ? null : (getError(result) ?? '格式错误')
+  })
   const [secretInput, setSecretInput] = useState(secret)
   const [isSecretVisible, setIsSecretVisible] = useState(false)
   const [lanAllowedIpsInput, setLanAllowedIpsInput] = useState(lanAllowedIps)
@@ -997,11 +1002,12 @@ const Mihomo: React.FC = () => {
           )}
           <SettingItem title={t('mihomo.externalController')} divider>
             <div className="flex">
-              {externalControllerInput !== externalController && (
+              {externalControllerInput !== externalController && !externalControllerError && (
                 <Button
                   size="sm"
                   color="primary"
                   className="mr-2"
+                  isDisabled={!!externalControllerError}
                   onPress={() => {
                     onChangeNeedRestart({
                       'external-controller': externalControllerInput
@@ -1012,14 +1018,25 @@ const Mihomo: React.FC = () => {
                 </Button>
               )}
 
-              <Input
-                size="sm"
-                className="w-[200px]"
-                value={externalControllerInput}
-                onValueChange={(v) => {
-                  setExternalControllerInput(v)
-                }}
-              />
+              <Tooltip
+                content={externalControllerError}
+                placement="right"
+                isOpen={!!externalControllerError}
+                showArrow={true}
+                color="danger"
+                offset={10}
+              >
+                <Input
+                  size="sm"
+                  className={`w-[200px] ${externalControllerError ? 'border-red-500 ring-1 ring-red-500 rounded-lg' : ''}`}
+                  value={externalControllerInput}
+                  onValueChange={(v) => {
+                    setExternalControllerInput(v)
+                    const result = isValidListenAddress(v)
+                    setExternalControllerError(isValid(result) ? null : (getError(result) ?? '格式错误'))
+                  }}
+                />
+              </Tooltip>
             </div>
           </SettingItem>
           <SettingItem
