@@ -249,7 +249,7 @@ const GeneralConfig: React.FC = () => {
             onSelectionChange={async (v) => {
               try {
                 await patchAppConfig({
-                  envType: Array.from(v) as ('bash' | 'cmd' | 'powershell')[]
+                  envType: Array.from(v) as ('bash' | 'cmd' | 'powershell' | 'fish' | 'nushell')[]
                 })
               } catch (e) {
                 toast.error(String(e))
@@ -259,6 +259,8 @@ const GeneralConfig: React.FC = () => {
             <SelectItem key="bash">Bash</SelectItem>
             <SelectItem key="cmd">CMD</SelectItem>
             <SelectItem key="powershell">PowerShell</SelectItem>
+            <SelectItem key="fish">Fish</SelectItem>
+            <SelectItem key="nushell">Nushell</SelectItem>
           </Select>
         </SettingItem>
         <SettingItem title={t('settings.showFloatingWindow')} divider>

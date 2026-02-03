@@ -99,7 +99,7 @@ interface IpcApi {
   setupFirewall: () => Promise<void>
   getInterfaces: () => Promise<Record<string, NetworkInterfaceInfo[]>>
   setNativeTheme: (theme: 'system' | 'light' | 'dark') => Promise<void>
-  copyEnv: (type: 'bash' | 'cmd' | 'powershell') => Promise<void>
+  copyEnv: (type: 'bash' | 'cmd' | 'powershell' | 'fish' | 'nushell') => Promise<void>
   // Update
   checkUpdate: () => Promise<IAppVersion | undefined>
   downloadAndInstallUpdate: (version: string) => Promise<void>

@@ -460,26 +460,42 @@ async function updateTrayMenu(): Promise<void> {
   }
 }
 
-export async function copyEnv(type: 'bash' | 'cmd' | 'powershell'): Promise<void> {
+export async function copyEnv(
+  type: 'bash' | 'cmd' | 'powershell' | 'fish' | 'nushell'
+): Promise<void> {
   const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
   const { sysProxy } = await getAppConfig()
   const { host } = sysProxy
+  const proxyUrl = `http://${host || '127.0.0.1'}:${mixedPort}`
+
   switch (type) {
     case 'bash': {
       clipboard.writeText(
-        `export https_proxy=http://${host || '127.0.0.1'}:${mixedPort} http_proxy=http://${host || '127.0.0.1'}:${mixedPort} all_proxy=http://${host || '127.0.0.1'}:${mixedPort}`
+        `export https_proxy=${proxyUrl} http_proxy=${proxyUrl} all_proxy=${proxyUrl}`
       )
       break
     }
     case 'cmd': {
       clipboard.writeText(
-        `set http_proxy=http://${host || '127.0.0.1'}:${mixedPort}\r\nset https_proxy=http://${host || '127.0.0.1'}:${mixedPort}`
+        `set http_proxy=${proxyUrl}\r\nset https_proxy=${proxyUrl}`
       )
       break
     }
     case 'powershell': {
       clipboard.writeText(
-        `$env:HTTP_PROXY="http://${host || '127.0.0.1'}:${mixedPort}"; $env:HTTPS_PROXY="http://${host || '127.0.0.1'}:${mixedPort}"`
+        `$env:HTTP_PROXY="${proxyUrl}"; $env:HTTPS_PROXY="${proxyUrl}"`
+      )
+      break
+    }
+    case 'fish': {
+      clipboard.writeText(
+        `set -x http_proxy ${proxyUrl}; set -x https_proxy ${proxyUrl}; set -x all_proxy ${proxyUrl}`
+      )
+      break
+    }
+    case 'nushell': {
+      clipboard.writeText(
+        `$env.HTTP_PROXY = "${proxyUrl}"; $env.HTTPS_PROXY = "${proxyUrl}"; $env.ALL_PROXY = "${proxyUrl}"`
       )
       break
     }
