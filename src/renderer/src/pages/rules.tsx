@@ -43,11 +43,12 @@ const Rules: React.FC = () => {
           data={filteredRules}
           itemContent={(i, rule) => (
             <RuleItem
-              index={i}
+              index={rule.index ?? i}
               type={rule.type}
               payload={rule.payload}
               proxy={rule.proxy}
               size={rule.size}
+              extra={rule.extra}
             />
           )}
         />

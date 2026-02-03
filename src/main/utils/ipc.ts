@@ -24,7 +24,8 @@ import {
   mihomoVersion,
   patchMihomoConfig,
   mihomoSmartGroupWeights,
-  mihomoSmartFlushCache
+  mihomoSmartFlushCache,
+  mihomoRulesDisable
 } from '../core/mihomoApi'
 import { checkAutoRun, disableAutoRun, enableAutoRun } from '../sys/autoRun'
 import {
@@ -206,6 +207,7 @@ const asyncHandlers: Record<string, AsyncFn> = {
   mihomoCloseConnection,
   mihomoCloseAllConnections,
   mihomoRules,
+  mihomoRulesDisable,
   mihomoProxies,
   mihomoGroups,
   mihomoProxyProviders,

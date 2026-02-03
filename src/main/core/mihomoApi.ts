@@ -85,6 +85,11 @@ export const mihomoRules = async (): Promise<IMihomoRulesInfo> => {
   return await instance.get('/rules')
 }
 
+export const mihomoRulesDisable = async (rules: Record<string, boolean>): Promise<void> => {
+  const instance = await getAxios()
+  return await instance.patch('/rules/disable', rules)
+}
+
 export const mihomoProxies = async (): Promise<IMihomoProxies> => {
   const instance = await getAxios()
   const proxies = (await instance.get('/proxies')) as IMihomoProxies

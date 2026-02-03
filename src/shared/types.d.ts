@@ -72,6 +72,14 @@ interface IMihomoRulesDetail {
   payload: string
   proxy: string
   size: number
+  index: number
+  extra: {
+    disabled: boolean
+    hitCount: number
+    hitAt: string
+    missCount: number
+    missAt: string
+  }
 }
 
 interface IMihomoConnectionsInfo {
