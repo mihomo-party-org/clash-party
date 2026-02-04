@@ -128,9 +128,7 @@ app.on('open-url', async (_event, url) => {
   await handleDeepLink(url)
 })
 
-app.whenReady().then(async () => {
-  electronApp.setAppUserModelId('party.mihomo.app')
-
+const initPromise = (async () => {
   await initBasic()
   await checkHighPrivilegeCoreEarly()
   await initAdminStatus()
@@ -144,52 +142,80 @@ app.whenReady().then(async () => {
       appConfig.language = systemLanguage
     }
     await initI18n({ lng: appConfig.language })
+    return appConfig
   } catch (e) {
     safeShowErrorBox('common.error.initFailed', `${e}`)
     app.quit()
+    throw e
   }
+})()
 
-  try {
-    initCoreWatcher()
-    const startPromises = await startCore()
-    if (startPromises.length > 0) {
-      startPromises[0].then(async () => {
-        await initProfileUpdater()
-        await initWebdavBackupScheduler()
-        await checkAdminRestartForTun()
-      })
-    }
-  } catch (e) {
-    safeShowErrorBox('mihomo.error.coreStartFailed', `${e}`)
-  }
+app.whenReady().then(async () => {
+  electronApp.setAppUserModelId('party.mihomo.app')
 
-  try {
-    await startMonitor()
-  } catch {
-    // ignore
-  }
+  const appConfig = await initPromise
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  const { showFloatingWindow: showFloating = false, disableTray = false } = await getAppConfig()
   registerIpcMainHandlers()
-  await createWindow()
+
+  const createWindowPromise = createWindow()
+
+  let coreStarted = false
+  const coreStartPromise = (async (): Promise<void> => {
+    try {
+      initCoreWatcher()
+      const startPromises = await startCore()
+      if (startPromises.length > 0) {
+        startPromises[0].then(async () => {
+          await initProfileUpdater()
+          await initWebdavBackupScheduler()
+          await checkAdminRestartForTun()
+        })
+      }
+      coreStarted = true
+    } catch (e) {
+      safeShowErrorBox('mihomo.error.coreStartFailed', `${e}`)
+    }
+  })()
+
+  const monitorPromise = (async (): Promise<void> => {
+    try {
+      await startMonitor()
+    } catch {
+      // ignore
+    }
+  })()
+
+  await createWindowPromise
+
+  const { showFloatingWindow: showFloating = false, disableTray = false } = appConfig
+  const uiTasks: Promise<void>[] = [initShortcut()]
 
   if (showFloating) {
-    try {
-      await showFloatingWindow()
-    } catch (error) {
-      await logger.error('Failed to create floating window on startup', error)
-    }
+    uiTasks.push(
+      (async () => {
+        try {
+          await showFloatingWindow()
+        } catch (error) {
+          await logger.error('Failed to create floating window on startup', error)
+        }
+      })()
+    )
   }
 
   if (!disableTray) {
-    await createTray()
+    uiTasks.push(createTray())
   }
 
-  await initShortcut()
+  await Promise.all(uiTasks)
+  await Promise.all([coreStartPromise, monitorPromise])
+
+  if (coreStarted) {
+    mainWindow?.webContents.send('core-started')
+  }
 
   app.on('activate', () => {
     showMainWindow()

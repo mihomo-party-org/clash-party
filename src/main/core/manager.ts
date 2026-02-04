@@ -160,7 +160,9 @@ async function prepareCore(detached: boolean, skipStop = false): Promise<CoreCon
   }
 
   // 管理 Smart 内核覆写配置
-  await manageSmartOverride()
+  if (core === 'mihomo-smart') {
+    await manageSmartOverride()
+  }
 
   // generateProfile 返回实际使用的 current
   const current = await generateProfile()

@@ -9,7 +9,7 @@ const execPromise = promisify(exec)
 
 // 常量
 const CORE_READY_MAX_RETRIES = 30
-const CORE_READY_RETRY_INTERVAL_MS = 500
+const CORE_READY_RETRY_INTERVAL_MS = 100
 
 export async function cleanupSocketFile(): Promise<void> {
   if (process.platform === 'win32') {

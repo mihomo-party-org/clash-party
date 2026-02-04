@@ -165,7 +165,7 @@ async function killOldMihomoProcesses(): Promise<void> {
       }
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    await new Promise((resolve) => setTimeout(resolve, 200))
   } catch {
     // 忽略错误
   }
@@ -389,19 +389,27 @@ export async function initBasic(): Promise<void> {
 }
 
 export async function init(): Promise<void> {
-  await startSubStoreFrontendServer()
-  await startSubStoreBackendServer()
-
   const { sysProxy } = await getAppConfig()
-  try {
-    if (sysProxy.enable) {
-      await startPacServer()
-    }
-    await triggerSysProxy(sysProxy.enable)
-  } catch {
-    // ignore
-  }
 
-  await startSSIDCheck()
+  const initTasks: Promise<void>[] = [
+    startSubStoreFrontendServer(),
+    startSubStoreBackendServer(),
+    startSSIDCheck()
+  ]
+
+  initTasks.push(
+    (async (): Promise<void> => {
+      try {
+        if (sysProxy.enable) {
+          await startPacServer()
+        }
+        await triggerSysProxy(sysProxy.enable)
+      } catch {
+        // ignore
+      }
+    })()
+  )
+
+  await Promise.all(initTasks)
   initDeeplink()
 }
