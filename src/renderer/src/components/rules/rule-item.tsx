@@ -58,10 +58,10 @@ const RuleItem: React.FC<RuleItemProps> = (props) => {
                   {payload}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Chip size="sm" variant="flat" color="default" className="text-xs">
+                  <Chip size="sm" radius="sm" variant="bordered" className="text-xs">
                     {type}
                   </Chip>
-                  <Chip size="sm" variant="flat" color="default" className="text-xs">
+                  <Chip size="sm" radius="sm" variant="bordered" className="text-xs">
                     {proxy}
                   </Chip>
                 </div>
