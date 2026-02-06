@@ -215,6 +215,11 @@ const ConnCard: React.FC<Props> = (props) => {
             {...listeners}
             className={`${match ? 'bg-primary' : 'hover:bg-primary/30'} ${isDragging ? `${disableAnimations ? '' : 'scale-[0.95] tap-highlight-transparent'}` : ''}`}
           >
+            {!hideConnectionCardWave && (
+              <div className="w-full h-full absolute top-0 left-0 pointer-events-none overflow-hidden rounded-[14px]">
+                <Line data={chartData} options={chartOptions} />
+              </div>
+            )}
             <CardBody className="pb-1 pt-0 px-0">
               <div className="flex justify-between">
                 <Button
@@ -250,11 +255,6 @@ const ConnCard: React.FC<Props> = (props) => {
               </h3>
             </CardFooter>
           </Card>
-          {!hideConnectionCardWave && (
-            <div className="w-full h-full absolute top-0 left-0 pointer-events-none overflow-hidden rounded-[14px]">
-              <Line data={chartData} options={chartOptions} />
-            </div>
-          )}
         </>
       ) : (
         <Card
