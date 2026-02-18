@@ -139,7 +139,7 @@
   "mihomo.userAgent": "订阅 User Agent",
   "mihomo.userAgentPlaceholder": "默认：mihomo.party/v{{version}} (clash.meta)",
   "mihomo.delayTest.url": "延迟测试 URL",
-  "mihomo.delayTest.urlPlaceholder": "默认：http://www.gstatic.com/generate_204",
+  "mihomo.delayTest.urlPlaceholder": "默认：https://www.gstatic.com/generate_204",
   "mihomo.delayTest.concurrency": "延迟测试并发数",
   "mihomo.delayTest.concurrencyPlaceholder": "默认：50",
   "mihomo.delayTest.timeout": "延迟测试超时",

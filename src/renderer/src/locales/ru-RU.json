@@ -118,7 +118,7 @@
   "mihomo.userAgent": "User Agent подписки",
   "mihomo.userAgentPlaceholder": "По умолчанию: mihomo.party/v{{version}} (clash.meta)",
   "mihomo.delayTest.url": "URL теста задержки",
-  "mihomo.delayTest.urlPlaceholder": "По умолчанию: http://www.gstatic.com/generate_204",
+  "mihomo.delayTest.urlPlaceholder": "По умолчанию: https://www.gstatic.com/generate_204",
   "mihomo.delayTest.concurrency": "Параллельность теста задержки",
   "mihomo.delayTest.concurrencyPlaceholder": "По умолчанию: 50",
   "mihomo.delayTest.timeout": "Таймаут теста задержки",

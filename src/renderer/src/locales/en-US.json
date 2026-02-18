@@ -136,7 +136,7 @@
   "mihomo.userAgent": "Subscription User Agent",
   "mihomo.userAgentPlaceholder": "Default: mihomo.party/v{{version}} (clash.meta)",
   "mihomo.delayTest.url": "Delay Test URL",
-  "mihomo.delayTest.urlPlaceholder": "Default: http://www.gstatic.com/generate_204",
+  "mihomo.delayTest.urlPlaceholder": "Default: https://www.gstatic.com/generate_204",
   "mihomo.delayTest.concurrency": "Delay Test Concurrency",
   "mihomo.delayTest.concurrencyPlaceholder": "Default: 50",
   "mihomo.delayTest.timeout": "Delay Test Timeout",

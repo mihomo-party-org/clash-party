@@ -116,7 +116,7 @@
   "mihomo.restart": "راه‌اندازی مجدد هسته",
   "mihomo.memory": "مصرف حافظه",
   "mihomo.delayTest.url": "آدرس تست تاخیر",
-  "mihomo.delayTest.urlPlaceholder": "پیش‌فرض: http://www.gstatic.com/generate_204",
+  "mihomo.delayTest.urlPlaceholder": "پیش‌فرض: https://www.gstatic.com/generate_204",
   "mihomo.delayTest.concurrency": "همزمانی تست تاخیر",
   "mihomo.delayTest.concurrencyPlaceholder": "پیش‌فرض: 50",
   "mihomo.delayTest.timeout": "زمان انتظار تست تاخیر",
