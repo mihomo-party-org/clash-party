@@ -27,6 +27,7 @@ import React, {
 import { getProfileStr, setRuleStr, getRuleStr } from '@renderer/utils/ipc'
 import { useTranslation } from 'react-i18next'
 import yaml from 'js-yaml'
+import { Virtuoso } from 'react-virtuoso'
 import { IoMdTrash, IoMdArrowUp, IoMdArrowDown, IoMdUndo } from 'react-icons/io'
 import { MdVerticalAlignTop, MdVerticalAlignBottom } from 'react-icons/md'
 import { platform } from '@renderer/utils/init'
@@ -1324,7 +1325,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
                   onValueChange={setSearchTerm}
                 />
               </div>
-              <div className="flex flex-col gap-2 max-h-[calc(100vh-200px)] overflow-y-auto flex-1">
+              <div className="flex-1 min-h-0">
                 {isLoading ? (
                   <div className="flex items-center justify-center h-full py-8">
                     <Spinner size="lg" label={t('common.loading') || 'Loading...'} />
@@ -1338,26 +1339,34 @@ const EditRulesModal: React.FC<Props> = (props) => {
                         : t('profiles.editRules.noRules')}
                   </div>
                 ) : (
-                  deferredFilteredRules.map((rule, index) => {
-                    const originalIndex = ruleIndexMap.get(rule) ?? -1
-                    const isDeleted = deletedRules.has(originalIndex)
-                    const isPrependOrAppend =
-                      prependRules.has(originalIndex) || appendRules.has(originalIndex)
-
-                    return (
-                      <RuleListItem
-                        key={`${originalIndex}-${index}`}
-                        rule={rule}
-                        originalIndex={originalIndex}
-                        isDeleted={isDeleted}
-                        isPrependOrAppend={isPrependOrAppend}
-                        rulesLength={rules.length}
-                        onMoveUp={handleMoveRuleUp}
-                        onMoveDown={handleMoveRuleDown}
-                        onRemove={handleRemoveRule}
-                      />
-                    )
-                  })
+                  <Virtuoso
+                    style={{ height: '100%' }}
+                    data={deferredFilteredRules}
+                    computeItemKey={(index, rule) => {
+                      const originalIndex = ruleIndexMap.get(rule) ?? -1
+                      return `${originalIndex}-${index}`
+                    }}
+                    itemContent={(index, rule) => {
+                      const originalIndex = ruleIndexMap.get(rule) ?? -1
+                      const isDeleted = deletedRules.has(originalIndex)
+                      const isPrependOrAppend =
+                        prependRules.has(originalIndex) || appendRules.has(originalIndex)
+                      return (
+                        <div className="pb-2">
+                          <RuleListItem
+                            rule={rule}
+                            originalIndex={originalIndex}
+                            isDeleted={isDeleted}
+                            isPrependOrAppend={isPrependOrAppend}
+                            rulesLength={rules.length}
+                            onMoveUp={handleMoveRuleUp}
+                            onMoveDown={handleMoveRuleDown}
+                            onRemove={handleRemoveRule}
+                          />
+                        </div>
+                      )
+                    }}
+                  />
                 )}
               </div>
             </div>
