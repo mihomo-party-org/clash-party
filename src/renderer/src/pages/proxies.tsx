@@ -161,6 +161,7 @@ const Proxies: React.FC = () => {
     groups.forEach((group, index) => {
       if (isOpen[index]) {
         const filtered = group.all.filter((proxy) => {
+          if (!proxy) return false
           if (!includesIgnoreCase(proxy.name, searchValue[index])) {
             return false
           }
