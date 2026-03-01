@@ -479,7 +479,7 @@ const Connections: React.FC = () => {
             </span>
           </div>
           <Badge
-            className="mt-2"
+            className="app-nodrag pointer-events-none mt-2"
             color="primary"
             variant="flat"
             showOutline={false}
