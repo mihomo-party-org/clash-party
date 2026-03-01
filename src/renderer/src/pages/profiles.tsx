@@ -59,6 +59,7 @@ const Profiles: React.FC = () => {
   const [updating, setUpdating] = useState(false)
   const [fileOver, setFileOver] = useState(false)
   const [url, setUrl] = useState('')
+  const [, setNow] = useState(new Date())
   const isUrlEmpty = url.trim() === ''
   const sensors = useSensors(useSensor(PointerSensor))
   const { data: subs = [], mutate: mutateSubs } = useSWR(
@@ -216,6 +217,11 @@ const Profiles: React.FC = () => {
       element.removeEventListener('dragleave', handleDragLeave)
       element.removeEventListener('drop', handleDrop)
     }
+  }, [])
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 30000)
+    return () => clearInterval(timer)
   }, [])
 
   useEffect(() => {
