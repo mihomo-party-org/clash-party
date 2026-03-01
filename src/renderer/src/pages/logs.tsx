@@ -46,6 +46,8 @@ const Logs: React.FC = () => {
   const [trace, setTrace] = useState(true)
 
   const virtuosoRef = useRef<VirtuosoHandle>(null)
+  const traceRef = useRef(trace)
+
   const filteredLogs = useMemo(() => {
     if (filter === '') return logs
     return logs.filter((log) => {
@@ -56,6 +58,13 @@ const Logs: React.FC = () => {
   useEffect(() => {
     localStorage.setItem(LOGS_FILTER_KEY, filter)
   }, [filter])
+
+  useEffect(() => {
+    traceRef.current = trace
+    if (trace) {
+      setLogs([...cachedLogs.log])
+    }
+  }, [trace])
 
   useEffect(() => {
     if (!trace) return
@@ -70,7 +79,9 @@ const Logs: React.FC = () => {
   useEffect(() => {
     const old = cachedLogs.trigger
     cachedLogs.trigger = (a): void => {
-      setLogs([...a])
+      if (traceRef.current) {
+        setLogs([...a])
+      }
     }
     return (): void => {
       cachedLogs.trigger = old
