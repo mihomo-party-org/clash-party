@@ -86,6 +86,7 @@ export async function downloadAndInstallUpdate(version: string): Promise<void> {
     if (!existsSync(path.join(dataDir(), file))) {
       const res = await chromeRequest.get(`${baseUrl}${file}`, {
         responseType: 'arraybuffer',
+        timeout: 0,
         proxy: {
           protocol: 'http',
           host: '127.0.0.1',
