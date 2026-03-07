@@ -65,6 +65,7 @@
   "common.updater.versionReady": "v{{version}} Version Ready",
   "common.updater.goToDownload": "Go to Download",
   "common.updater.update": "Update",
+  "common.updater.verifying": "Verifying...",
   "common.generateSecret": "Generate Secret",
   "common.refresh": "Refresh",
   "settings.general": "General Settings",

@@ -65,6 +65,7 @@
   "common.updater.versionReady": "نسخه v{{version}} آماده است",
   "common.updater.goToDownload": "دانلود",
   "common.updater.update": "به‌روزرسانی",
+  "common.updater.verifying": "در حال تأیید...",
   "settings.general": "تنظیمات عمومی",
   "settings.mihomo": "تنظیمات Mihomo",
   "settings.language": "زبان",

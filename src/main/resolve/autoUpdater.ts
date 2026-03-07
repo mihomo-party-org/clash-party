@@ -4,8 +4,10 @@ import { existsSync } from 'fs'
 import os from 'os'
 import { exec, execSync, spawn } from 'child_process'
 import { promisify } from 'util'
+import { createHash } from 'crypto'
 import { app, shell } from 'electron'
 import i18next from 'i18next'
+import { mainWindow } from '../window'
 import { appLogger } from '../utils/logger'
 import { dataDir, exeDir, exePath, isPortable, resourcesFilesDir } from '../utils/dirs'
 import { getControledMihomoConfig } from '../config'
@@ -84,6 +86,15 @@ export async function downloadAndInstallUpdate(version: string): Promise<void> {
   }
   try {
     if (!existsSync(path.join(dataDir(), file))) {
+      const sha256Res = await chromeRequest.get(`${baseUrl}${file}.sha256`, {
+        proxy: {
+          protocol: 'http',
+          host: '127.0.0.1',
+          port: mixedPort
+        },
+        responseType: 'text'
+      })
+      const expectedHash = (sha256Res.data as string).trim().split(/\s+/)[0]
       const res = await chromeRequest.get(`${baseUrl}${file}`, {
         responseType: 'arraybuffer',
         timeout: 0,
@@ -94,9 +105,21 @@ export async function downloadAndInstallUpdate(version: string): Promise<void> {
         },
         headers: {
           'Content-Type': 'application/octet-stream'
+        },
+        onProgress: (loaded, total) => {
+          mainWindow?.webContents.send('updateDownloadProgress', {
+            status: 'downloading',
+            percent: Math.round((loaded / total) * 100)
+          })
         }
       })
-      await writeFile(path.join(dataDir(), file), res.data as string | Buffer)
+      mainWindow?.webContents.send('updateDownloadProgress', { status: 'verifying' })
+      const fileBuffer = Buffer.from(res.data as ArrayBuffer)
+      const actualHash = createHash('sha256').update(fileBuffer).digest('hex')
+      if (actualHash.toLowerCase() !== expectedHash.toLowerCase()) {
+        throw new Error(`File integrity check failed: expected ${expectedHash}, got ${actualHash}`)
+      }
+      await writeFile(path.join(dataDir(), file), fileBuffer)
     }
     if (file.endsWith('.exe')) {
       try {

@@ -9,7 +9,7 @@ import {
 } from '@heroui/react'
 import { toast } from '@renderer/components/base/toast'
 import ReactMarkdown from 'react-markdown'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { downloadAndInstallUpdate } from '@renderer/utils/ipc'
 import { useTranslation } from 'react-i18next'
 
@@ -22,15 +22,18 @@ interface Props {
 const UpdaterModal: React.FC<Props> = (props) => {
   const { version, changelog, onClose } = props
   const [downloading, setDownloading] = useState(false)
+  const [progress, setProgress] = useState<{ status: 'downloading' | 'verifying'; percent?: number } | null>(null)
   const { t } = useTranslation()
 
-  const onUpdate = async (): Promise<void> => {
-    try {
-      await downloadAndInstallUpdate(version)
-    } catch (e) {
-      toast.error(String(e))
+  useEffect(() => {
+    const handler = (_e: Electron.IpcRendererEvent, ...args: unknown[]): void => {
+      setProgress(args[0] as { status: 'downloading' | 'verifying'; percent?: number })
     }
-  }
+    window.electron.ipcRenderer.on('updateDownloadProgress', handler)
+    return () => {
+      window.electron.ipcRenderer.removeListener('updateDownloadProgress', handler)
+    }
+  }, [])
 
   return (
     <Modal
@@ -69,28 +72,46 @@ const UpdaterModal: React.FC<Props> = (props) => {
             </ReactMarkdown>
           </div>
         </ModalBody>
-        <ModalFooter>
-          <Button size="sm" variant="light" onPress={onClose}>
-            {t('common.cancel')}
-          </Button>
-          <Button
-            size="sm"
-            color="primary"
-            isLoading={downloading}
-            onPress={async () => {
-              try {
-                setDownloading(true)
-                await onUpdate()
-                onClose()
-              } catch (e) {
-                toast.error(String(e))
-              } finally {
-                setDownloading(false)
-              }
-            }}
-          >
-            {t('common.updater.update')}
-          </Button>
+        <ModalFooter className="flex-col gap-2 items-stretch">
+          {downloading && progress && (
+            <div className="flex flex-col gap-1">
+              <div className="w-full bg-default-200 rounded-full h-1.5">
+                <div
+                  className="bg-primary h-1.5 rounded-full transition-all duration-300"
+                  style={{ width: `${progress.status === 'verifying' ? 100 : (progress.percent ?? 0)}%` }}
+                />
+              </div>
+              <p className="text-xs text-foreground-400 text-center">
+                {progress.status === 'verifying'
+                  ? t('common.updater.verifying')
+                  : `${progress.percent ?? 0}%`}
+              </p>
+            </div>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button size="sm" variant="light" onPress={onClose}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              size="sm"
+              color="primary"
+              isLoading={downloading}
+              onPress={async () => {
+                try {
+                  setDownloading(true)
+                  await downloadAndInstallUpdate(version)
+                  onClose()
+                } catch (e) {
+                  toast.detailedError(String(e))
+                } finally {
+                  setDownloading(false)
+                  setProgress(null)
+                }
+              }}
+            >
+              {t('common.updater.update')}
+            </Button>
+          </div>
         </ModalFooter>
       </ModalContent>
     </Modal>

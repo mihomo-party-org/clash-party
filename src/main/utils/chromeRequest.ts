@@ -15,6 +15,7 @@ export interface RequestOptions {
   responseType?: 'text' | 'json' | 'arraybuffer'
   followRedirect?: boolean
   maxRedirects?: number
+  onProgress?: (loaded: number, total: number) => void
 }
 
 export interface Response<T = unknown> {
@@ -60,7 +61,8 @@ export async function request<T = unknown>(
     timeout = 30000,
     responseType = 'text',
     followRedirect = true,
-    maxRedirects = 20
+    maxRedirects = 20,
+    onProgress
   } = options
 
   return new Promise((resolve, reject) => {
@@ -124,8 +126,15 @@ export async function request<T = unknown>(
             responseHeaders[rawHeaders[i].toLowerCase()] = rawHeaders[i + 1]
           }
 
+          const totalSize = parseInt(responseHeaders['content-length'] || '0', 10)
+          let loadedSize = 0
+
           res.on('data', (chunk: Buffer) => {
             chunks.push(chunk)
+            if (onProgress && totalSize > 0) {
+              loadedSize += chunk.length
+              onProgress(loadedSize, totalSize)
+            }
           })
 
           res.on('end', () => {

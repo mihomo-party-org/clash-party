@@ -65,6 +65,7 @@
   "common.updater.versionReady": "v{{version}} 版本就绪",
   "common.updater.goToDownload": "前往下载",
   "common.updater.update": "更新",
+  "common.updater.verifying": "正在校验...",
   "common.generateSecret": "生成密钥",
   "common.refresh": "刷新",
   "settings.general": "通用设置",

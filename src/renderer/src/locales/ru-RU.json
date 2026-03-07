@@ -67,6 +67,7 @@
   "common.updater.versionReady": "Обнаружено ядро с повышенными привилегиями",
   "common.updater.goToDownload": "Перейти к загрузке",
   "common.updater.update": "Обновить",
+  "common.updater.verifying": "Проверка...",
   "settings.general": "Общие настройки",
   "settings.mihomo": "Настройки Mihomo",
   "settings.language": "Язык",
