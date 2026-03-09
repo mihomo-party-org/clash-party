@@ -132,7 +132,7 @@ export async function triggerFloatingWindow(): Promise<void> {
 export async function closeFloatingWindow(): Promise<void> {
   if (floatingWindow) {
     ipcMain.removeAllListeners('updateFloatingWindow')
-    floatingWindow.close()
+    floatingWindow.destroy()
     floatingWindow = null
   }
   await showTrayIcon()
