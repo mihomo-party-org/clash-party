@@ -179,7 +179,10 @@ interface FetchResult {
 async function fetchAndValidateSubscription(options: FetchOptions): Promise<FetchResult> {
   const { url, useProxy, mixedPort, userAgent, authToken, timeout, substore } = options
 
-  const headers: Record<string, string> = { 'User-Agent': userAgent }
+  const headers: Record<string, string> = {
+    'User-Agent': userAgent,
+    'Accept-Encoding': 'identity'
+  }
   if (authToken) headers['Authorization'] = authToken
 
   let res: chromeRequest.Response<string>
