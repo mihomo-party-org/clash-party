@@ -46,7 +46,6 @@ const Logs: React.FC = () => {
   const [trace, setTrace] = useState(true)
 
   const virtuosoRef = useRef<VirtuosoHandle>(null)
-  const traceRef = useRef(trace)
 
   const filteredLogs = useMemo(() => {
     if (filter === '') return logs
@@ -60,28 +59,9 @@ const Logs: React.FC = () => {
   }, [filter])
 
   useEffect(() => {
-    traceRef.current = trace
-    if (trace) {
-      setLogs([...cachedLogs.log])
-    }
-  }, [trace])
-
-  useEffect(() => {
-    if (!trace) return
-    virtuosoRef.current?.scrollToIndex({
-      index: filteredLogs.length - 1,
-      behavior: 'smooth',
-      align: 'end',
-      offset: 0
-    })
-  }, [filteredLogs, trace])
-
-  useEffect(() => {
     const old = cachedLogs.trigger
     cachedLogs.trigger = (a): void => {
-      if (traceRef.current) {
-        setLogs([...a])
-      }
+      setLogs([...a])
     }
     return (): void => {
       cachedLogs.trigger = old
@@ -132,6 +112,8 @@ const Logs: React.FC = () => {
         <Virtuoso
           ref={virtuosoRef}
           data={filteredLogs}
+          initialTopMostItemIndex={filteredLogs.length - 1}
+          followOutput={trace}
           itemContent={(i, log) => (
             <LogItem index={i} time={log.time} type={log.type} payload={log.payload} />
           )}
