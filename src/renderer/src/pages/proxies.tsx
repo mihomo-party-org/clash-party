@@ -23,7 +23,6 @@ import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-c
 import { useTranslation } from 'react-i18next'
 
 const GROUP_EXPAND_STATE_KEY = 'proxy_group_expand_state'
-const SCROLL_POSITION_KEY = 'proxy_scroll_position'
 
 // 自定义 hook 用于管理展开状态
 const useProxyState = (
@@ -32,32 +31,8 @@ const useProxyState = (
   virtuosoRef: React.RefObject<GroupedVirtuosoHandle | null>
   isOpen: boolean[]
   setIsOpen: React.Dispatch<React.SetStateAction<boolean[]>>
-  initialTopMostItemIndex: number
-  handleRangeChanged: (range: { startIndex: number }) => void
 } => {
   const virtuosoRef = useRef<GroupedVirtuosoHandle | null>(null)
-
-  // 记住滚动位置
-  const [initialTopMostItemIndex] = useState<number>(() => {
-    try {
-      const savedPosition = sessionStorage.getItem(SCROLL_POSITION_KEY)
-      if (savedPosition) {
-        sessionStorage.removeItem(SCROLL_POSITION_KEY)
-        return parseInt(savedPosition, 10) || 0
-      }
-    } catch (error) {
-      console.error('Failed to restore scroll position:', error)
-    }
-    return 0
-  })
-
-  const handleRangeChanged = useCallback((range: { startIndex: number }) => {
-    try {
-      sessionStorage.setItem(SCROLL_POSITION_KEY, range.startIndex.toString())
-    } catch (error) {
-      console.error('Failed to save scroll position:', error)
-    }
-  }, [])
 
   // 初始化展开状态
   const [isOpen, setIsOpen] = useState<boolean[]>(() => {
@@ -101,9 +76,7 @@ const useProxyState = (
   return {
     virtuosoRef,
     isOpen,
-    setIsOpen,
-    initialTopMostItemIndex,
-    handleRangeChanged
+    setIsOpen
   }
 }
 
@@ -122,8 +95,7 @@ const Proxies: React.FC = () => {
   } = appConfig || {}
 
   const [cols, setCols] = useState(1)
-  const { virtuosoRef, isOpen, setIsOpen, initialTopMostItemIndex, handleRangeChanged } =
-    useProxyState(groups)
+  const { virtuosoRef, isOpen, setIsOpen } = useProxyState(groups)
   const [delaying, setDelaying] = useState(Array(groups.length).fill(false))
   const [proxyDelaying, setProxyDelaying] = useState<Set<string>>(new Set())
   const [searchValue, setSearchValue] = useState(Array(groups.length).fill(''))
@@ -613,8 +585,6 @@ const Proxies: React.FC = () => {
             defaultItemHeight={80}
             increaseViewportBy={{ top: 150, bottom: 150 }}
             overscan={200}
-            initialTopMostItemIndex={initialTopMostItemIndex}
-            rangeChanged={handleRangeChanged}
             computeItemKey={(index, groupIndex) => `${groupIndex}-${index}`}
             groupContent={renderGroupContent}
             itemContent={renderItemContent}
