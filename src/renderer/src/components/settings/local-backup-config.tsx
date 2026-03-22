@@ -30,7 +30,7 @@ const LocalBackupConfig: React.FC = () => {
   }
 
   const handleImport = async (): Promise<void> => {
-    onClose();
+    onClose()
     setImporting(true)
     try {
       const success = await importLocalBackup()
@@ -40,14 +40,14 @@ const LocalBackupConfig: React.FC = () => {
         window.electron.ipcRenderer.send('appConfigUpdated')
         window.electron.ipcRenderer.send('controledMihomoConfigUpdated')
         window.electron.ipcRenderer.send('profileConfigUpdated')
-        
+
         try {
           await restartCore()
         } catch (error) {
           console.error('Failed to restart core after import:', error)
           toast.error(t('common.error.restartCoreFailed', { error: error }))
         }
-        
+
         new window.Notification(t('localBackup.notification.importSuccess.title'), {
           body: t('localBackup.notification.importSuccess.body')
         })

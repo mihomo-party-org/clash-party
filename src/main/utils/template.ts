@@ -42,7 +42,8 @@ export const defaultConfig: IAppConfig = {
     'dns',
     'sniff',
     'log',
-    'substore'
+    'substore',
+    'network'
   ],
   siderWidth: 250,
   sysProxy: { enable: false, mode: 'manual' },

@@ -32,6 +32,7 @@ import { applyTheme, setNativeTheme, setTitleBarOverlay } from '@renderer/utils/
 import { platform } from '@renderer/utils/init'
 import { TitleBarOverlayOptions } from 'electron'
 import SubStoreCard from '@renderer/components/sider/substore-card'
+import NetworkCard from '@renderer/components/sider/network-card'
 import { createTourDriver, getDriver, startTourIfNeeded } from '@renderer/utils/tour'
 import 'driver.js/dist/driver.css'
 import { useTranslation } from 'react-i18next'
@@ -40,6 +41,29 @@ import MihomoIcon from './components/base/mihomo-icon'
 let navigate: NavigateFunction
 
 export { getDriver }
+
+const ALL_SIDER_KEYS = [
+  'sysproxy',
+  'tun',
+  'profile',
+  'proxy',
+  'rule',
+  'resource',
+  'override',
+  'connection',
+  'mihomo',
+  'dns',
+  'sniff',
+  'log',
+  'substore',
+  'network'
+]
+
+function mergeSiderOrder(saved: string[]): string[] {
+  const valid = saved.filter((k) => ALL_SIDER_KEYS.includes(k))
+  const missing = ALL_SIDER_KEYS.filter((k) => !valid.includes(k))
+  return [...valid, ...missing]
+}
 
 const App: React.FC = () => {
   const { t } = useTranslation()
@@ -62,11 +86,12 @@ const App: React.FC = () => {
       'dns',
       'sniff',
       'log',
-      'substore'
+      'substore',
+      'network'
     ]
   } = appConfig || {}
   const narrowWidth = platform === 'darwin' ? 70 : 60
-  const [order, setOrder] = useState(siderOrder)
+  const [order, setOrder] = useState(mergeSiderOrder(siderOrder))
   const [siderWidthValue, setSiderWidthValue] = useState(siderWidth)
   const siderWidthValueRef = useRef(siderWidthValue)
   const [resizing, setResizing] = useState(false)
@@ -92,7 +117,7 @@ const App: React.FC = () => {
   }, [useWindowFrame])
 
   useEffect(() => {
-    setOrder(siderOrder)
+    setOrder(mergeSiderOrder(siderOrder))
     setSiderWidthValue(siderWidth)
   }, [siderOrder, siderWidth])
 
@@ -163,7 +188,8 @@ const App: React.FC = () => {
     rule: 'rules',
     resource: 'resources',
     override: 'override',
-    substore: 'substore'
+    substore: 'substore',
+    network: 'network'
   }
 
   const componentMap = {
@@ -179,7 +205,8 @@ const App: React.FC = () => {
     rule: RuleCard,
     resource: ResourceCard,
     override: OverrideCard,
-    substore: SubStoreCard
+    substore: SubStoreCard,
+    network: NetworkCard
   }
 
   return (

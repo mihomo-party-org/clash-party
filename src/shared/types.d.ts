@@ -260,6 +260,7 @@ interface IAppConfig {
   overrideCardStatus?: CardStatus
   profileCardStatus?: CardStatus
   proxyCardStatus?: CardStatus
+  networkCardStatus?: CardStatus
   resourceCardStatus?: CardStatus
   ruleCardStatus?: CardStatus
   sniffCardStatus?: CardStatus

@@ -17,7 +17,13 @@ const domainSuffixValidator = (value: string): boolean => {
 
 const domainKeywordValidator = (value: string): boolean => {
   // 域名关键字不能包含逗号和空格
-  return value.length > 0 && validator.isWhitelisted(value, 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._')
+  return (
+    value.length > 0 &&
+    validator.isWhitelisted(
+      value,
+      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._'
+    )
+  )
 }
 
 const domainRegexValidator = (value: string): boolean => {
@@ -179,7 +185,9 @@ const inUserValidator = (value: string): boolean => {
   if (value.length === 0) return false
   // 支持多个用户名（用 / 分隔）
   const users = value.split('/')
-  return users.every((user) => user.length > 0 && validator.isAlphanumeric(user, 'en-US', { ignore: '-_.' }))
+  return users.every(
+    (user) => user.length > 0 && validator.isAlphanumeric(user, 'en-US', { ignore: '-_.' })
+  )
 }
 
 // IN-NAME 验证器 - 入站名称验证
@@ -322,7 +330,10 @@ export const isValidListenAddress = (s: string | undefined): ValidationResult =>
   }
 
   // 域名或主机名 (使用宽松的 FQDN 验证)
-  if (validator.isFQDN(host, { require_tld: false }) || validator.isAlphanumeric(host, 'en-US', { ignore: '-.' })) {
+  if (
+    validator.isFQDN(host, { require_tld: false }) ||
+    validator.isAlphanumeric(host, 'en-US', { ignore: '-.' })
+  ) {
     return { ok: true }
   }
 
@@ -367,7 +378,10 @@ export const isValidListenAddressFull = (s: string | undefined): ValidationResul
   }
 
   // 域名或主机名 (使用宽松的 FQDN 验证)
-  if (validator.isFQDN(host, { require_tld: false }) || validator.isAlphanumeric(host, 'en-US', { ignore: '-.' })) {
+  if (
+    validator.isFQDN(host, { require_tld: false }) ||
+    validator.isAlphanumeric(host, 'en-US', { ignore: '-.' })
+  ) {
     return { ok: true }
   }
 

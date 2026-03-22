@@ -43,6 +43,7 @@
     "express": "^5.2.1",
     "file-icon": "^6.0.0",
     "file-icon-info": "^1.1.1",
+    "flag-icons": "^7.5.0",
     "i18next": "^25.8.13",
     "iconv-lite": "^0.7.2",
     "js-yaml": "^4.1.1",

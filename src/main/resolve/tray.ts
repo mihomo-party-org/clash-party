@@ -476,15 +476,11 @@ export async function copyEnv(
       break
     }
     case 'cmd': {
-      clipboard.writeText(
-        `set http_proxy=${proxyUrl}\r\nset https_proxy=${proxyUrl}`
-      )
+      clipboard.writeText(`set http_proxy=${proxyUrl}\r\nset https_proxy=${proxyUrl}`)
       break
     }
     case 'powershell': {
-      clipboard.writeText(
-        `$env:HTTP_PROXY="${proxyUrl}"; $env:HTTPS_PROXY="${proxyUrl}"`
-      )
+      clipboard.writeText(`$env:HTTP_PROXY="${proxyUrl}"; $env:HTTPS_PROXY="${proxyUrl}"`)
       break
     }
     case 'fish': {

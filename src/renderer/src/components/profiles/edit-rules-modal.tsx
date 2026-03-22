@@ -1226,17 +1226,17 @@ const EditRulesModal: React.FC<Props> = (props) => {
                     <SelectItem key={type}>{type}</SelectItem>
                   ))}
                 </Select>
-              
-                  <Input
-                    label={t('profiles.editRules.payload')}
-                    placeholder={
-                      getRuleExample(newRule.type) || t('profiles.editRules.payloadPlaceholder')
-                    }
-                    value={newRule.payload}
-                    onValueChange={(value) => setNewRule({ ...newRule, payload: value })}
-                    isDisabled={newRule.type === 'MATCH'}
-                    className={`${newRule.payload && newRule.type !== 'MATCH' && !isPayloadValid ? 'border-red-500 ring-1 ring-red-500 rounded-lg' : ''}`}
-                  />
+
+                <Input
+                  label={t('profiles.editRules.payload')}
+                  placeholder={
+                    getRuleExample(newRule.type) || t('profiles.editRules.payloadPlaceholder')
+                  }
+                  value={newRule.payload}
+                  onValueChange={(value) => setNewRule({ ...newRule, payload: value })}
+                  isDisabled={newRule.type === 'MATCH'}
+                  className={`${newRule.payload && newRule.type !== 'MATCH' && !isPayloadValid ? 'border-red-500 ring-1 ring-red-500 rounded-lg' : ''}`}
+                />
 
                 <Autocomplete
                   label={t('profiles.editRules.proxy')}

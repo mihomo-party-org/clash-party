@@ -154,6 +154,8 @@ interface IpcApi {
   registerShortcut: (oldShortcut: string, newShortcut: string, action: string) => Promise<boolean>
   // Misc
   getGistUrl: () => Promise<string>
+  fetchIPInfo: (url: string) => Promise<unknown>
+  measureLatency: (url: string) => Promise<number | null>
   getImageDataURL: (url: string) => Promise<string>
   relaunchApp: () => Promise<void>
   quitApp: () => Promise<void>
@@ -306,6 +308,8 @@ export const {
   registerShortcut,
   // Misc
   getGistUrl,
+  fetchIPInfo,
+  measureLatency,
   getImageDataURL,
   relaunchApp,
   quitApp

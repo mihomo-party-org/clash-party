@@ -22,7 +22,10 @@ interface Props {
 const UpdaterModal: React.FC<Props> = (props) => {
   const { version, changelog, onClose } = props
   const [downloading, setDownloading] = useState(false)
-  const [progress, setProgress] = useState<{ status: 'downloading' | 'verifying'; percent?: number } | null>(null)
+  const [progress, setProgress] = useState<{
+    status: 'downloading' | 'verifying'
+    percent?: number
+  } | null>(null)
   const { t } = useTranslation()
 
   useEffect(() => {
@@ -78,7 +81,9 @@ const UpdaterModal: React.FC<Props> = (props) => {
               <div className="w-full bg-default-200 rounded-full h-1.5">
                 <div
                   className="bg-primary h-1.5 rounded-full transition-all duration-300"
-                  style={{ width: `${progress.status === 'verifying' ? 100 : (progress.percent ?? 0)}%` }}
+                  style={{
+                    width: `${progress.status === 'verifying' ? 100 : (progress.percent ?? 0)}%`
+                  }}
                 />
               </div>
               <p className="text-xs text-foreground-400 text-center">

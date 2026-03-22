@@ -1,4 +1,5 @@
 import { Navigate } from 'react-router-dom'
+import NetworkPage from '@renderer/pages/network'
 import Override from '@renderer/pages/override'
 import Proxies from '@renderer/pages/proxies'
 import Rules from '@renderer/pages/rules'
@@ -14,6 +15,10 @@ import DNS from '@renderer/pages/dns'
 import Sniffer from '@renderer/pages/sniffer'
 import SubStore from '@renderer/pages/substore'
 const routes = [
+  {
+    path: '/network',
+    element: <NetworkPage />
+  },
   {
     path: '/mihomo',
     element: <Mihomo />

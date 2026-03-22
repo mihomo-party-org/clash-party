@@ -123,6 +123,7 @@ import { startMonitor } from '../resolve/trafficMonitor'
 import { closeFloatingWindow, showContextMenu, showFloatingWindow } from '../resolve/floatingWindow'
 import { addProfileUpdater, removeProfileUpdater } from '../core/profileUpdater'
 import { getImageDataURL } from './image'
+import { get as httpGet } from './chromeRequest'
 import { getIconDataURL } from './icon'
 import { getAppName } from './appName'
 import { logDir, rulePath } from './dirs'
@@ -185,6 +186,21 @@ async function getSmartOverrideContent(): Promise<string | null> {
   try {
     const override = await getOverrideItem('smart-core-override')
     return override?.file || null
+  } catch {
+    return null
+  }
+}
+
+async function fetchIPInfo(url: string): Promise<unknown> {
+  const res = await httpGet<unknown>(url, { timeout: 10000, responseType: 'json' })
+  return res.data
+}
+
+async function measureLatency(url: string): Promise<number | null> {
+  try {
+    const t0 = Date.now()
+    await httpGet<unknown>(url, { timeout: 5000, responseType: 'text' })
+    return Date.now() - t0
   } catch {
     return null
   }
@@ -324,6 +340,8 @@ const asyncHandlers: Record<string, AsyncFn> = {
   showContextMenu,
   // Misc
   getGistUrl,
+  fetchIPInfo,
+  measureLatency,
   getImageDataURL,
   getIconDataURL,
   getAppName,

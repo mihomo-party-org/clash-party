@@ -1033,7 +1033,9 @@ const Mihomo: React.FC = () => {
                   onValueChange={(v) => {
                     setExternalControllerInput(v)
                     const result = isValidListenAddress(v)
-                    setExternalControllerError(isValid(result) ? null : (getError(result) ?? '格式错误'))
+                    setExternalControllerError(
+                      isValid(result) ? null : (getError(result) ?? '格式错误')
+                    )
                   }}
                 />
               </Tooltip>
@@ -1048,11 +1050,12 @@ const Mihomo: React.FC = () => {
                 title={t('common.generateSecret')}
                 variant="light"
                 onPress={() => {
-                  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-                  const randomSecret = Array.from({ length: 8 }, () => 
-                    chars[Math.floor(Math.random() * chars.length)]
-                  ).join('');
-                  setSecretInput(randomSecret);
+                  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+                  const randomSecret = Array.from(
+                    { length: 8 },
+                    () => chars[Math.floor(Math.random() * chars.length)]
+                  ).join('')
+                  setSecretInput(randomSecret)
                 }}
               >
                 <IoMdRefresh className="text-lg" />
@@ -1085,7 +1088,7 @@ const Mihomo: React.FC = () => {
                 startContent={
                   <button
                     type="button"
-                    onClick={() => setIsSecretVisible(prev => !prev)}
+                    onClick={() => setIsSecretVisible((prev) => !prev)}
                     className="text-gray-500 hover:text-gray-700"
                   >
                     {isSecretVisible ? (
