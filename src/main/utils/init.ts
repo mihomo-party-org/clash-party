@@ -241,7 +241,7 @@ async function cleanup(): Promise<void> {
   // 清理过期日志
   const { maxLogDays = 7 } = await getAppConfig()
   const maxAge = maxLogDays * 24 * 60 * 60 * 1000
-  const datePattern = /^\d{4}-\d{2}-\d{2}/
+  const datePattern = /\d{4}-\d{2}-\d{2}/
 
   const logCleanup = logFiles
     .filter((log) => {
