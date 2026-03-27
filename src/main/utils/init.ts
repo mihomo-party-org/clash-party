@@ -66,17 +66,40 @@ async function fixDataDirPermissions(): Promise<void> {
   const dataDirPath = dataDir()
   if (!existsSync(dataDirPath)) return
 
+  const currentUid = process.getuid?.() || 0
+  if (currentUid === 0) return
+
+  const username = process.env.USER || process.env.LOGNAME
+  if (!username) return
+
+  const execPromise = promisify(exec)
+
   try {
     const stats = await stat(dataDirPath)
-    const currentUid = process.getuid?.() || 0
+    if (stats.uid === 0) {
+      await execPromise(`chown -R "${username}:staff" "${dataDirPath}"`)
+      await execPromise(`chmod -R u+rwX "${dataDirPath}"`)
+      return
+    }
+  } catch {
+    // ignore
+  }
 
-    if (stats.uid === 0 && currentUid !== 0) {
-      const execPromise = promisify(exec)
-      const username = process.env.USER || process.env.LOGNAME
-      if (username) {
-        await execPromise(`chown -R "${username}:staff" "${dataDirPath}"`)
-        await execPromise(`chmod -R u+rwX "${dataDirPath}"`)
-      }
+  // Also fix root-owned files inside work directory.
+  // When mihomo core runs with setuid root (for TUN mode), files it creates
+  // (e.g. proxy-provider caches in Providers/) are owned by root.
+  // The top-level dataDir may be user-owned, but these subdirectory files
+  // will be root-owned, causing silent write failures on provider refresh.
+  const workDirPath = mihomoWorkDir()
+  if (!existsSync(workDirPath)) return
+
+  try {
+    const { stdout } = await execPromise(
+      `find "${workDirPath}" -user root -print -quit 2>/dev/null`
+    )
+    if (stdout.trim()) {
+      await execPromise(`chown -R "${username}:staff" "${workDirPath}"`)
+      await execPromise(`chmod -R u+rwX "${workDirPath}"`)
     }
   } catch {
     // ignore
