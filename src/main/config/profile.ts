@@ -28,7 +28,7 @@ export async function getProfileConfig(force = false): Promise<IProfileConfig> {
   }
   if (typeof profileConfig !== 'object') profileConfig = { items: [] }
   if (!Array.isArray(profileConfig.items)) profileConfig.items = []
-  return structuredClone(profileConfig)
+  return JSON.parse(JSON.stringify(profileConfig))
 }
 
 export async function setProfileConfig(config: IProfileConfig): Promise<void> {
@@ -48,12 +48,12 @@ export async function updateProfileConfig(
     profileConfig = parse(data) || { items: [] }
     if (typeof profileConfig !== 'object') profileConfig = { items: [] }
     if (!Array.isArray(profileConfig.items)) profileConfig.items = []
-    profileConfig = await updater(structuredClone(profileConfig))
+    profileConfig = await updater(JSON.parse(JSON.stringify(profileConfig)))
     result = profileConfig
     await writeFile(profileConfigPath(), stringify(profileConfig), 'utf-8')
   })
   await profileConfigWriteQueue
-  return structuredClone(result ?? profileConfig)
+  return JSON.parse(JSON.stringify(result ?? profileConfig))
 }
 
 export async function getProfileItem(id: string | undefined): Promise<IProfileItem | undefined> {
