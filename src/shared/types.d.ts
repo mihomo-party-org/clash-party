@@ -3,7 +3,7 @@ type LogLevel = 'info' | 'debug' | 'warning' | 'error' | 'silent'
 type SysProxyMode = 'auto' | 'manual'
 type CardStatus = 'col-span-2' | 'col-span-1' | 'hidden'
 type AppTheme = 'system' | 'light' | 'dark'
-type MihomoGroupType = 'Selector' | 'URLTest' | 'LoadBalance' | 'Relay'
+type MihomoGroupType = 'Selector' | 'URLTest' | 'Fallback' | 'LoadBalance' | 'Relay'
 type Priority =
   | 'PRIORITY_LOW'
   | 'PRIORITY_BELOW_NORMAL'
@@ -31,10 +31,15 @@ type MihomoProxyType =
   | 'Hysteria2'
   | 'Tuic'
   | 'WireGuard'
+  | 'Mieru'
+  | 'AnyTLS'
+  | 'Sudoku'
+  | 'Masque'
+  | 'TrustTunnel'
 type TunStack = 'gvisor' | 'mixed' | 'system'
 type FindProcessMode = 'off' | 'strict' | 'always'
-type DnsMode = 'normal' | 'fake-ip' | 'redir-host'
-type FilterMode = 'blacklist' | 'whitelist'
+type DnsMode = 'normal' | 'fake-ip' | 'redir-host' | 'hosts'
+type FilterMode = 'blacklist' | 'whitelist' | 'rule'
 type NetworkInterfaceInfo = os.NetworkInterfaceInfo
 
 interface IAppVersion {
@@ -73,7 +78,7 @@ interface IMihomoRulesDetail {
   proxy: string
   size: number
   index: number
-  extra: {
+  extra?: {
     disabled: boolean
     hitCount: number
     hitAt: string
@@ -124,6 +129,7 @@ interface IMihomoConnectionDetail {
   download: number
   start: string
   chains: string[]
+  providerChains: string[]
   rule: string
   rulePayload: string
 }
@@ -149,9 +155,14 @@ interface IMihomoProxy {
   tfo: boolean
   type: MihomoProxyType
   udp: boolean
+  uot: boolean
   xudp: boolean
   mptcp: boolean
   smux: boolean
+  interface?: string
+  'routing-mark'?: number
+  'provider-name'?: string
+  'dialer-proxy'?: string
 }
 
 interface IMihomoGroup {
@@ -159,6 +170,7 @@ interface IMihomoGroup {
   all: string[]
   extra: Record<string, { alive: boolean; history: IMihomoHistory[] }>
   testUrl?: string
+  expectedStatus?: string
   fixed?: string
   hidden: boolean
   history: IMihomoHistory[]
@@ -191,6 +203,7 @@ interface IMihomoRuleProvider {
   type: string
   updatedAt: string
   vehicleType: string
+  payload?: string[]
 }
 
 interface IMihomoProxyProviders {
