@@ -18,7 +18,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { getFilePath, readTextFile, subStoreCollections, subStoreSubs } from '@renderer/utils/ipc'
 import type { KeyboardEvent } from 'react'
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { MdContentPaste } from 'react-icons/md'
+import { MdContentPaste, MdUnfoldMore, MdUnfoldLess } from 'react-icons/md'
 import {
   DndContext,
   closestCenter,
@@ -53,6 +53,7 @@ const Profiles: React.FC = () => {
   const [sortedItems, setSortedItems] = useState(items)
   const [useProxy, setUseProxy] = useState(false)
   const [authToken, setAuthToken] = useState('')
+  const [userAgent, setUserAgent] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [subStoreImporting, setSubStoreImporting] = useState(false)
   const [importing, setImporting] = useState(false)
@@ -135,10 +136,12 @@ const Profiles: React.FC = () => {
       type: 'remote',
       url,
       useProxy,
-      authToken: authToken || undefined
+      authToken: authToken || undefined,
+      userAgent: userAgent || undefined
     })
     setUrl('')
     setAuthToken('')
+    setUserAgent('')
     setImporting(false)
   }
   const pageRef = useRef<HTMLDivElement>(null)
@@ -300,7 +303,11 @@ const Profiles: React.FC = () => {
                 isIconOnly
                 onPress={() => setShowAdvanced(!showAdvanced)}
               >
-                🔑
+                {showAdvanced ? (
+                  <MdUnfoldLess className="text-lg" />
+                ) : (
+                  <MdUnfoldMore className="text-lg" />
+                )}
               </Button>
             </Tooltip>
             <Button
@@ -426,16 +433,25 @@ const Profiles: React.FC = () => {
             </Dropdown>
           </div>
           {showAdvanced && (
-            <Input
-              size="sm"
-              type="password"
-              placeholder={t('profiles.editInfo.authTokenPlaceholder')}
-              value={authToken}
-              onValueChange={setAuthToken}
-              onKeyUp={handleInputKeyUp}
-              className="w-full"
-              startContent={<span className="text-default-400 text-sm">🔑</span>}
-            />
+            <div className="flex gap-2">
+              <Input
+                size="sm"
+                type="password"
+                placeholder={t('profiles.editInfo.authTokenPlaceholder')}
+                value={authToken}
+                onValueChange={setAuthToken}
+                onKeyUp={handleInputKeyUp}
+                className="flex-1"
+              />
+              <Input
+                size="sm"
+                placeholder={t('profiles.editInfo.userAgentPlaceholder')}
+                value={userAgent}
+                onValueChange={setUserAgent}
+                onKeyUp={handleInputKeyUp}
+                className="flex-1"
+              />
+            </div>
           )}
         </div>
         <Divider />
