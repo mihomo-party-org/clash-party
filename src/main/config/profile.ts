@@ -248,6 +248,7 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
     allowFixedInterval: item.allowFixedInterval || false,
     autoUpdate: item.autoUpdate ?? false,
     authToken: item.authToken,
+    userAgent: item.userAgent,
     updated: new Date().getTime(),
     updateTimeout: item.updateTimeout || 5
   }
@@ -268,7 +269,7 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
   const baseOptions: Omit<FetchOptions, 'useProxy' | 'timeout'> = {
     url: item.url,
     mixedPort,
-    userAgent: userAgent || `mihomo.party/v${app.getVersion()} (clash.meta)`,
+    userAgent: item.userAgent || userAgent || `mihomo.party/v${app.getVersion()} (clash.meta)`,
     authToken: item.authToken,
     substore: newItem.substore || false
   }

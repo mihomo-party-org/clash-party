@@ -108,6 +108,17 @@ const EditInfoModal: React.FC<Props> = (props) => {
                   placeholder={t('profiles.editInfo.authTokenPlaceholder')}
                 />
               </SettingItem>
+              <SettingItem title={t('profiles.editInfo.userAgent')}>
+                <Input
+                  size="sm"
+                  className={cn(inputWidth)}
+                  value={values.userAgent || ''}
+                  onValueChange={(v) => {
+                    setValues({ ...values, userAgent: v || undefined })
+                  }}
+                  placeholder={t('profiles.editInfo.userAgentPlaceholder')}
+                />
+              </SettingItem>
               <SettingItem title={t('profiles.editInfo.useProxy')}>
                 <Switch
                   size="sm"

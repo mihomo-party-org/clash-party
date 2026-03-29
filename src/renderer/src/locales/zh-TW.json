@@ -501,6 +501,8 @@
   "profiles.editInfo.url": "訂閱地址",
   "profiles.editInfo.authToken": "授權令牌",
   "profiles.editInfo.authTokenPlaceholder": "Bearer token 或其他認證頭值",
+  "profiles.editInfo.userAgent": "User Agent",
+  "profiles.editInfo.userAgentPlaceholder": "留空則使用全局 User Agent",
   "profiles.editInfo.useProxy": "使用代理更新",
   "profiles.editInfo.interval": "更新間隔",
   "profiles.editInfo.intervalPlaceholder": "例如：30 或 '0 * * * *'",

@@ -519,6 +519,7 @@ interface IProfileItem {
   allowFixedInterval?: boolean
   autoUpdate?: boolean
   authToken?: string
+  userAgent?: string
   updateTimeout?: number
 }
 

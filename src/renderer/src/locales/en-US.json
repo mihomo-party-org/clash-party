@@ -496,6 +496,8 @@
   "profiles.editInfo.url": "Subscription URL",
   "profiles.editInfo.authToken": "Authorization Token",
   "profiles.editInfo.authTokenPlaceholder": "Bearer token or other auth header value",
+  "profiles.editInfo.userAgent": "User Agent",
+  "profiles.editInfo.userAgentPlaceholder": "Leave empty to use global User Agent",
   "profiles.editInfo.useProxy": "Use Proxy to Update",
   "profiles.editInfo.interval": "Upd. Interval",
   "profiles.editInfo.intervalPlaceholder": "e.g.: 30 or '0 * * * *'",

@@ -471,6 +471,8 @@
   "profiles.editInfo.title": "ویرایش اطلاعات",
   "profiles.editInfo.name": "نام",
   "profiles.editInfo.url": "آدرس اشتراک",
+  "profiles.editInfo.userAgent": "User Agent",
+  "profiles.editInfo.userAgentPlaceholder": "برای استفاده از User Agent جهانی خالی بگذارید",
   "profiles.editInfo.useProxy": "استفاده از پراکسی برای به‌روزرسانی",
   "profiles.editInfo.interval": "فاصله به‌روزرسانی",
   "profiles.editInfo.fixedInterval": "فاصله به‌روزرسانی ثابت",
