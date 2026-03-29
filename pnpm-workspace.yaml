@@ -1,6 +1,0 @@
-onlyBuiltDependencies:
-  - '@heroui/shared-utils'
-  - electron
-  - electron-winstaller
-  - esbuild
-  - meta-json-schema
