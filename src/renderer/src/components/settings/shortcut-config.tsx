@@ -53,7 +53,8 @@ const ShortcutConfig: React.FC = () => {
     globalModeShortcut = '',
     directModeShortcut = '',
     quitWithoutCoreShortcut = '',
-    restartAppShortcut = ''
+    restartAppShortcut = '',
+    copyEnvShortcut = ''
   } = appConfig || {}
 
   return (
@@ -130,12 +131,21 @@ const ShortcutConfig: React.FC = () => {
           />
         </div>
       </SettingItem>
-      <SettingItem title={t('shortcuts.restartApp')}>
+      <SettingItem title={t('shortcuts.restartApp')} divider>
         <div className="flex justify-end w-[60%]">
           <ShortcutInput
             value={restartAppShortcut}
             patchAppConfig={patchAppConfig}
             action="restartAppShortcut"
+          />
+        </div>
+      </SettingItem>
+      <SettingItem title={t('shortcuts.copyEnv')}>
+        <div className="flex justify-end w-[60%]">
+          <ShortcutInput
+            value={copyEnvShortcut}
+            patchAppConfig={patchAppConfig}
+            action="copyEnvShortcut"
           />
         </div>
       </SettingItem>

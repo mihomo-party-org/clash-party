@@ -338,6 +338,7 @@ interface IAppConfig {
   directModeShortcut?: string
   restartAppShortcut?: string
   quitWithoutCoreShortcut?: string
+  copyEnvShortcut?: string
   language?: 'zh-CN' | 'zh-TW' | 'en-US' | 'ru-RU' | 'fa-IR'
   triggerMainWindowBehavior?: 'show' | 'toggle'
   showMixedPort?: number
