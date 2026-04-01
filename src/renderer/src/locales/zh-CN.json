@@ -464,7 +464,7 @@
   "dns.customHosts.title": "自定义 Hosts",
   "dns.customHosts.list": "Hosts 列表",
   "dns.customHosts.domainPlaceholder": "域名",
-  "dns.customHosts.valuePlaceholder": "域名或 IP",
+  "dns.customHosts.valuePlaceholder": "域名或 IP，多个用逗号分隔",
   "dns.fallback": "回退服务器",
   "dns.fallbackPlaceholder": "例：https://dns.alidns.com/dns-query",
   "dns.fallbackFilter.title": "回退过滤设置",

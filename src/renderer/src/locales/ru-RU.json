@@ -447,7 +447,7 @@
   "dns.customHosts.title": "Пользовательский Hosts",
   "dns.customHosts.list": "Список Hosts",
   "dns.customHosts.domainPlaceholder": "Домен",
-  "dns.customHosts.valuePlaceholder": "Домен или IP",
+  "dns.customHosts.valuePlaceholder": "Домен или IP, несколько через запятую",
   "dns.saveOnly": "Только сохранить",
   "profiles.title": "Управление профилями",
   "profiles.input.placeholder": "Введите URL вашей подписки",

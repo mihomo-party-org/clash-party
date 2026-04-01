@@ -473,7 +473,7 @@
   "dns.customHosts.title": "Custom Hosts",
   "dns.customHosts.list": "Hosts List",
   "dns.customHosts.domainPlaceholder": "Domain",
-  "dns.customHosts.valuePlaceholder": "Domain or IP",
+  "dns.customHosts.valuePlaceholder": "Domain or IP, separate multiple with commas",
   "dns.saveOnly": "Save Only",
   "profiles.title": "Profile Management",
   "profiles.input.placeholder": "Enter your subscription URL",

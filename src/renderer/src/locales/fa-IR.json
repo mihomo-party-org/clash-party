@@ -445,7 +445,7 @@
   "dns.customHosts.title": "Hosts سفارشی",
   "dns.customHosts.list": "لیست Hosts",
   "dns.customHosts.domainPlaceholder": "دامنه",
-  "dns.customHosts.valuePlaceholder": "دامنه یا IP",
+  "dns.customHosts.valuePlaceholder": "دامنه یا IP، چندین مورد با کاما جدا کنید",
   "dns.saveOnly": "فقط ذخیره",
   "profiles.title": "مدیریت پروفایل",
   "profiles.input.placeholder": "آدرس اشتراک خود را وارد کنید",
