@@ -38,6 +38,7 @@ const ProfileCard: React.FC<Props> = (props) => {
   const [showRuntimeConfig, setShowRuntimeConfig] = useState(false)
   const { profileConfig, addProfileItem } = useProfileConfig()
   const { current, items } = profileConfig ?? {}
+  
   const {
     attributes,
     listeners,
@@ -48,6 +49,7 @@ const ProfileCard: React.FC<Props> = (props) => {
   } = useSortable({
     id: 'profile'
   })
+
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
   const info = items?.find((item) => item && item.id === current) ?? {
     id: 'default',
@@ -58,6 +60,7 @@ const ProfileCard: React.FC<Props> = (props) => {
   const extra = info?.extra
   const usage = (extra?.upload ?? 0) + (extra?.download ?? 0)
   const total = extra?.total ?? 0
+  const isSmall = profileCardStatus === 'col-span-1'
 
   if (iconOnly) {
     return (
@@ -72,7 +75,7 @@ const ProfileCard: React.FC<Props> = (props) => {
               navigate('/profiles')
             }}
           >
-            <TiFolder className="text-[20px]" />
+            <TiFolder className="text-[22px]" />
           </Button>
         </Tooltip>
       </div>
@@ -90,167 +93,118 @@ const ProfileCard: React.FC<Props> = (props) => {
       className={`${profileCardStatus} profile-card`}
     >
       {showRuntimeConfig && <ConfigViewer onClose={() => setShowRuntimeConfig(false)} />}
-      {profileCardStatus === 'col-span-2' ? (
-        <Card
-          fullWidth
-          ref={setNodeRef}
-          {...attributes}
-          {...listeners}
-          className={`${match ? 'bg-primary' : 'hover:bg-primary/30'} ${disableAnimations ? '' : `motion-reduce:transition-transform-background ${isDragging ? 'scale-[0.95] tap-highlight-transparent' : ''}`}`}
-        >
-          <CardBody className="pb-1">
-            <div
-              ref={setNodeRef}
-              {...attributes}
-              {...listeners}
-              className="flex justify-between h-[32px]"
+      
+      <Card
+        fullWidth
+        ref={setNodeRef}
+        {...attributes}
+        {...listeners}
+        className={`${match ? 'bg-primary' : 'hover:bg-primary/30'} ${
+          disableAnimations ? '' : `motion-reduce:transition-transform-background ${
+            isDragging ? 'scale-[0.95] tap-highlight-transparent' : ''
+          }`
+          // Final adjustment: h-[106px] to match neighbor panels exactly
+        } ${isSmall ? 'h-[106px]' : 'h-[114px]'} overflow-hidden`}
+      >
+        <CardBody className={`${isSmall ? 'p-2 pt-1.5' : 'p-3'} pb-0 flex flex-col justify-start`}>
+          <div className="flex justify-between items-center h-[32px] gap-1 flex-none">
+            <h3
+              title={info?.name}
+              className={`text-ellipsis whitespace-nowrap overflow-hidden font-bold leading-[32px] flex-shrink ${
+                isSmall ? 'text-[14px]' : 'text-[18px]'
+              } ${match ? 'text-primary-foreground' : 'text-foreground'}`}
             >
-              <h3
-                title={info?.name}
-                className={`text-ellipsis whitespace-nowrap overflow-hidden text-md font-bold leading-[32px] ${match ? 'text-primary-foreground' : 'text-foreground'}`}
+              {info?.name}
+            </h3>
+            <div className="flex flex-none">
+              <Button
+                isIconOnly
+                size="sm"
+                variant="light"
+                onPress={() => setShowRuntimeConfig(true)}
               >
-                {info?.name}
-              </h3>
-              <div className="flex">
+                <CgLoadbarDoc
+                  className={`text-[24px] ${match ? 'text-primary-foreground' : 'text-foreground'}`}
+                />
+              </Button>
+              {info.type === 'remote' && (
                 <Button
                   isIconOnly
                   size="sm"
-                  title={t('sider.cards.viewRuntimeConfig')}
+                  disabled={updating}
                   variant="light"
-                  color="default"
-                  onPress={() => {
-                    setShowRuntimeConfig(true)
+                  onPress={async () => {
+                    setUpdating(true)
+                    await addProfileItem(info)
+                    setUpdating(false)
                   }}
                 >
-                  <CgLoadbarDoc
-                    className={`text-[24px] ${match ? 'text-primary-foreground' : 'text-foreground'}`}
+                  <IoMdRefresh
+                    className={`text-[24px] ${match ? 'text-primary-foreground' : 'text-foreground'} ${
+                      updating ? 'animate-spin' : ''
+                    }`}
                   />
                 </Button>
-                {info.type === 'remote' && (
-                  <Tooltip placement="left" content={dayjs(info.updated).fromNow()}>
-                    <Button
-                      isIconOnly
-                      size="sm"
-                      disabled={updating}
-                      variant="light"
-                      color="default"
-                      onPress={async () => {
-                        setUpdating(true)
-                        await addProfileItem(info)
-                        setUpdating(false)
-                      }}
-                    >
-                      <IoMdRefresh
-                        className={`text-[24px] ${match ? 'text-primary-foreground' : 'text-foreground'} ${updating ? 'animate-spin' : ''}`}
-                      />
-                    </Button>
-                  </Tooltip>
-                )}
-              </div>
+              )}
             </div>
-            {info.type === 'remote' && extra && (
-              <div
-                className={`mt-2 flex justify-between ${match ? 'text-primary-foreground' : 'text-foreground'} `}
-              >
-                <small>{`${calcTraffic(usage)}/${calcTraffic(total)}`}</small>
-                {profileDisplayDate === 'expire' ? (
-                  <Button
-                    size="sm"
-                    variant="light"
-                    className={`h-[20px] p-1 m-0 ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-                    onPress={async () => {
-                      await patchAppConfig({ profileDisplayDate: 'update' })
-                    }}
-                  >
-                    {extra.expire
-                      ? dayjs.unix(extra.expire).format('YYYY-MM-DD')
-                      : t('sider.cards.neverExpire')}
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="light"
-                    className={`h-[20px] p-1 m-0 ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-                    onPress={async () => {
-                      await patchAppConfig({ profileDisplayDate: 'expire' })
-                    }}
-                  >
-                    {dayjs(info.updated).fromNow()}
-                  </Button>
-                )}
-              </div>
-            )}
-          </CardBody>
-          <CardFooter className="pt-0">
-            {info.type === 'remote' && !extra && (
-              <div
-                className={`w-full mt-2 flex justify-between ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-              >
-                <Chip
-                  size="sm"
-                  variant="bordered"
-                  className={`${match ? 'text-primary-foreground border-primary-foreground' : 'border-primary text-primary'}`}
-                >
-                  {t('sider.cards.remote')}
-                </Chip>
-                <small>{dayjs(info.updated).fromNow()}</small>
-              </div>
-            )}
-            {info.type === 'local' && (
-              <div
-                className={`mt-2 flex justify-between ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-              >
-                <Chip
-                  size="sm"
-                  variant="bordered"
-                  className={`${match ? 'text-primary-foreground border-primary-foreground' : 'border-primary text-primary'}`}
-                >
-                  {t('sider.cards.local')}
-                </Chip>
-              </div>
-            )}
-            {extra && (
-              <Progress
-                className="w-full"
-                aria-label={t('sider.cards.trafficUsage')}
-                classNames={{ indicator: match ? 'bg-primary-foreground' : 'bg-foreground' }}
-                value={calcPercent(extra?.upload, extra?.download, extra?.total)}
-              />
-            )}
-          </CardFooter>
-        </Card>
-      ) : (
-        <Card
-          fullWidth
-          ref={setNodeRef}
-          {...attributes}
-          {...listeners}
-          className={`${match ? 'bg-primary' : 'hover:bg-primary/30'} ${disableAnimations ? '' : `motion-reduce:transition-transform-background ${isDragging ? 'scale-[0.95] tap-highlight-transparent' : ''}`}`}
-        >
-          <CardBody className="pb-1 pt-0 px-0">
-            <div className="flex justify-between">
-              <Button
-                isIconOnly
-                className="bg-transparent pointer-events-none"
-                variant="flat"
-                color="default"
-              >
-                <TiFolder
-                  color="default"
-                  className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[24px]`}
-                />
-              </Button>
-            </div>
-          </CardBody>
-          <CardFooter className="pt-1">
-            <h3
-              className={`text-md font-bold sider-card-title ${match ? 'text-primary-foreground' : 'text-foreground'}`}
+          </div>
+
+          {!isSmall && <div className="flex-grow" />}
+
+          {info.type === 'remote' && extra && (
+            <div 
+              className={`flex mb-1 flex-none ${
+                isSmall 
+                  ? 'flex-col items-start gap-0 mt-0.5' 
+                  : 'flex-row justify-between items-end'
+              } ${match ? 'text-primary-foreground' : 'text-foreground'}`}
             >
-              {t('sider.cards.profiles')}
-            </h3>
-          </CardFooter>
-        </Card>
-      )}
+              <div className={`${isSmall ? 'order-1' : 'order-2'}`}>
+                <Button
+                  size="sm"
+                  variant="light"
+                  className={`h-[18px] p-0 m-0 min-w-0 bg-transparent ${isSmall ? 'text-[11px]' : 'text-[12px]'} ${match ? 'text-primary-foreground' : 'text-foreground'}`}
+                  onPress={async () => {
+                    await patchAppConfig({ profileDisplayDate: profileDisplayDate === 'expire' ? 'update' : 'expire' })
+                  }}
+                >
+                  {profileDisplayDate === 'expire' 
+                    ? (extra.expire ? dayjs.unix(extra.expire).format('YYYY-MM-DD') : t('sider.cards.neverExpire'))
+                    : dayjs(info.updated).fromNow()
+                  }
+                </Button>
+              </div>
+
+              <div className={`${isSmall ? 'order-2' : 'order-1'}`}>
+                <small className={`whitespace-nowrap font-medium ${isSmall ? 'text-[11px]' : 'text-[12px]'}`}>
+                  {`${calcTraffic(usage)}/${calcTraffic(total)}`}
+                </small>
+              </div>
+            </div>
+          )}
+        </CardBody>
+
+        <CardFooter className={`${isSmall ? 'px-2 pb-1.5 pt-0' : 'px-3 pb-2 pt-0'}`}>
+          {extra && (
+            <Progress
+              className="w-full"
+              size={isSmall ? "sm" : "md"}
+              aria-label={t('sider.cards.trafficUsage')}
+              classNames={{ indicator: match ? 'bg-primary-foreground' : 'bg-foreground' }}
+              value={calcPercent(extra?.upload, extra?.download, extra?.total)}
+            />
+          )}
+          {info.type === 'local' && (
+             <Chip
+                size="sm"
+                variant="bordered"
+                className={`${isSmall ? 'h-[18px] text-[10px]' : ''} ${match ? 'text-primary-foreground border-primary-foreground' : 'border-primary text-primary'}`}
+              >
+                {t('sider.cards.local')}
+              </Chip>
+          )}
+        </CardFooter>
+      </Card>
     </div>
   )
 }
