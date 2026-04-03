@@ -661,5 +661,17 @@
   "guide.dns.title": "DNS",
   "guide.dns.description": "Программное обеспечение по умолчанию использует настройки DNS приложения для переопределения конфигурации подписки. Если вам нужно использовать настройки DNS из конфигурации подписки, пожалуйста, отключите эту функцию. То же самое относится к определению домена.",
   "guide.end.title": "Руководство завершено",
-  "guide.end.description": "Теперь, когда вы понимаете основы использования программы, импортируйте свою подписку и начните использовать ее. Приятного использования!\nВы также можете присоединиться к нашей официальной <a href=\"https://t.me/mihomo_party_group\" target=\"_blank\">группе Telegram</a> для получения последних новостей."
+  "guide.end.description": "Теперь, когда вы понимаете основы использования программы, импортируйте свою подписку и начните использовать ее. Приятного использования!\nВы также можете присоединиться к нашей официальной <a href=\"https://t.me/mihomo_party_group\" target=\"_blank\">группе Telegram</a> для получения последних новостей.",
+  "network.topology.title": "Топология сети",
+  "network.topology.clients": "клиентов",
+  "network.topology.rules": "правил",
+  "network.topology.groups": "групп",
+  "network.topology.nodes": "узлов",
+  "network.topology.proxyGroups": "Группы прокси",
+  "network.topology.proxyNodes": "Узлы прокси",
+  "network.topology.sourceIP": "IP источника",
+  "network.topology.sourcePort": "Порт источника",
+  "network.topology.waiting": "Ожидание подключений...",
+  "network.topology.pause": "Пауза",
+  "network.topology.resume": "Возобновить"
 }

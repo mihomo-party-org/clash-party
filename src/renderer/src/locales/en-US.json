@@ -695,5 +695,17 @@
   "guide.dns.title": "DNS OVRD",
   "guide.dns.description": "The software defaults to using the application's DNS settings to override the subscription configuration. If you need to use the DNS settings from the subscription configuration, please disable this feature. The same applies to domain sniffing.",
   "guide.end.title": "Tutorial Complete",
-  "guide.end.description": "Now that you understand the basic usage of the software, import your subscription and start using it. Enjoy!\nYou can also join our official <a href=\"https://t.me/mihomo_party_group\" target=\"_blank\">Telegram group</a> for the latest news."
+  "guide.end.description": "Now that you understand the basic usage of the software, import your subscription and start using it. Enjoy!\nYou can also join our official <a href=\"https://t.me/mihomo_party_group\" target=\"_blank\">Telegram group</a> for the latest news.",
+  "network.topology.title": "Network Topology",
+  "network.topology.clients": "clients",
+  "network.topology.rules": "Rules",
+  "network.topology.groups": "groups",
+  "network.topology.nodes": "nodes",
+  "network.topology.proxyGroups": "Proxy Groups",
+  "network.topology.proxyNodes": "Proxy Nodes",
+  "network.topology.sourceIP": "Source IP",
+  "network.topology.sourcePort": "Source Port",
+  "network.topology.waiting": "Waiting for connections...",
+  "network.topology.pause": "Pause",
+  "network.topology.resume": "Resume"
 }

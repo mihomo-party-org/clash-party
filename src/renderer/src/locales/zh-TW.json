@@ -695,5 +695,17 @@
   "guide.dns.title": "DNS",
   "guide.dns.description": "軟件默認使用應用程式的 DNS 設置覆蓋訂閱配置，如果您需要使用訂閱配置中的 DNS 設置，請關閉此功能，域名嗅探同理",
   "guide.end.title": "教程結束",
-  "guide.end.description": "現在您已經瞭解了軟件的基本用法，匯入您的訂閱開始使用吧，祝您使用愉快！\n您還可以加入我們的官方 <a href=\"https://t.me/mihomo_party_group\" target=\"_blank\">Telegram 群組</a> 獲取最新資訊"
+  "guide.end.description": "現在您已經瞭解了軟件的基本用法，匯入您的訂閱開始使用吧，祝您使用愉快！\n您還可以加入我們的官方 <a href=\"https://t.me/mihomo_party_group\" target=\"_blank\">Telegram 群組</a> 獲取最新資訊",
+  "network.topology.title": "網路拓撲",
+  "network.topology.clients": "客戶端",
+  "network.topology.rules": "規則",
+  "network.topology.groups": "代理群組",
+  "network.topology.nodes": "節點",
+  "network.topology.proxyGroups": "代理群組",
+  "network.topology.proxyNodes": "代理節點",
+  "network.topology.sourceIP": "來源 IP",
+  "network.topology.sourcePort": "來源連接埠",
+  "network.topology.waiting": "等待連線資料...",
+  "network.topology.pause": "暫停",
+  "network.topology.resume": "繼續"
 }

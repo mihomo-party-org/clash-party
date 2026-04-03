@@ -1,4 +1,5 @@
 import BasePage from '@renderer/components/base/base-page'
+import NetworkTopologyCard from '@renderer/components/network/network-topology'
 import React, { useState, useEffect, useCallback } from 'react'
 import { Button, Select, SelectItem, Chip, Tooltip } from '@heroui/react'
 import {
@@ -384,6 +385,9 @@ const IPPage: React.FC = () => {
             <div className="py-6 text-center text-sm text-foreground/50">{t('network.noData')}</div>
           )}
         </div>
+
+        {/* 网络拓扑卡片 */}
+        <NetworkTopologyCard />
 
         {/* 网络延迟卡片 */}
         <div className="rounded-xl border border-foreground/10 bg-content1 p-4 shadow-sm">

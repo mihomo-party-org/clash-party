@@ -659,5 +659,17 @@
   "guide.dns.title": "DNS",
   "guide.dns.description": "نرم‌افزار به‌طور پیش‌فرض از تنظیمات DNS برنامه برای بازنویسی پیکربندی اشتراک استفاده می‌کند. اگر نیاز به استفاده از تنظیمات DNS موجود در پیکربندی اشتراک دارید، لطفاً این قابلیت را غیرفعال کنید. همین موضوع برای شناسایی دامنه نیز صدق می‌کند.",
   "guide.end.title": "پایان آموزش",
-  "guide.end.description": "اکنون که با استفاده اساسی از نرم‌افزار آشنا شدید، اشتراک خود را وارد کنید و از آن استفاده کنید. لذت ببرید!\nهمچنین می‌توانید برای آخرین اخبار به <a href=\"https://t.me/mihomo_party_group\" target=\"_blank\">گروه تلگرام</a> ما بپیوندید."
+  "guide.end.description": "اکنون که با استفاده اساسی از نرم‌افزار آشنا شدید، اشتراک خود را وارد کنید و از آن استفاده کنید. لذت ببرید!\nهمچنین می‌توانید برای آخرین اخبار به <a href=\"https://t.me/mihomo_party_group\" target=\"_blank\">گروه تلگرام</a> ما بپیوندید.",
+  "network.topology.title": "توپولوژی شبکه",
+  "network.topology.clients": "کلاینت",
+  "network.topology.rules": "قوانین",
+  "network.topology.groups": "گروه‌ها",
+  "network.topology.nodes": "گره‌ها",
+  "network.topology.proxyGroups": "گروه‌های پروکسی",
+  "network.topology.proxyNodes": "گره‌های پروکسی",
+  "network.topology.sourceIP": "IP منبع",
+  "network.topology.sourcePort": "پورت منبع",
+  "network.topology.waiting": "در انتظار اتصال...",
+  "network.topology.pause": "مکث",
+  "network.topology.resume": "ادامه"
 }

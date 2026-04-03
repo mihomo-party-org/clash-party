@@ -695,5 +695,17 @@
   "guide.dns.title": "DNS",
   "guide.dns.description": "软件默认使用应用的 DNS 设置覆盖订阅配置，如果您需要使用订阅配置中的 DNS 设置，请关闭此功能，域名嗅探同理",
   "guide.end.title": "教程结束",
-  "guide.end.description": "现在您已经了解了软件的基本用法，导入您的订阅开始使用吧，祝您使用愉快！\n您还可以加入我们的官方 <a href=\"https://t.me/mihomo_party_group\" target=\"_blank\">Telegram 群组</a> 获取最新资讯"
+  "guide.end.description": "现在您已经了解了软件的基本用法，导入您的订阅开始使用吧，祝您使用愉快！\n您还可以加入我们的官方 <a href=\"https://t.me/mihomo_party_group\" target=\"_blank\">Telegram 群组</a> 获取最新资讯",
+  "network.topology.title": "网络拓扑",
+  "network.topology.clients": "客户端",
+  "network.topology.rules": "规则",
+  "network.topology.groups": "代理组",
+  "network.topology.nodes": "节点",
+  "network.topology.proxyGroups": "代理组",
+  "network.topology.proxyNodes": "代理节点",
+  "network.topology.sourceIP": "来源 IP",
+  "network.topology.sourcePort": "来源端口",
+  "network.topology.waiting": "等待连接数据...",
+  "network.topology.pause": "暂停",
+  "network.topology.resume": "恢复"
 }
