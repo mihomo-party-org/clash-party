@@ -673,5 +673,8 @@
   "network.topology.sourcePort": "Порт источника",
   "network.topology.waiting": "Ожидание подключений...",
   "network.topology.pause": "Пауза",
-  "network.topology.resume": "Возобновить"
+  "network.topology.resume": "Возобновить",
+  "settings.githubProxy": "Прокси для загрузки GitHub",
+  "settings.githubProxy.auto": "Авто (сначала прокси)",
+  "settings.githubProxy.direct": "Прямое подключение"
 }

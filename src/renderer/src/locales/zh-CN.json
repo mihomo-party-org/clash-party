@@ -707,5 +707,8 @@
   "network.topology.sourcePort": "来源端口",
   "network.topology.waiting": "等待连接数据...",
   "network.topology.pause": "暂停",
-  "network.topology.resume": "恢复"
+  "network.topology.resume": "恢复",
+  "settings.githubProxy": "GitHub 下载代理",
+  "settings.githubProxy.auto": "自动（优先代理）",
+  "settings.githubProxy.direct": "直连"
 }

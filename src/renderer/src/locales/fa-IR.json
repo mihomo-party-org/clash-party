@@ -671,5 +671,8 @@
   "network.topology.sourcePort": "پورت منبع",
   "network.topology.waiting": "در انتظار اتصال...",
   "network.topology.pause": "مکث",
-  "network.topology.resume": "ادامه"
+  "network.topology.resume": "ادامه",
+  "settings.githubProxy": "پروکسی دانلود GitHub",
+  "settings.githubProxy.auto": "خودکار (پروکسی اول)",
+  "settings.githubProxy.direct": "مستقیم"
 }

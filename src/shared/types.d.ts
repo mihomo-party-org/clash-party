@@ -303,6 +303,7 @@ interface IAppConfig {
   appTheme: AppTheme
   customTheme?: string
   autoCheckUpdate: boolean
+  githubProxy?: string
   silentStart: boolean
   autoCloseConnection: boolean
   sysProxy: ISysProxyConfig

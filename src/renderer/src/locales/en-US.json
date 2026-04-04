@@ -707,5 +707,9 @@
   "network.topology.sourcePort": "Source Port",
   "network.topology.waiting": "Waiting for connections...",
   "network.topology.pause": "Pause",
-  "network.topology.resume": "Resume"
+  "network.topology.resume": "Resume",
+  "guide.end.description": "Now that you understand the basic usage of the software, import your subscription and start using it. Enjoy!\nYou can also join our official <a href=\"https://t.me/mihomo_party_group\" target=\"_blank\">Telegram group</a> for the latest news.",
+  "settings.githubProxy": "GitHub Download Proxy",
+  "settings.githubProxy.auto": "Auto (proxy first)",
+  "settings.githubProxy.direct": "Direct"
 }

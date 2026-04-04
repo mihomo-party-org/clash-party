@@ -9,8 +9,17 @@ import { stopCore } from '../core/manager'
 import { mihomoCoreDir } from './dirs'
 import * as chromeRequest from './chromeRequest'
 import { createLogger } from './logger'
+import { getAppConfig } from '../config'
 
 const log = createLogger('GitHub')
+
+const GITHUB_PROXIES = ['https://gh-proxy.org', 'https://ghfast.top', 'https://down.clashparty.org']
+
+function buildDownloadUrls(githubUrl: string, proxyPref = ''): string[] {
+  if (proxyPref === 'direct') return [githubUrl]
+  if (proxyPref && proxyPref !== 'auto') return [`${proxyPref}/${githubUrl}`]
+  return [...GITHUB_PROXIES.map((p) => `${p}/${githubUrl}`), githubUrl]
+}
 
 export interface GitHubTag {
   name: string
@@ -115,22 +124,28 @@ export function clearVersionCache(owner: string, repo: string): void {
  * @param outputPath 输出路径
  */
 async function downloadGitHubAsset(url: string, outputPath: string): Promise<void> {
-  try {
-    log.debug(`Downloading asset from ${url}`)
-    const response = await chromeRequest.get(url, {
-      responseType: 'arraybuffer',
-      timeout: 30000
-    })
-
-    await writeFile(outputPath, Buffer.from(response.data as Buffer))
-    log.debug(`Successfully downloaded asset to ${outputPath}`)
-  } catch (error) {
-    log.error(`Failed to download asset from ${url}`, error)
-    if (error instanceof Error) {
-      throw new Error(`Download error: ${error.message}`)
+  const { githubProxy = '' } = await getAppConfig()
+  const urls = buildDownloadUrls(url, githubProxy)
+  let lastError: unknown
+  for (const candidate of urls) {
+    try {
+      log.debug(`Downloading asset from ${candidate}`)
+      const response = await chromeRequest.get(candidate, {
+        responseType: 'arraybuffer',
+        timeout: 30000
+      })
+      await writeFile(outputPath, Buffer.from(response.data as Buffer))
+      log.debug(`Successfully downloaded asset to ${outputPath}`)
+      return
+    } catch (error) {
+      log.warn(`Download failed from ${candidate}, trying next`, error)
+      lastError = error
     }
-    throw new Error('Failed to download core file')
   }
+  log.error(`Failed to download asset from all sources`, lastError)
+  throw lastError instanceof Error
+    ? new Error(`Download error: ${lastError.message}`)
+    : new Error('Failed to download core file')
 }
 
 /**
