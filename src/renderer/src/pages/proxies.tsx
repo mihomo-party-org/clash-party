@@ -97,7 +97,6 @@ const Proxies: React.FC = () => {
   const [cols, setCols] = useState(1)
   const { virtuosoRef, isOpen, setIsOpen } = useProxyState(groups)
   const [delaying, setDelaying] = useState(Array(groups.length).fill(false))
-  const [proxyDelaying, setProxyDelaying] = useState<Set<string>>(new Set())
   const [searchValue, setSearchValue] = useState(Array(groups.length).fill(''))
 
   // searchValue 初始化
@@ -202,14 +201,6 @@ const Proxies: React.FC = () => {
         return newDelaying
       })
 
-      // 管理测试状态
-      const groupProxies = allProxies[index]
-      setProxyDelaying((prev) => {
-        const newSet = new Set(prev)
-        groupProxies.forEach((proxy) => newSet.add(proxy.name))
-        return newSet
-      })
-
       try {
         // 限制并发数量
         const result: Promise<void>[] = []
@@ -221,12 +212,6 @@ const Proxies: React.FC = () => {
             } catch {
               // ignore
             } finally {
-              // 更新状态
-              setProxyDelaying((prev) => {
-                const newSet = new Set(prev)
-                newSet.delete(proxy.name)
-                return newSet
-              })
               mutate()
             }
           })
@@ -245,12 +230,6 @@ const Proxies: React.FC = () => {
           const newDelaying = [...prev]
           newDelaying[index] = false
           return newDelaying
-        })
-        // 状态清理
-        setProxyDelaying((prev) => {
-          const newSet = new Set(prev)
-          groupProxies.forEach((proxy) => newSet.delete(proxy.name))
-          return newSet
         })
       }
     },
@@ -280,34 +259,20 @@ const Proxies: React.FC = () => {
     }
   }, [calcCols])
 
-  // 预加载图片
-  useEffect(() => {
-    const loadImages = async (): Promise<void> => {
-      const imagesToLoad: string[] = []
-      groups.forEach((group) => {
-        if (group.icon && group.icon.startsWith('http') && !localStorage.getItem(group.icon)) {
-          imagesToLoad.push(group.icon)
-        }
-      })
-
-      if (imagesToLoad.length > 0) {
-        const promises = imagesToLoad.map(async (url) => {
-          try {
-            const dataURL = await getImageDataURL(url)
-            localStorage.setItem(url, dataURL)
-          } catch (error) {
-            console.error('Failed to load image:', url, error)
-          }
-        })
-        await Promise.all(promises)
-        mutate()
-      }
-    }
-    loadImages()
-  }, [groups, mutate])
-
   const renderGroupContent = useCallback(
     (index: number) => {
+      if (
+        groups[index]?.icon &&
+        groups[index].icon.startsWith('http') &&
+        !localStorage.getItem(groups[index].icon)
+      ) {
+        getImageDataURL(groups[index].icon)
+          .then((dataURL) => {
+            localStorage.setItem(groups[index].icon, dataURL)
+            mutate()
+          })
+          .catch(() => {})
+      }
       return groups[index] ? (
         <div
           className={`w-full pt-2 ${index === groupCounts.length - 1 && !isOpen[index] ? 'pb-2' : ''} px-2`}
@@ -476,9 +441,7 @@ const Proxies: React.FC = () => {
                 selected={
                   allProxies[groupIndex][innerIndex * cols + i]?.name === groups[groupIndex].now
                 }
-                isGroupTesting={proxyDelaying.has(
-                  allProxies[groupIndex][innerIndex * cols + i].name
-                )}
+                isGroupTesting={delaying[groupIndex]}
               />
             )
           })}
@@ -494,7 +457,7 @@ const Proxies: React.FC = () => {
       cols,
       groups,
       proxyDisplayMode,
-      proxyDelaying,
+      delaying,
       mutate,
       onProxyDelay,
       onChangeProxy
