@@ -167,6 +167,7 @@
   "mihomo.testProfileOnStartTooltip": "Check if the configuration file is valid before starting the core. If invalid, prevent startup and display an error message",
   "mihomo.pauseSSID.title": "Direct Connection for Specific WiFi SSIDs",
   "mihomo.pauseSSID.placeholder": "Enter SSID",
+  "mihomo.disableDnsOnPauseSSID": "Use System DNS on Direct Mode",
   "mihomo.title": "Core Settings",
   "mihomo.restart": "Restart Core",
   "mihomo.memory": "Memory Usage",

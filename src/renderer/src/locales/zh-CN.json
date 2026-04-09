@@ -170,6 +170,7 @@
   "mihomo.testProfileOnStartTooltip": "启动内核前检查配置文件是否有效，若无效则阻止启动并显示错误信息",
   "mihomo.pauseSSID.title": "指定 WiFi SSID 直连",
   "mihomo.pauseSSID.placeholder": "输入 SSID",
+  "mihomo.disableDnsOnPauseSSID": "直连时使用系统默认 DNS",
   "mihomo.coreVersion": "内核版本",
   "mihomo.upgradeCore": "升级内核",
   "mihomo.coreAuthLost": "内核权限丢失",

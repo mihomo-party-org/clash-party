@@ -149,6 +149,7 @@
   "mihomo.testProfileOnStartTooltip": "Проверять конфигурационный файл перед запуском ядра. Если файл недействителен, запуск будет заблокирован с отображением сообщения об ошибке",
   "mihomo.pauseSSID.title": "Прямое подключение для определённых WiFi SSID",
   "mihomo.pauseSSID.placeholder": "Введите SSID",
+  "mihomo.disableDnsOnPauseSSID": "Использовать системный DNS в режиме прямого подключения",
   "mihomo.coreVersion": "Версия ядра",
   "mihomo.upgradeCore": "Обновить ядро",
   "mihomo.coreAuthLost": "Потеряна авторизация ядра",

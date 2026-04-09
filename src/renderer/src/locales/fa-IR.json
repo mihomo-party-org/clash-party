@@ -147,6 +147,7 @@
   "mihomo.testProfileOnStartTooltip": "قبل از شروع هسته، فایل پیکربندی را بررسی کنید. اگر نامعتبر باشد، شروع مسدود شده و پیام خطا نمایش داده می‌شود",
   "mihomo.pauseSSID.title": "اتصال مستقیم برای SSID‌های خاص",
   "mihomo.pauseSSID.placeholder": "SSID را وارد کنید",
+  "mihomo.disableDnsOnPauseSSID": "استفاده از DNS پیش‌فرض سیستم در حالت اتصال مستقیم",
   "mihomo.coreVersion": "نسخه هسته",
   "mihomo.upgradeCore": "ارتقاء هسته",
   "mihomo.CoreAuthLost": "مجوز هسته از دست رفت",

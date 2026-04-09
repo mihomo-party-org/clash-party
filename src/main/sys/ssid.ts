@@ -1,10 +1,10 @@
 import { exec } from 'child_process'
 import { promisify } from 'util'
 import { ipcMain, net } from 'electron'
-import { getAppConfig, patchControledMihomoConfig } from '../config'
+import { getAppConfig, patchAppConfig, patchControledMihomoConfig } from '../config'
 import { patchMihomoConfig } from '../core/mihomoApi'
 import { mainWindow } from '../window'
-import { getDefaultDevice } from '../core/manager'
+import { getDefaultDevice, restartCore } from '../core/manager'
 
 export async function getCurrentSSID(): Promise<string | undefined> {
   if (process.platform === 'win32') {
@@ -36,7 +36,7 @@ let ssidCheckInterval: NodeJS.Timeout | null = null
 
 export async function checkSSID(): Promise<void> {
   try {
-    const { pauseSSID = [] } = await getAppConfig()
+    const { pauseSSID = [], disableDnsOnPauseSSID = false } = await getAppConfig()
     if (pauseSSID.length === 0) return
     const currentSSID = await getCurrentSSID()
     if (currentSSID === lastSSID) return
@@ -44,12 +44,26 @@ export async function checkSSID(): Promise<void> {
     if (currentSSID && pauseSSID.includes(currentSSID)) {
       await patchControledMihomoConfig({ mode: 'direct' })
       await patchMihomoConfig({ mode: 'direct' })
+      if (disableDnsOnPauseSSID) {
+        // 关闭 DNS 接管，同时会清空 dns-hijack，需要重启核心
+        await patchAppConfig({ controlDns: false })
+        await patchControledMihomoConfig({})
+        await restartCore()
+      }
       mainWindow?.webContents.send('controledMihomoConfigUpdated')
+      mainWindow?.webContents.send('appConfigUpdated')
       ipcMain.emit('updateTrayMenu')
     } else {
       await patchControledMihomoConfig({ mode: 'rule' })
       await patchMihomoConfig({ mode: 'rule' })
+      if (disableDnsOnPauseSSID) {
+        // 恢复 DNS 接管，需要重启核心
+        await patchAppConfig({ controlDns: true })
+        await patchControledMihomoConfig({})
+        await restartCore()
+      }
       mainWindow?.webContents.send('controledMihomoConfigUpdated')
+      mainWindow?.webContents.send('appConfigUpdated')
       ipcMain.emit('updateTrayMenu')
     }
   } catch {

@@ -76,6 +76,10 @@ export async function generateProfile(): Promise<string | undefined> {
   if (!controlDns) {
     delete controledMihomoConfig.dns
     delete controledMihomoConfig.hosts
+    // 同时清空 TUN 的 DNS 劫持，避免 DNS 请求被拦截但无法处理
+    if (controledMihomoConfig.tun) {
+      controledMihomoConfig.tun = { ...controledMihomoConfig.tun, 'dns-hijack': [] }
+    }
   }
   if (!controlSniff) {
     delete controledMihomoConfig.sniffer
