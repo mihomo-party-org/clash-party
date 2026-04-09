@@ -4,7 +4,7 @@ import { ipcMain, net } from 'electron'
 import { getAppConfig, patchAppConfig, patchControledMihomoConfig } from '../config'
 import { patchMihomoConfig } from '../core/mihomoApi'
 import { mainWindow } from '../window'
-import { getDefaultDevice, restartCore } from '../core/manager'
+import { getDefaultDevice } from '../core/manager'
 
 export async function getCurrentSSID(): Promise<string | undefined> {
   if (process.platform === 'win32') {
@@ -36,32 +36,25 @@ let ssidCheckInterval: NodeJS.Timeout | null = null
 
 export async function checkSSID(): Promise<void> {
   try {
-    const { pauseSSID = [], disableDnsOnPauseSSID = false } = await getAppConfig()
+    const { pauseSSID = [], disableDnsOnPauseSSID = false, controlDns } = await getAppConfig()
     if (pauseSSID.length === 0) return
     const currentSSID = await getCurrentSSID()
     if (currentSSID === lastSSID) return
     lastSSID = currentSSID
     if (currentSSID && pauseSSID.includes(currentSSID)) {
+      if (disableDnsOnPauseSSID) {
+        // 保存当前 DNS 状态到 appConfig，然后关闭 DNS 接管
+        await patchAppConfig({ controlDnsBeforePause: controlDns, controlDns: false })
+      }
       await patchControledMihomoConfig({ mode: 'direct' })
       await patchMihomoConfig({ mode: 'direct' })
-      if (disableDnsOnPauseSSID) {
-        // 关闭 DNS 接管，同时会清空 dns-hijack，需要重启核心
-        await patchAppConfig({ controlDns: false })
-        await patchControledMihomoConfig({})
-        await restartCore()
-      }
       mainWindow?.webContents.send('controledMihomoConfigUpdated')
       mainWindow?.webContents.send('appConfigUpdated')
       ipcMain.emit('updateTrayMenu')
     } else {
+      // DNS 恢复逻辑已移至 patchControledMihomoConfig，会在模式从 direct 切换到 rule/global 时自动触发
       await patchControledMihomoConfig({ mode: 'rule' })
       await patchMihomoConfig({ mode: 'rule' })
-      if (disableDnsOnPauseSSID) {
-        // 恢复 DNS 接管，需要重启核心
-        await patchAppConfig({ controlDns: true })
-        await patchControledMihomoConfig({})
-        await restartCore()
-      }
       mainWindow?.webContents.send('controledMihomoConfigUpdated')
       mainWindow?.webContents.send('appConfigUpdated')
       ipcMain.emit('updateTrayMenu')
