@@ -1,4 +1,5 @@
 import BasePage from '@renderer/components/base/base-page'
+import NetworkTopologyCard from '@renderer/components/network/network-topology'
 import React, { useState, useEffect, useCallback } from 'react'
 import { Button, Select, SelectItem, Chip, Tooltip } from '@heroui/react'
 import {
@@ -195,10 +196,10 @@ const IPPage: React.FC = () => {
 
   const averageLatency = (() => {
     const successes = LATENCY_TARGETS.map((t) => latencyResults[t.url]).filter(
-      (r) => r?.status === 'success' && r.latency !== null
+      (r): r is LatencyResult & { latency: number } => r?.status === 'success' && r.latency !== null
     )
     if (successes.length === 0) return null
-    return Math.round(successes.reduce((acc, r) => acc + (r!.latency ?? 0), 0) / successes.length)
+    return Math.round(successes.reduce((acc, r) => acc + r.latency, 0) / successes.length)
   })()
 
   const fetchIP = useCallback(
@@ -291,7 +292,9 @@ const IPPage: React.FC = () => {
             <div className="flex flex-col gap-2.5">
               {/* IP 地址高亮行（负 margin 贴边） */}
               <div className="-mx-1 -mt-1 mb-1 flex items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/8 px-2.5 py-2">
-                <span className="shrink-0 text-[13px] text-foreground/60">{t('network.ipAddress')}</span>
+                <span className="shrink-0 text-[13px] text-foreground/60">
+                  {t('network.ipAddress')}
+                </span>
                 <div className="flex items-center gap-1.5">
                   <span className="overflow-hidden text-right font-mono text-[13px] font-semibold text-primary text-ellipsis whitespace-nowrap">
                     {hidden ? '••••••••••••••' : ipInfo.ip}
@@ -384,6 +387,9 @@ const IPPage: React.FC = () => {
             <div className="py-6 text-center text-sm text-foreground/50">{t('network.noData')}</div>
           )}
         </div>
+
+        {/* 网络拓扑卡片 */}
+        <NetworkTopologyCard />
 
         {/* 网络延迟卡片 */}
         <div className="rounded-xl border border-foreground/10 bg-content1 p-4 shadow-sm">

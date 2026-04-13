@@ -104,8 +104,7 @@ export async function webdavBackup(): Promise<boolean> {
 
   if (webdavMaxBackups > 0) {
     try {
-      const files = await client.getDirectoryContents(webdavDir, { glob: '*.zip' })
-      const fileList = Array.isArray(files) ? files : files.data
+      const fileList = await client.getDirectoryContents(webdavDir, { glob: '*.zip' })
 
       const currentPlatformFiles = fileList.filter((file) => {
         return file.basename.startsWith(`${process.platform}_`)
@@ -147,11 +146,7 @@ export async function webdavRestore(filename: string): Promise<void> {
 export async function listWebdavBackups(): Promise<string[]> {
   const { client, webdavDir } = await getWebDAVClient()
   const files = await client.getDirectoryContents(webdavDir, { glob: '*.zip' })
-  if (Array.isArray(files)) {
-    return files.map((file) => file.basename)
-  } else {
-    return files.data.map((file) => file.basename)
-  }
+  return files.map((file) => file.basename)
 }
 
 export async function webdavDelete(filename: string): Promise<void> {

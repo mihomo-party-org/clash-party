@@ -1346,7 +1346,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
                       const originalIndex = ruleIndexMap.get(rule) ?? -1
                       return `${originalIndex}-${index}`
                     }}
-                    itemContent={(index, rule) => {
+                    itemContent={(_index, rule) => {
                       const originalIndex = ruleIndexMap.get(rule) ?? -1
                       const isDeleted = deletedRules.has(originalIndex)
                       const isPrependOrAppend =

@@ -123,10 +123,11 @@ const DNS: React.FC = () => {
 
   const handleSubkeyChange = (type: string, domain: string, value: string, index: number): void => {
     const list = [...values[type]]
-    const parts = value.split(',').map((s: string) => s.trim()).filter(Boolean)
-    const processedValue = type === 'hosts'
-      ? parts
-      : (parts.length > 1 ? parts : value.trim())
+    const parts = value
+      .split(',')
+      .map((s: string) => s.trim())
+      .filter(Boolean)
+    const processedValue = type === 'hosts' ? parts : parts.length > 1 ? parts : value.trim()
     if (domain || parts.length > 0) list[index] = { domain: domain.trim(), value: processedValue }
     else list.splice(index, 1)
     setValues({ ...values, [type]: list })

@@ -258,6 +258,8 @@ interface IAppConfig {
   connectionTableColumnWidths?: Record<string, number>
   connectionTableSortColumn?: string
   connectionTableSortDirection?: 'asc' | 'desc'
+  displayIcon?: boolean
+  displayAppName?: boolean
   spinFloatingIcon?: boolean
   disableTray?: boolean
   swapTrayClick?: boolean
@@ -269,6 +271,8 @@ interface IAppConfig {
   logCardStatus?: CardStatus
   hideConnectionCardWave?: boolean
   pauseSSID?: string[]
+  disableDnsOnPauseSSID?: boolean
+  controlDnsBeforePause?: boolean
   mihomoCoreCardStatus?: CardStatus
   overrideCardStatus?: CardStatus
   profileCardStatus?: CardStatus
@@ -303,6 +307,7 @@ interface IAppConfig {
   appTheme: AppTheme
   customTheme?: string
   autoCheckUpdate: boolean
+  githubProxy?: string
   silentStart: boolean
   autoCloseConnection: boolean
   sysProxy: ISysProxyConfig

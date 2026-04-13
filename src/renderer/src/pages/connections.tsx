@@ -50,6 +50,7 @@ const Connections: React.FC = () => {
   const { 'find-process-mode': findProcessMode = 'always' } = controledMihomoConfig || {}
   const [filter, setFilter] = useState('')
   const { appConfig, patchAppConfig } = useAppConfig()
+  const appConfigValues: Partial<IAppConfig> = appConfig ?? {}
   const {
     connectionDirection = 'asc',
     connectionOrderBy = 'time',
@@ -73,7 +74,7 @@ const Connections: React.FC = () => {
     connectionTableSortDirection,
     displayIcon = true,
     displayAppName = true
-  } = appConfig || {}
+  } = appConfigValues
   const [connectionsInfo, setConnectionsInfo] = useState<IMihomoConnectionsInfo>()
   const [allConnections, setAllConnections] = useState<IMihomoConnectionDetail[]>(cachedConnections)
   const [activeConnections, setActiveConnections] = useState<IMihomoConnectionDetail[]>([])

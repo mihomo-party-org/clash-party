@@ -250,7 +250,7 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
     authToken: item.authToken,
     userAgent: item.userAgent,
     updated: new Date().getTime(),
-    updateTimeout: item.updateTimeout || 5
+    updateTimeout: item.updateTimeout
   }
 
   // Local
@@ -264,7 +264,10 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
 
   const { userAgent, subscriptionTimeout = 30000 } = await getAppConfig()
   const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
-  const userItemTimeoutMs = (newItem.updateTimeout || 5) * 1000
+  const userItemTimeoutMs =
+    typeof newItem.updateTimeout === 'number' && newItem.updateTimeout > 0
+      ? newItem.updateTimeout * 1000
+      : subscriptionTimeout
 
   const baseOptions: Omit<FetchOptions, 'useProxy' | 'timeout'> = {
     url: item.url,
@@ -454,7 +457,7 @@ export async function convertMrsRuleset(filePath: string, behavior: string): Pro
 
   try {
     // 使用 mihomo convert-ruleset 命令转换 MRS 文件为 text 格式
-    // 命令格式: mihomo convert-ruleset <behavior> <format> <source>
+    // 命令格式：mihomo convert-ruleset <behavior> <format> <source>
     await execAsync(`"${corePath}" convert-ruleset ${behavior} mrs "${fullPath}" "${tempFilePath}"`)
     const content = await readFile(tempFilePath, 'utf-8')
     await unlink(tempFilePath)

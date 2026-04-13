@@ -66,6 +66,7 @@ const GeneralConfig: React.FC = () => {
     customTheme = 'default.css',
     envType = [platform === 'win32' ? 'powershell' : 'bash'],
     autoCheckUpdate,
+    githubProxy = 'auto',
     appTheme = 'system',
     language = 'zh-CN',
     triggerMainWindowBehavior = 'show',
@@ -171,6 +172,24 @@ const GeneralConfig: React.FC = () => {
             }}
           />
         </SettingItem>
+        <SettingItem title={t('settings.githubProxy')} divider>
+          <Select
+            classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
+            className="w-50"
+            size="sm"
+            selectedKeys={[githubProxy]}
+            aria-label={t('settings.githubProxy')}
+            onSelectionChange={(v) => {
+              patchAppConfig({ githubProxy: Array.from(v)[0] as string })
+            }}
+          >
+            <SelectItem key="auto">{t('settings.githubProxy.auto')}</SelectItem>
+            <SelectItem key="direct">{t('settings.githubProxy.direct')}</SelectItem>
+            <SelectItem key="https://gh-proxy.org">gh-proxy.org</SelectItem>
+            <SelectItem key="https://ghfast.top">ghfast.top</SelectItem>
+            <SelectItem key="https://down.clashparty.org">down.clashparty.org</SelectItem>
+          </Select>
+        </SettingItem>
         <SettingItem title={t('settings.silentStart')} divider>
           <Switch
             size="sm"
@@ -204,7 +223,7 @@ const GeneralConfig: React.FC = () => {
             <div className="flex items-center gap-2">
               <Input
                 size="sm"
-                className="w-[100px]"
+                className="w-25"
                 type="number"
                 value={autoQuitWithoutCoreDelay.toString()}
                 onValueChange={async (v: string) => {
@@ -240,7 +259,7 @@ const GeneralConfig: React.FC = () => {
         >
           <Select
             classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
-            className="w-[150px]"
+            className="w-37.5"
             size="sm"
             selectionMode="multiple"
             selectedKeys={new Set(envType)}

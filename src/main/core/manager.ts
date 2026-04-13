@@ -94,6 +94,13 @@ export function initCoreWatcher(): void {
       safeShowErrorBox('mihomo.error.coreStartFailed', `${e}`)
     }
   })
+
+  // 监听 restartCore 事件（用于 DNS 状态恢复等场景，避免循环依赖）
+  ipcMain.removeAllListeners('restartCore')
+  ipcMain.on('restartCore', async () => {
+    await restartCore()
+    mainWindow?.webContents.send('appConfigUpdated')
+  })
 }
 
 // 清理核心文件监听

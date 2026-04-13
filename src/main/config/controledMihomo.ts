@@ -1,12 +1,13 @@
 import { readFile, writeFile } from 'fs/promises'
 import { existsSync } from 'fs'
+import { ipcMain } from 'electron'
 import { controledMihomoConfigPath } from '../utils/dirs'
 import { parse, stringify } from '../utils/yaml'
 import { generateProfile } from '../core/factory'
 import { defaultControledMihomoConfig } from '../utils/template'
 import { deepMerge } from '../utils/merge'
 import { createLogger } from '../utils/logger'
-import { getAppConfig } from './app'
+import { getAppConfig, patchAppConfig } from './app'
 
 const controledMihomoLogger = createLogger('ControledMihomo')
 
@@ -52,7 +53,23 @@ export async function getControledMihomoConfig(force = false): Promise<Partial<I
 
 export async function patchControledMihomoConfig(patch: Partial<IMihomoConfig>): Promise<void> {
   controledMihomoWriteQueue = controledMihomoWriteQueue.then(async () => {
-    const { controlDns = true, controlSniff = true } = await getAppConfig()
+    const appConfig = await getAppConfig()
+    const { controlDns = true, controlSniff = true, controlDnsBeforePause } = appConfig
+
+    // 当模式从 direct 切换到 rule/global 时，恢复之前保存的 DNS 状态
+    const currentMode = controledMihomoConfig?.mode
+    const newMode = patch.mode
+    if (
+      currentMode === 'direct' &&
+      newMode &&
+      newMode !== 'direct' &&
+      controlDnsBeforePause !== undefined
+    ) {
+      // 恢复 DNS 状态并清除保存的状态
+      await patchAppConfig({ controlDns: controlDnsBeforePause, controlDnsBeforePause: undefined })
+      // 通过事件通知重启核心，避免循环依赖
+      ipcMain.emit('restartCore')
+    }
 
     // 过滤端口字段中的 NaN 值，防止写入无效配置
     const portFields = ['mixed-port', 'socks-port', 'port', 'redir-port', 'tproxy-port'] as const

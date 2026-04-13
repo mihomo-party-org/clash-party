@@ -33,8 +33,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
   const { overrideConfig } = useOverrideConfig()
   const { items: overrideItems = [] } = overrideConfig || {}
   const [values, setValues] = useState({
-    ...item,
-    updateTimeout: item.updateTimeout ?? 5
+    ...item
   })
   const inputWidth = 'w-[400px] md:w-[400px] lg:w-[600px] xl:w-[800px]'
   const { t } = useTranslation()
@@ -43,7 +42,6 @@ const EditInfoModal: React.FC<Props> = (props) => {
     try {
       const updatedItem = {
         ...values,
-        updateTimeout: values.updateTimeout ?? 5,
         override: values.override?.filter(
           (i) =>
             overrideItems.find((t) => t.id === i) && !overrideItems.find((t) => t.id === i)?.global
@@ -215,7 +213,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
               value={values.updateTimeout?.toString() ?? ''}
               onValueChange={(v) => {
                 if (v === '') {
-                  setValues({ ...values, updateTimeout: undefined as unknown as number })
+                  setValues({ ...values, updateTimeout: undefined })
                   return
                 }
                 if (/^\d+$/.test(v)) {

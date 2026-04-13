@@ -107,7 +107,8 @@ async function findDesktopFile(appPath: string): Promise<string | null> {
               execCmd === appPath ||
               execBasename === execName ||
               execCmd.endsWith(appPath) ||
-              appPath.endsWith(execBasename)
+              appPath.endsWith(execBasename) ||
+              path.basename(file, '.desktop') === execName
             ) {
               return fullPath
             }

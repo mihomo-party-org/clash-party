@@ -23,6 +23,7 @@ const MihomoConfig: React.FC = () => {
     autoCloseConnection = true,
     testProfileOnStart = true,
     pauseSSID = [],
+    disableDnsOnPauseSSID = false,
     delayTestUrl,
     userAgent,
     subscriptionTimeout = 30000,
@@ -293,6 +294,15 @@ const MihomoConfig: React.FC = () => {
           )
         })}
       </div>
+      <SettingItem title={t('mihomo.disableDnsOnPauseSSID')}>
+        <Switch
+          size="sm"
+          isSelected={disableDnsOnPauseSSID}
+          onValueChange={(v) => {
+            patchAppConfig({ disableDnsOnPauseSSID: v })
+          }}
+        />
+      </SettingItem>
     </SettingCard>
   )
 }

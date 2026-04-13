@@ -1,30 +1,6 @@
 import { execSync } from 'child_process'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { app, dialog } from 'electron'
-
-if (process.platform === 'win32') {
-  try {
-    const stdout = execSync('powershell -NoProfile -Command "$PSVersionTable.PSVersion.Major"', {
-      encoding: 'utf8',
-      timeout: 5000
-    })
-    const major = parseInt(stdout.trim(), 10)
-    if (!isNaN(major) && major < 5) {
-      const isZh = Intl.DateTimeFormat().resolvedOptions().locale?.startsWith('zh')
-      const title = isZh ? '需要更新 PowerShell' : 'PowerShell Update Required'
-      const message = isZh
-        ? `检测到您的 PowerShell 版本为 ${major}.x，部分功能需要 PowerShell 5.1 才能正常运行。\\n\\n请访问 Microsoft 官网下载并安装 Windows Management Framework 5.1。`
-        : `Detected PowerShell version ${major}.x. Some features require PowerShell 5.1.\\n\\nPlease install Windows Management Framework 5.1 from the Microsoft website.`
-      execSync(
-        `mshta "javascript:var sh=new ActiveXObject('WScript.Shell');sh.Popup('${message}',0,'${title}',48);close()"`,
-        { timeout: 60000 }
-      )
-      process.exit(0)
-    }
-  } catch {
-    // ignore
-  }
-}
 import i18next from 'i18next'
 import { initI18n } from '../shared/i18n'
 import { registerIpcMainHandlers } from './utils/ipc'
@@ -60,6 +36,30 @@ import {
   setupAppLifecycle,
   getSystemLanguage
 } from './lifecycle'
+
+if (process.platform === 'win32') {
+  try {
+    const stdout = execSync('powershell -NoProfile -Command "$PSVersionTable.PSVersion.Major"', {
+      encoding: 'utf8',
+      timeout: 5000
+    })
+    const major = parseInt(stdout.trim(), 10)
+    if (!isNaN(major) && major < 5) {
+      const isZh = Intl.DateTimeFormat().resolvedOptions().locale?.startsWith('zh')
+      const title = isZh ? '需要更新 PowerShell' : 'PowerShell Update Required'
+      const message = isZh
+        ? `检测到您的 PowerShell 版本为 ${major}.x，部分功能需要 PowerShell 5.1 才能正常运行。\\n\\n请访问 Microsoft 官网下载并安装 Windows Management Framework 5.1。`
+        : `Detected PowerShell version ${major}.x. Some features require PowerShell 5.1.\\n\\nPlease install Windows Management Framework 5.1 from the Microsoft website.`
+      execSync(
+        `mshta "javascript:var sh=new ActiveXObject('WScript.Shell');sh.Popup('${message}',0,'${title}',48);close()"`,
+        { timeout: 60000 }
+      )
+      process.exit(0)
+    }
+  } catch {
+    // ignore
+  }
+}
 
 const mainLogger = createLogger('Main')
 

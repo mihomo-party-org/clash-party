@@ -78,7 +78,11 @@ export async function startSubStoreFrontendServer(): Promise<void> {
   await stopSubStoreFrontendServer()
   subStoreFrontendPort = await findAvailablePort(14122)
   const app = express()
-  app.use(express.static(path.join(mihomoWorkDir(), 'sub-store-frontend')))
+  const frontendDir = path.join(mihomoWorkDir(), 'sub-store-frontend')
+  app.use(express.static(frontendDir))
+  app.use((_req, res) => {
+    res.sendFile(path.join(frontendDir, 'index.html'))
+  })
   subStoreFrontendServer = app.listen(subStoreFrontendPort, subStoreHost)
 }
 

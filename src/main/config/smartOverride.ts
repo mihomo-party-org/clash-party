@@ -131,11 +131,11 @@ function main(config) {
                 // 找到策略组名称的位置
                 let targetIndex = -1
                 
-                // MATCH 规则：MATCH,策略组
+                // MATCH 规则：MATCH，策略组
                 if (parts[0] === 'MATCH' && parts.length === 2) {
                   targetIndex = 1
                 } else if (parts.length >= 3) {
-                  // 其他规则：TYPE,MATCHER,策略组[,参数...]
+                  // 其他规则：TYPE,MATCHER，策略组 [,参数...]
                   // 策略组通常在第 3 个位置（索引 2），但需要跳过参数
                   for (let i = 2; i < parts.length; i++) {
                     if (!ruleParamsSet.has(parts[i])) {
