@@ -37,6 +37,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
   })
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
   const [mem, setMem] = useState(0)
+  const [restarting, setRestarting] = useState(false)
   const { t } = useTranslation()
 
   useEffect(() => {
@@ -110,18 +111,21 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
                 variant="light"
                 color="default"
                 title={t('mihomo.restart')}
+                disabled={restarting}
                 onPress={async () => {
+                  setRestarting(true)
                   try {
                     await restartCore()
                   } catch (e) {
                     toast.error(String(e))
                   } finally {
                     mutate()
+                    setRestarting(false)
                   }
                 }}
               >
                 <IoMdRefresh
-                  className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[24px]`}
+                  className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[24px] ${restarting ? 'animate-spin' : ''}`}
                 />
               </Button>
             </div>
