@@ -551,6 +551,7 @@
   "resources.proxyProviders.updateAll": "更新全部",
   "resources.ruleProviders.title": "規則集合",
   "resources.ruleProviders.updateAll": "更新全部",
+  "resources.ruleProviders.filter": "搜尋規則集合",
   "outbound.title": "出站模式",
   "outbound.modes.rule": "規則",
   "outbound.modes.global": "全局",

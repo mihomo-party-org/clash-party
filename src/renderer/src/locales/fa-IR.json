@@ -520,6 +520,7 @@
   "resources.proxyProviders.updateAll": "به‌روزرسانی همه",
   "resources.ruleProviders.title": "ارائه‌دهندگان قانون",
   "resources.ruleProviders.updateAll": "به‌روزرسانی همه",
+  "resources.ruleProviders.filter": "جستجوی ارائه‌دهندگان قانون",
   "outbound.title": "حالت خروجی",
   "outbound.modes.rule": "قانون",
   "outbound.modes.global": "جهانی",

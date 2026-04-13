@@ -551,6 +551,7 @@
   "resources.proxyProviders.updateAll": "Update All",
   "resources.ruleProviders.title": "Rule Providers",
   "resources.ruleProviders.updateAll": "Update All",
+  "resources.ruleProviders.filter": "Search Rule Providers",
   "outbound.title": "Outbound Mode",
   "outbound.modes.rule": "Rule",
   "outbound.modes.global": "Global",

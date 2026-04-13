@@ -6,19 +6,21 @@ import {
 import { getHash } from '@renderer/utils/hash'
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import useSWR from 'swr'
-import { Button, Chip } from '@heroui/react'
+import { Button, Chip, Input } from '@heroui/react'
 import { toast } from '@renderer/components/base/toast'
 import { IoMdRefresh } from 'react-icons/io'
 import { CgLoadbarDoc } from 'react-icons/cg'
 import { MdEditDocument } from 'react-icons/md'
 import dayjs from '@renderer/utils/dayjs'
 import { useTranslation } from 'react-i18next'
+import { includesIgnoreCase } from '@renderer/utils/includes'
 import SettingItem from '../base/base-setting-item'
 import SettingCard from '../base/base-setting-card'
 import Viewer from './viewer'
 
 const RuleProvider: React.FC = () => {
   const { t } = useTranslation()
+  const [filter, setFilter] = useState('')
   const [showDetails, setShowDetails] = useState({
     show: false,
     path: '',
@@ -53,16 +55,18 @@ const RuleProvider: React.FC = () => {
   const { data, mutate } = useSWR('mihomoRuleProviders', mihomoRuleProviders)
   const providers = useMemo(() => {
     if (!data || !data.providers) return []
-    return Object.values(data.providers).sort((a, b) => {
-      if (a.vehicleType === 'File' && b.vehicleType !== 'File') {
-        return -1
-      }
-      if (a.vehicleType !== 'File' && b.vehicleType === 'File') {
-        return 1
-      }
-      return 0
-    })
-  }, [data])
+    return Object.values(data.providers)
+      .filter((p) => !filter || includesIgnoreCase(p.name, filter))
+      .sort((a, b) => {
+        if (a.vehicleType === 'File' && b.vehicleType !== 'File') {
+          return -1
+        }
+        if (a.vehicleType !== 'File' && b.vehicleType === 'File') {
+          return 1
+        }
+        return 0
+      })
+  }, [data, filter])
   const [updating, setUpdating] = useState(Array(providers.length).fill(false))
 
   const onUpdate = async (name: string, index: number): Promise<void> => {
@@ -111,17 +115,27 @@ const RuleProvider: React.FC = () => {
         />
       )}
       <SettingItem title={t('resources.ruleProviders.title')} divider>
-        <Button
-          size="sm"
-          color="primary"
-          onPress={() => {
-            providers.forEach((provider, index) => {
-              onUpdate(provider.name, index)
-            })
-          }}
-        >
-          {t('resources.ruleProviders.updateAll')}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Input
+            size="sm"
+            className="w-40"
+            value={filter}
+            placeholder={t('resources.ruleProviders.filter')}
+            isClearable
+            onValueChange={setFilter}
+          />
+          <Button
+            size="sm"
+            color="primary"
+            onPress={() => {
+              providers.forEach((provider, index) => {
+                onUpdate(provider.name, index)
+              })
+            }}
+          >
+            {t('resources.ruleProviders.updateAll')}
+          </Button>
+        </div>
       </SettingItem>
       {providers.map((provider, index) => (
         <Fragment key={provider.name}>

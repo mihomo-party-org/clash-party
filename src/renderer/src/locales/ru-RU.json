@@ -522,6 +522,7 @@
   "resources.proxyProviders.updateAll": "Обновить все",
   "resources.ruleProviders.title": "Провайдеры правил",
   "resources.ruleProviders.updateAll": "Обновить все",
+  "resources.ruleProviders.filter": "Поиск провайдеров правил",
   "outbound.title": "Режим исходящего трафика",
   "outbound.modes.rule": "Правило",
   "outbound.modes.global": "Глобальный",
