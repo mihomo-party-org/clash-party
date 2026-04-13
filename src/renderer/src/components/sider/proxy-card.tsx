@@ -22,12 +22,19 @@ const ProxyCard: React.FC<Props> = (props) => {
   const location = useLocation()
   const navigate = useNavigate()
   const match = location.pathname.includes('/proxies')
-  const { groups = [] } = useGroups()
+  const { groups = [], mutate } = useGroups()
   const firstGroup = groups.find((g) => g.type === 'Selector') ?? groups[0]
   const selectedProxy = firstGroup?.now
 
-  const [latency, setLatency] = useState<number | null>(null)
+  // Read latency from live group data so right-panel tests auto-reflect here
+  const selectedProxyData = firstGroup?.all?.find((p) => p.name === selectedProxy)
+  const liveLatency =
+    selectedProxyData?.history && selectedProxyData.history.length > 0
+      ? selectedProxyData.history[selectedProxyData.history.length - 1].delay
+      : null
+
   const [testing, setTesting] = useState(false)
+  const [testFailed, setTestFailed] = useState(false)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const prevProxyRef = useRef<string | undefined>(undefined)
 
@@ -35,10 +42,11 @@ const ProxyCard: React.FC<Props> = (props) => {
     if (!proxyName || testing) return
     setTesting(true)
     try {
-      const result = await mihomoProxyDelay(proxyName)
-      setLatency(result.delay ?? -1)
+      await mihomoProxyDelay(proxyName, appConfig?.delayTestUrl)
+      setTestFailed(false)
+      await mutate()
     } catch {
-      setLatency(-1)
+      setTestFailed(true)
     } finally {
       setTesting(false)
     }
@@ -56,7 +64,7 @@ const ProxyCard: React.FC<Props> = (props) => {
     if (!selectedProxy) return
     if (prevProxyRef.current !== selectedProxy) {
       prevProxyRef.current = selectedProxy
-      setLatency(null)
+      setTestFailed(false)
       runTest(selectedProxy)
     }
   }, [selectedProxy])
@@ -71,6 +79,14 @@ const ProxyCard: React.FC<Props> = (props) => {
       if (timerRef.current) clearInterval(timerRef.current)
     }
   }, [selectedProxy])
+
+  // Derive display value from live data; fall back to failed states
+  const latency =
+    liveLatency !== null && liveLatency > 0
+      ? liveLatency
+      : testFailed
+        ? -1
+        : null
 
   const latencyColor =
     latency === -1
@@ -176,7 +192,6 @@ const ProxyCard: React.FC<Props> = (props) => {
         </CardBody>
         <CardFooter className="pt-1 flex flex-col items-start gap-0.5 flex-1 justify-end">
           {isSmall ? (
-            /* Small mode: proxy name replaces title, latency stacked below */
             <>
               <p
                 className={`text-sm font-semibold truncate w-full ${match ? 'text-primary-foreground' : 'text-primary'}`}
@@ -197,7 +212,6 @@ const ProxyCard: React.FC<Props> = (props) => {
               )}
             </>
           ) : (
-            /* Large mode: title, then proxy name + latency side by side */
             <>
               <h3
                 className={`text-md font-bold sider-card-title ${match ? 'text-primary-foreground' : 'text-foreground'}`}
