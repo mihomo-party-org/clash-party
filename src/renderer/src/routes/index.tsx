@@ -14,6 +14,7 @@ import Resources from '@renderer/pages/resources'
 import DNS from '@renderer/pages/dns'
 import Sniffer from '@renderer/pages/sniffer'
 import SubStore from '@renderer/pages/substore'
+import Traffic from '@renderer/pages/traffic'
 const routes = [
   {
     path: '/network',
@@ -74,6 +75,10 @@ const routes = [
   {
     path: '/substore',
     element: <SubStore />
+  },
+  {
+    path: '/traffic',
+    element: <Traffic />
   },
   {
     path: '/',

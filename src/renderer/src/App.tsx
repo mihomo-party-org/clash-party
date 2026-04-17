@@ -33,6 +33,8 @@ import { platform } from '@renderer/utils/init'
 import { TitleBarOverlayOptions } from 'electron'
 import SubStoreCard from '@renderer/components/sider/substore-card'
 import NetworkCard from '@renderer/components/sider/network-card'
+import UsageCard from '@renderer/components/sider/usage-card'
+import { useTrafficLogger } from '@renderer/hooks/use-traffic-logger'
 import { createTourDriver, getDriver, startTourIfNeeded } from '@renderer/utils/tour'
 import 'driver.js/dist/driver.css'
 import { useTranslation } from 'react-i18next'
@@ -56,7 +58,8 @@ const ALL_SIDER_KEYS = [
   'sniff',
   'log',
   'substore',
-  'network'
+  'network',
+  'usage'
 ]
 
 function mergeSiderOrder(saved: string[]): string[] {
@@ -67,6 +70,7 @@ function mergeSiderOrder(saved: string[]): string[] {
 
 const App: React.FC = () => {
   const { t } = useTranslation()
+  useTrafficLogger()
   const { appConfig, patchAppConfig } = useAppConfig()
   const {
     appTheme = 'system',
@@ -87,7 +91,8 @@ const App: React.FC = () => {
       'sniff',
       'log',
       'substore',
-      'network'
+      'network',
+      'usage'
     ]
   } = appConfig || {}
   const narrowWidth = platform === 'darwin' ? 70 : 60
@@ -172,7 +177,8 @@ const App: React.FC = () => {
         return
       }
     }
-    navigate(navigateMap[active.id as string])
+    const dest = navigateMap[active.id as string]
+    if (dest) navigate(dest)
   }
 
   const navigateMap = {
@@ -189,7 +195,8 @@ const App: React.FC = () => {
     resource: 'resources',
     override: 'override',
     substore: 'substore',
-    network: 'network'
+    network: 'network',
+    usage: 'traffic'
   }
 
   const componentMap = {
@@ -206,7 +213,8 @@ const App: React.FC = () => {
     resource: ResourceCard,
     override: OverrideCard,
     substore: SubStoreCard,
-    network: NetworkCard
+    network: NetworkCard,
+    usage: UsageCard
   }
 
   return (
