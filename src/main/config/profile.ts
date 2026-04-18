@@ -7,7 +7,7 @@ import * as chromeRequest from '../utils/chromeRequest'
 import { parse, stringify } from '../utils/yaml'
 import { defaultProfile } from '../utils/template'
 import { subStorePort } from '../resolve/server'
-import { mihomoUpgradeConfig, mihomoHotReloadConfig } from '../core/mihomoApi'
+import { mihomoHotReloadConfig } from '../core/mihomoApi'
 import { restartCore } from '../core/manager'
 import { addProfileUpdater, removeProfileUpdater } from '../core/profileUpdater'
 import { mihomoProfileWorkDir, mihomoWorkDir, profileConfigPath, profilePath } from '../utils/dirs'
@@ -334,12 +334,10 @@ export async function setProfileStr(id: string, content: string): Promise<void> 
   await writeFile(profilePath(id), content, 'utf-8')
   if (current === id) {
     try {
-      const { generateProfile } = await import('../core/factory')
-      await generateProfile()
-      await mihomoUpgradeConfig()
-      profileLogger.info('Config reloaded successfully using mihomoUpgradeConfig')
+      await mihomoHotReloadConfig()
+      profileLogger.info('Config reloaded successfully')
     } catch (error) {
-      profileLogger.error('Failed to reload config with mihomoUpgradeConfig', error)
+      profileLogger.error('Failed to reload config', error)
       try {
         profileLogger.info('Falling back to restart core')
         const { restartCore } = await import('../core/manager')

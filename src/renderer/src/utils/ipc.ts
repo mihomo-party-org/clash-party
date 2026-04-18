@@ -31,7 +31,6 @@ interface IpcApi {
   mihomoUpgradeGeo: () => Promise<void>
   mihomoUpgrade: () => Promise<void>
   mihomoUpgradeUI: () => Promise<void>
-  mihomoUpgradeConfig: () => Promise<void>
   mihomoProxyDelay: (proxy: string, url?: string) => Promise<IMihomoDelay>
   mihomoGroupDelay: (group: string, url?: string) => Promise<IMihomoGroupDelay>
   patchMihomoConfig: (patch: Partial<IMihomoConfig>) => Promise<void>
@@ -189,7 +188,6 @@ export const {
   mihomoUpgradeGeo,
   mihomoUpgrade,
   mihomoUpgradeUI,
-  mihomoUpgradeConfig,
   mihomoProxyDelay,
   mihomoGroupDelay,
   patchMihomoConfig,

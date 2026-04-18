@@ -19,7 +19,6 @@ const validInvokeChannels = [
   'mihomoUpgradeGeo',
   'mihomoUpgrade',
   'mihomoUpgradeUI',
-  'mihomoUpgradeConfig',
   'mihomoProxyDelay',
   'mihomoGroupDelay',
   'patchMihomoConfig',
