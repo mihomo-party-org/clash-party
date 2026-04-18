@@ -160,6 +160,30 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
                   className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[24px] font-bold`}
                 />
               </Button>
+              <Button
+                isIconOnly
+                size="sm"
+                variant="light"
+                color="default"
+                className="mr-2 mt-2"
+                title={t('mihomo.restart')}
+                disabled={restarting}
+                onPress={async () => {
+                  setRestarting(true)
+                  try {
+                    await restartCore()
+                  } catch (e) {
+                    toast.error(String(e))
+                  } finally {
+                    mutate()
+                    setRestarting(false)
+                  }
+                }}
+              >
+                <IoMdRefresh
+                  className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[24px] ${restarting ? 'animate-spin' : ''}`}
+                />
+              </Button>
             </div>
           </CardBody>
           <CardFooter className="pt-1">
