@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next'
 import EditRulesModal from './edit-rules-modal'
 import EditInfoModal from './edit-info-modal'
 import EditFileModal from './edit-file-modal'
+import QrCodeModal from './qr-code-modal'
 
 interface Props {
   info: IProfileItem
@@ -61,6 +62,7 @@ const ProfileItem: React.FC<Props> = (props) => {
   const [openInfoEditor, setOpenInfoEditor] = useState(false)
   const [openFileEditor, setOpenFileEditor] = useState(false)
   const [openRulesEditor, setOpenRulesEditor] = useState(false)
+  const [openQrCode, setOpenQrCode] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const {
     attributes,
@@ -114,6 +116,15 @@ const ProfileItem: React.FC<Props> = (props) => {
         className: 'text-danger'
       } as MenuItem
     ]
+    if (info.type === 'remote' && info.url) {
+      list.unshift({
+        key: 'show-qrcode',
+        label: t('profiles.qrCode.show'),
+        showDivider: false,
+        color: 'default',
+        className: ''
+      } as MenuItem)
+    }
     if (info.home) {
       list.unshift({
         key: 'home',
@@ -150,6 +161,10 @@ const ProfileItem: React.FC<Props> = (props) => {
         break
       }
 
+      case 'show-qrcode': {
+        setOpenQrCode(true)
+        break
+      }
       case 'home': {
         open(info.home)
         break
@@ -215,6 +230,9 @@ const ProfileItem: React.FC<Props> = (props) => {
     >
       {openFileEditor && <EditFileModal id={info.id} onClose={() => setOpenFileEditor(false)} />}
       {openRulesEditor && <EditRulesModal id={info.id} onClose={() => setOpenRulesEditor(false)} />}
+      {openQrCode && info.url && (
+        <QrCodeModal url={info.url} onClose={() => setOpenQrCode(false)} />
+      )}
       {openInfoEditor && (
         <EditInfoModal
           item={info}

@@ -538,6 +538,8 @@
   "profiles.editRules.noResolve": "Пропустить DNS-резолвинг (no-resolve)",
   "profiles.editRules.src": "Сопоставить исходный IP (src)",
   "profiles.openFile": "Открыть файл",
+  "profiles.qrCode.title": "QR-код подписки",
+  "profiles.qrCode.show": "Показать QR-код",
   "profiles.home": "Главная",
   "profiles.notification.importSuccess": "Подписка успешно импортирована",
   "resources.proxyProviders.title": "Провайдеры прокси",

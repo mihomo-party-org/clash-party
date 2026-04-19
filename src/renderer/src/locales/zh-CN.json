@@ -567,6 +567,8 @@
   "profiles.editRules.noResolve": "跳过 DNS 解析 (no-resolve)",
   "profiles.editRules.src": "匹配源 IP (src)",
   "profiles.openFile": "打开文件",
+  "profiles.qrCode.title": "订阅二维码",
+  "profiles.qrCode.show": "显示二维码",
   "profiles.home": "主页",
   "profiles.notification.importSuccess": "订阅导入成功",
   "resources.proxyProviders.title": "代理集合",

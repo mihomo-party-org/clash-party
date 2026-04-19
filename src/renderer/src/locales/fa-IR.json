@@ -536,6 +536,8 @@
   "profiles.editRules.noResolve": "رد کردن تحلیل DNS (no-resolve)",
   "profiles.editRules.src": "مطابقت با IP منبع (src)",
   "profiles.openFile": "باز کردن فایل",
+  "profiles.qrCode.title": "کد QR اشتراک",
+  "profiles.qrCode.show": "نمایش کد QR",
   "profiles.home": "خانه",
   "profiles.notification.importSuccess": "اشتراک با موفقیت وارد شد",
   "resources.proxyProviders.title": "ارائه‌دهندگان پراکسی",

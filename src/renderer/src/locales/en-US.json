@@ -562,6 +562,8 @@
   "profiles.editRules.noResolve": "Skip DNS Resolution (no-resolve)",
   "profiles.editRules.src": "Match Source IP (src)",
   "profiles.openFile": "Open File",
+  "profiles.qrCode.title": "Subscription QR Code",
+  "profiles.qrCode.show": "Show QR Code",
   "profiles.home": "Home",
   "profiles.traffic.usage": "{{used}}/{{total}}",
   "profiles.traffic.unlimited": "Unlimited",
