@@ -4,7 +4,7 @@ import { stat } from 'fs/promises'
 import { existsSync } from 'fs'
 import { app, powerMonitor } from 'electron'
 import { stopCore, cleanupCoreWatcher } from './core/manager'
-import { triggerSysProxy } from './sys/sysproxy'
+import { triggerSysProxy, disableSysProxySync } from './sys/sysproxy'
 import { exePath } from './utils/dirs'
 
 export function customRelaunch(): void {
@@ -54,19 +54,29 @@ export function setupPlatformSpecifics(): void {
 }
 
 export function setupAppLifecycle(): void {
+  let sysProxyDisabled = false
+
   app.on('before-quit', async (e) => {
     e.preventDefault()
     cleanupCoreWatcher()
     await triggerSysProxy(false)
+    sysProxyDisabled = true
     await stopCore()
     app.exit()
   })
 
   powerMonitor.on('shutdown', async () => {
     cleanupCoreWatcher()
-    triggerSysProxy(false)
+    await triggerSysProxy(false)
+    sysProxyDisabled = true
     await stopCore()
     app.exit()
+  })
+
+  app.on('will-quit', () => {
+    if (!sysProxyDisabled) {
+      disableSysProxySync()
+    }
   })
 }
 

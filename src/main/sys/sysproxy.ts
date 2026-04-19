@@ -127,6 +127,16 @@ async function disableSysProxy(): Promise<void> {
   }
 }
 
+export function disableSysProxySync(): void {
+  if (process.platform === 'darwin') return
+  try {
+    triggerAutoProxy(false, '')
+    triggerManualProxy(false, '', 0, '')
+  } catch {
+    // ignore errors during sync disable
+  }
+}
+
 function isSocketFileExists(): boolean {
   try {
     return fs.existsSync(helperSocketPath)
