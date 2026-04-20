@@ -562,6 +562,7 @@
   "rules.hitAt.minutes": "{{count}} دقیقه پیش",
   "rules.hitAt.hours": "{{count}} ساعت پیش",
   "rules.hitAt.days": "{{count}} روز پیش",
+  "rules.hitAt.never": "هرگز مطابقت نداشت",
   "override.title": "جایگزینی",
   "override.input.placeholder": "وارد کردن URL جایگزین",
   "override.import": "وارد کردن",

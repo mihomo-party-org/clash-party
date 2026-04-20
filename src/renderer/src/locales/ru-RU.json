@@ -564,6 +564,7 @@
   "rules.hitAt.minutes": "Совпадение {{count}} мин назад",
   "rules.hitAt.hours": "Совпадение {{count}} ч назад",
   "rules.hitAt.days": "Совпадение {{count}} дн назад",
+  "rules.hitAt.never": "Правило не совпало",
   "override.title": "Переопределение",
   "override.input.placeholder": "Введите URL переопределения",
   "override.import": "Импорт",

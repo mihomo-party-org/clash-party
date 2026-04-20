@@ -593,6 +593,7 @@
   "rules.hitAt.minutes": "Hit {{count}} min ago",
   "rules.hitAt.hours": "Hit {{count}} hrs ago",
   "rules.hitAt.days": "Hit {{count}} days ago",
+  "rules.hitAt.never": "Never matched",
   "override.title": "Override",
   "override.input.placeholder": "Enter override URL",
   "override.import": "Import",

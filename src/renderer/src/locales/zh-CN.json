@@ -593,6 +593,7 @@
   "rules.hitAt.minutes": "最近命中于 {{count}} 分钟前",
   "rules.hitAt.hours": "最近命中于 {{count}} 小时前",
   "rules.hitAt.days": "最近命中于 {{count}} 天前",
+  "rules.hitAt.never": "未命中规则",
   "override.title": "覆写",
   "override.input.placeholder": "输入覆写 URL",
   "override.import": "导入",

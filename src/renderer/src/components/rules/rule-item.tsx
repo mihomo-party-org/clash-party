@@ -29,8 +29,9 @@ const RuleItem: React.FC<RuleItemProps> = (props) => {
   }
 
   const formatRelativeTime = (timestamp: string): string => {
-    const now = Date.now()
     const time = new Date(timestamp).getTime()
+    if (time === 0) return t('rules.hitAt.never')
+    const now = Date.now()
     const diff = Math.floor((now - time) / 1000)
     if (diff < 60) return t('rules.hitAt.seconds')
     if (diff < 3600) return t('rules.hitAt.minutes', { count: Math.floor(diff / 60) })
