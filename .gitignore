@@ -11,3 +11,6 @@ out
 party.md
 CLAUDE.md
 tsconfig.node.tsbuildinfo
+.omc
+.claude
+debug
