@@ -33,6 +33,7 @@ const validInvokeChannels = [
   'patchAppConfig',
   'getControledMihomoConfig',
   'patchControledMihomoConfig',
+  'getAppProxyRules',
   'resetAppConfig',
   // Profile
   'getProfileConfig',

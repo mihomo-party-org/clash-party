@@ -4,3 +4,6 @@ pnpm-lock.yaml
 LICENSE.md
 tsconfig.json
 tsconfig.*.json
+.omc
+.claude
+debug

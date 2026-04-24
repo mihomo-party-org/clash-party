@@ -40,6 +40,7 @@ export const defaultConfig: IAppConfig = {
     'resource',
     'override',
     'connection',
+    'apps',
     'mihomo',
     'dns',
     'sniff',
@@ -62,7 +63,9 @@ export const defaultConfig: IAppConfig = {
   enableTproxyPort: false,
   testProfileOnStart: true,
   useHotReloadProfile: false,
-  hotReloadProfileAutoCloseConnection: false
+  hotReloadProfileAutoCloseConnection: false,
+  appProxyRules: [],
+  appsCardStatus: 'col-span-1'
 }
 
 export const defaultControledMihomoConfig: Partial<IMihomoConfig> = {

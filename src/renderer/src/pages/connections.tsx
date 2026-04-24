@@ -427,7 +427,7 @@ const Connections: React.FC = () => {
     }
 
     return (): void => {
-      window.electron.ipcRenderer.removeAllListeners('mihomoConnections')
+      window.electron.ipcRenderer.removeListener('mihomoConnections', handler)
     }
   }, [isPaused])
   const togglePause = useCallback(() => {
