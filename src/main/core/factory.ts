@@ -237,7 +237,7 @@ async function applyOverrides(
       case 'yaml': {
         let patch = parse(content) || {}
         if (typeof patch !== 'object') patch = {}
-        profile = deepMerge(profile, patch)
+        profile = deepMerge(profile, patch, true)
         break
       }
     }
