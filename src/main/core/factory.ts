@@ -2,6 +2,7 @@ import { copyFile, mkdir, writeFile, readFile, stat } from 'fs/promises'
 import vm from 'vm'
 import { existsSync, writeFileSync } from 'fs'
 import path from 'path'
+import { isIP } from 'net'
 import {
   getControledMihomoConfig,
   getProfileConfig,
@@ -60,6 +61,49 @@ function processRulesWithOffset(ruleStrings: string[], currentRules: string[], i
   return { normalRules, insertRules: rules }
 }
 
+/**
+ * 确保在启用特定条件（如 Smart 覆写）且启用了 TUN 模式时，将代理服务器的 IP 地址添加到路由排除列表中，以避免路由回环。
+ * 该函数会遍历配置中的所有代理节点，提取出服务器的 IP 地址（支持 IPv4/IPv6），并将其转换为对应的 CIDR 格式（IPv4: /32, IPv6: /128）。
+ *
+ * @param profile 当前的 Mihomo 配置对象
+ * @param enabled 是否需要执行排除逻辑（通常为是否启用了 Smart 核心覆写）
+ * @returns 此次新添加到排除列表中的网段/IP数组
+ */
+function ensureSmartProxyServerTunExclude(profile: IMihomoConfig, enabled: boolean): string[] {
+  if (!enabled || profile.tun?.enable !== true || !Array.isArray(profile.proxies)) return []
+
+  const routeExcludeAddress = Array.isArray(profile.tun['route-exclude-address'])
+    ? [...profile.tun['route-exclude-address']]
+    : []
+  profile.tun['route-exclude-address'] = routeExcludeAddress
+
+  const existing = new Set(routeExcludeAddress.map((address) => address.trim().toLowerCase()))
+  const added: string[] = []
+
+  for (const proxy of profile.proxies as unknown[]) {
+    if (!proxy || typeof proxy !== 'object') continue
+
+    const server = (proxy as Record<string, unknown>).server
+    if (typeof server !== 'string' && typeof server !== 'number') continue
+
+    const host = String(server)
+      .trim()
+      .replace(/^\[(.*)\]$/, '$1')
+      .toLowerCase()
+    const ipVersion = isIP(host)
+    if (!ipVersion) continue
+
+    const cidr = ipVersion === 4 ? `${host}/32` : `${host}/128`
+    if (existing.has(host) || existing.has(cidr)) continue
+
+    routeExcludeAddress.push(cidr)
+    existing.add(cidr)
+    added.push(cidr)
+  }
+
+  return added
+}
+
 export async function generateProfile(): Promise<string | undefined> {
   // 读取最新的配置
   const { current } = await getProfileConfig(true)
@@ -94,6 +138,17 @@ export async function generateProfile(): Promise<string | undefined> {
   }
 
   const profile = deepMerge(currentProfile, controledMihomoConfig)
+  // Smart Override JS 早于受控 TUN 配置合并执行；最终配置写出前再排除代理服务器 IP。
+  const addedProxyServerRouteExcludes = ensureSmartProxyServerTunExclude(
+    profile,
+    overrideIds.smart.length > 0
+  )
+  if (addedProxyServerRouteExcludes.length > 0) {
+    factoryLogger.info(
+      'Added Smart Override proxy server TUN route excludes',
+      addedProxyServerRouteExcludes
+    )
+  }
   // 确保可以拿到基础日志信息
   // 使用 debug 可以调试内核相关问题 `debug/pprof`
   if (['info', 'debug'].includes(profile['log-level']) === false) {
