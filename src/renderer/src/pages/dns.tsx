@@ -28,6 +28,7 @@ const DNS: React.FC = () => {
       'ntp.*.com',
       '+.market.xiaomi.com'
     ],
+    'fake-ip-filter-mode': fakeIPFilterMode = 'blacklist',
     'enhanced-mode': enhancedMode = 'fake-ip',
     'use-hosts': useHosts = false,
     'use-system-hosts': useSystemHosts = false,
@@ -55,6 +56,7 @@ const DNS: React.FC = () => {
     enhancedMode,
     fakeIPRange,
     fakeIPFilter,
+    fakeIPFilterMode,
     useSystemHosts,
     respectRules,
     defaultNameserver,
@@ -184,6 +186,7 @@ const DNS: React.FC = () => {
                 ipv6: values.ipv6,
                 'fake-ip-range': values.fakeIPRange,
                 'fake-ip-filter': values.fakeIPFilter,
+                'fake-ip-filter-mode': values.fakeIPFilterMode,
                 'enhanced-mode': values.enhancedMode,
                 'use-hosts': values.useHosts,
                 'use-system-hosts': values.useSystemHosts,
@@ -233,6 +236,7 @@ const DNS: React.FC = () => {
           <Tabs
             size="sm"
             color="primary"
+            classNames={{ tab: 'w-[4.5rem]' }}
             selectedKey={values.enhancedMode}
             onSelectionChange={(key: Key) => setValues({ ...values, enhancedMode: key as DnsMode })}
           >
@@ -254,9 +258,29 @@ const DNS: React.FC = () => {
                 }}
               />
             </SettingItem>
+            <SettingItem title={t('dns.fakeIp.filterMode')} divider>
+              <Tabs
+                size="sm"
+                color="primary"
+                classNames={{ tab: 'w-[3.5rem]' }}
+                selectedKey={values.fakeIPFilterMode}
+                onSelectionChange={(key: Key) =>
+                  setValues({ ...values, fakeIPFilterMode: key as FilterMode })
+                }
+              >
+                <Tab key="blacklist" title={t('dns.fakeIp.filterMode.blacklist')} />
+                <Tab key="whitelist" title={t('dns.fakeIp.filterMode.whitelist')} />
+                <Tab key="rule" title={t('dns.fakeIp.filterMode.rule')} />
+              </Tabs>
+            </SettingItem>
             <div className="flex flex-col items-stretch">
               <h3>{t('dns.fakeIp.filter')}</h3>
-              {renderListInputs('fakeIPFilter', t('dns.fakeIp.filterPlaceholder'))}
+              {renderListInputs(
+                'fakeIPFilter',
+                values.fakeIPFilterMode === 'rule'
+                  ? t('dns.fakeIp.filterPlaceholder.rule')
+                  : t('dns.fakeIp.filterPlaceholder')
+              )}
             </div>
             <Divider className="my-2" />
           </>
