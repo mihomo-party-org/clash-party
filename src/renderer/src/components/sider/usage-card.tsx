@@ -19,7 +19,7 @@ const UsageCard: React.FC<Props> = (props) => {
   const { iconOnly } = props
   const { t } = useTranslation()
   const { appConfig } = useAppConfig()
-  const { usageCardStatus = 'col-span-2', disableAnimations = false } = appConfig || {}
+  const { usageCardStatus = 'col-span-1', disableAnimations = false } = appConfig || {}
   const location = useLocation()
   const navigate = useNavigate()
   const match = location.pathname.includes('/traffic')
