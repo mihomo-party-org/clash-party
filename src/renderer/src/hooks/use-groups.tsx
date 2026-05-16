@@ -1,10 +1,10 @@
 import React, { createContext, useContext, ReactNode } from 'react'
-import useSWR from 'swr'
+import useSWR, { KeyedMutator } from 'swr'
 import { mihomoGroups } from '@renderer/utils/ipc'
 
 interface GroupsContextType {
   groups: IMihomoMixedGroup[] | undefined
-  mutate: () => void
+  mutate: KeyedMutator<IMihomoMixedGroup[]>
 }
 
 const GroupsContext = createContext<GroupsContextType | undefined>(undefined)
