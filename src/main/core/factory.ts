@@ -125,10 +125,6 @@ export async function generateProfile(): Promise<string | undefined> {
   if (!controlDns) {
     delete controledMihomoConfig.dns
     delete controledMihomoConfig.hosts
-    // 同时清空 TUN 的 DNS 劫持，避免 DNS 请求被拦截但无法处理
-    if (controledMihomoConfig.tun) {
-      controledMihomoConfig.tun = { ...controledMihomoConfig.tun, 'dns-hijack': [] }
-    }
   }
   if (!controlSniff) {
     delete controledMihomoConfig.sniffer
@@ -138,6 +134,10 @@ export async function generateProfile(): Promise<string | undefined> {
   }
 
   const profile = deepMerge(currentProfile, controledMihomoConfig)
+  // 关闭 DNS 覆写时，如果最终配置没有启用的 DNS 配置，清空 dns-hijack 避免请求被劫持但无法处理
+  if (!controlDns && profile.tun && !profile.dns?.enable) {
+    profile.tun = { ...profile.tun, 'dns-hijack': [] }
+  }
   // Smart Override JS 早于受控 TUN 配置合并执行；最终配置写出前再排除代理服务器 IP。
   const addedProxyServerRouteExcludes = ensureSmartProxyServerTunExclude(
     profile,
