@@ -1,4 +1,4 @@
-import { spawn, exec } from 'child_process'
+import { spawn, exec, execSync } from 'child_process'
 import { promisify } from 'util'
 import { stat } from 'fs/promises'
 import { existsSync } from 'fs'
@@ -53,6 +53,20 @@ export function setupPlatformSpecifics(): void {
   const electronMajor = parseInt(process.versions.electron.split('.')[0], 10) || 0
   if (process.platform === 'win32' && !exePath().startsWith('C') && electronMajor < 38) {
     app.commandLine.appendSwitch('in-process-gpu')
+  }
+
+  if (process.platform === 'win32' && isWindowsElevatedSync()) {
+    app.commandLine.appendSwitch('disable-gpu-sandbox')
+  }
+}
+
+function isWindowsElevatedSync(): boolean {
+  if (process.platform !== 'win32') return false
+  try {
+    execSync('fltmc', { stdio: 'ignore', windowsHide: true })
+    return true
+  } catch {
+    return false
   }
 }
 
