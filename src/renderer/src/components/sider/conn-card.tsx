@@ -32,6 +32,7 @@ const ConnCard: React.FC<Props> = (props) => {
   const { appConfig } = useAppConfig()
   const {
     showTraffic = false,
+    trayTrafficTextOnly = false,
     connectionCardStatus = 'col-span-2',
     disableAnimations = false,
     hideConnectionCardWave = false
@@ -61,6 +62,8 @@ const ConnCard: React.FC<Props> = (props) => {
   const hasShowTrafficRef = useRef(false)
   const showTrafficRef = useRef(showTraffic)
   showTrafficRef.current = showTraffic
+  const trayTrafficTextOnlyRef = useRef(trayTrafficTextOnly)
+  trayTrafficTextOnlyRef.current = trayTrafficTextOnly
 
   // Chart.js 配置
   const chartData = useMemo(() => {
@@ -144,7 +147,7 @@ const ConnCard: React.FC<Props> = (props) => {
       if (up !== currentUploadRef.current || down !== currentDownloadRef.current) {
         currentUploadRef.current = up
         currentDownloadRef.current = down
-        const png = renderTrafficIcon(up, down)
+        const png = renderTrafficIcon(up, down, trayTrafficTextOnlyRef.current)
         window.electron.ipcRenderer.send('trayIconUpdate', png, true)
       }
     }
@@ -164,7 +167,7 @@ const ConnCard: React.FC<Props> = (props) => {
       // 开启：立即显示默认流量图标，重置缓存以确保下次流量事件触发更新
       currentUploadRef.current = undefined
       currentDownloadRef.current = undefined
-      const png = renderTrafficIcon(0, 0)
+      const png = renderTrafficIcon(0, 0, trayTrafficTextOnly)
       window.electron.ipcRenderer.send('trayIconUpdate', png, true)
       hasShowTrafficRef.current = true
     } else if (hasShowTrafficRef.current) {
@@ -172,7 +175,7 @@ const ConnCard: React.FC<Props> = (props) => {
       window.electron.ipcRenderer.send('trayIconUpdate', trayIconBase64, false)
       hasShowTrafficRef.current = false
     }
-  }, [showTraffic])
+  }, [showTraffic, trayTrafficTextOnly])
 
   if (iconOnly) {
     return (
@@ -306,7 +309,7 @@ trafficIcon.onload = () => {
 }
 trafficIcon.src = trayIconBase64
 
-function renderTrafficIcon(upload: number, download: number): string {
+function renderTrafficIcon(upload: number, download: number, textOnly = false): string {
   if (!trafficCanvas) {
     trafficCanvas = document.createElement('canvas')
     trafficCanvas.width = ICON_W
@@ -318,13 +321,14 @@ function renderTrafficIcon(upload: number, download: number): string {
   }
   const ctx = trafficCtx
   ctx.clearRect(0, 0, ICON_W, ICON_H)
-  if (trafficIconLoaded) {
+  if (!textOnly && trafficIconLoaded) {
     ctx.drawImage(trafficIcon, 0, 0, ICON_H, ICON_H)
   }
   ctx.font = 'bold 18px "PingFang SC"'
   ctx.fillStyle = 'black'
   ctx.textAlign = 'right'
-  ctx.fillText(`${calcTraffic(upload)}/s`, ICON_W, 15)
-  ctx.fillText(`${calcTraffic(download)}/s`, ICON_W, 34)
+  const textX = textOnly ? ICON_W - 2 : ICON_W
+  ctx.fillText(`${calcTraffic(upload)}/s`, textX, 15)
+  ctx.fillText(`${calcTraffic(download)}/s`, textX, 34)
   return trafficCanvas.toDataURL('image/png')
 }

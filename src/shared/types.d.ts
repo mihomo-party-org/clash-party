@@ -330,6 +330,7 @@ interface IAppConfig {
   controlSniff?: boolean
   useDockIcon?: boolean
   showTraffic?: boolean
+  trayTrafficTextOnly?: boolean
   disableTrayIconColor?: boolean
   customTrayIcon?: string
   trayProxyGroupStyle?: 'default' | 'submenu'

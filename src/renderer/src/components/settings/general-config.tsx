@@ -54,6 +54,7 @@ const GeneralConfig: React.FC = () => {
     silentStart = false,
     useDockIcon = true,
     showTraffic = false,
+    trayTrafficTextOnly = false,
     proxyInTray = true,
     showCurrentProxyInTray = false,
     trayProxyGroupStyle = 'default',
@@ -500,6 +501,17 @@ const GeneralConfig: React.FC = () => {
                 }}
               />
             </SettingItem>
+            {platform === 'darwin' && showTraffic && (
+              <SettingItem title={t('settings.trayTrafficTextOnly')} divider>
+                <Switch
+                  size="sm"
+                  isSelected={trayTrafficTextOnly}
+                  onValueChange={async (v) => {
+                    await patchAppConfig({ trayTrafficTextOnly: v })
+                  }}
+                />
+              </SettingItem>
+            )}
           </>
         )}
         {platform === 'darwin' && (
