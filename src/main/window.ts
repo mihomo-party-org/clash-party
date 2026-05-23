@@ -1,12 +1,54 @@
 import { join } from 'path'
-import { BrowserWindow, Menu, shell } from 'electron'
+import { readFileSync, writeFileSync } from 'fs'
+import { BrowserWindow, Menu, screen, shell } from 'electron'
 import { is } from '@electron-toolkit/utils'
-import windowStateKeeper from 'electron-window-state'
 import icon from '../../resources/icon.png?asset'
 import { getAppConfig } from './config'
 import { quitWithoutCore, stopCore } from './core/manager'
 import { triggerSysProxy } from './sys/sysproxy'
 import { hideDockIcon, showDockIcon } from './resolve/tray'
+import { dataDir } from './utils/dirs'
+
+interface WindowState {
+  width: number
+  height: number
+  x?: number
+  y?: number
+  isMaximized?: boolean
+}
+
+function loadWindowState(): WindowState {
+  try {
+    const raw = readFileSync(join(dataDir(), 'window-state.json'), 'utf-8')
+    return JSON.parse(raw)
+  } catch {
+    return { width: 800, height: 600 }
+  }
+}
+
+function saveWindowState(window: BrowserWindow): void {
+  const isMaximized = window.isMaximized()
+  const state: WindowState = isMaximized
+    ? { ...loadWindowState(), isMaximized: true }
+    : { ...window.getContentBounds(), isMaximized: false }
+  writeFileSync(join(dataDir(), 'window-state.json'), JSON.stringify(state))
+}
+
+function ensureVisibleOnScreen(state: WindowState): WindowState {
+  const displays = screen.getAllDisplays()
+  const visible = displays.some((d) => {
+    const b = d.bounds
+    return (
+      state.x !== undefined &&
+      state.y !== undefined &&
+      state.x >= b.x &&
+      state.y >= b.y &&
+      state.x < b.x + b.width &&
+      state.y < b.y + b.height
+    )
+  })
+  return visible ? state : { width: state.width, height: state.height }
+}
 
 export let mainWindow: BrowserWindow | null = null
 let quitTimeout: NodeJS.Timeout | null = null
@@ -18,20 +60,17 @@ export async function createWindow(): Promise<void> {
     autoQuitWithoutCore = false,
     autoQuitWithoutCoreDelay = 60
   } = await getAppConfig()
-  const mainWindowState = windowStateKeeper({
-    defaultWidth: 800,
-    defaultHeight: 600,
-    file: 'window-state.json'
-  })
+
+  const savedState = ensureVisibleOnScreen(loadWindowState())
 
   Menu.setApplicationMenu(null)
   mainWindow = new BrowserWindow({
     minWidth: 800,
     minHeight: 600,
-    width: mainWindowState.width,
-    height: mainWindowState.height,
-    x: mainWindowState.x,
-    y: mainWindowState.y,
+    width: savedState.width,
+    height: savedState.height,
+    x: savedState.x,
+    y: savedState.y,
     show: false,
     frame: useWindowFrame,
     fullscreenable: false,
@@ -51,8 +90,11 @@ export async function createWindow(): Promise<void> {
     }
   })
 
-  mainWindowState.manage(mainWindow)
-  setupWindowEvents(mainWindow, mainWindowState, {
+  if (savedState.isMaximized) {
+    mainWindow.maximize()
+  }
+
+  setupWindowEvents(mainWindow, {
     silentStart,
     autoQuitWithoutCore,
     autoQuitWithoutCoreDelay
@@ -75,11 +117,7 @@ interface WindowConfig {
   autoQuitWithoutCoreDelay: number
 }
 
-function setupWindowEvents(
-  window: BrowserWindow,
-  windowState: ReturnType<typeof windowStateKeeper>,
-  config: WindowConfig
-): void {
+function setupWindowEvents(window: BrowserWindow, config: WindowConfig): void {
   const { silentStart, autoQuitWithoutCore, autoQuitWithoutCoreDelay } = config
 
   window.on('ready-to-show', () => {
@@ -122,17 +160,10 @@ function setupWindowEvents(
     }
   })
 
-  window.on('resized', () => {
-    windowState.saveState(window)
-  })
-
-  window.on('unmaximize', () => {
-    windowState.saveState(window)
-  })
-
-  window.on('move', () => {
-    windowState.saveState(window)
-  })
+  window.on('resized', () => saveWindowState(window))
+  window.on('moved', () => saveWindowState(window))
+  window.on('maximize', () => saveWindowState(window))
+  window.on('unmaximize', () => saveWindowState(window))
 
   window.on('session-end', async () => {
     await triggerSysProxy(false)
