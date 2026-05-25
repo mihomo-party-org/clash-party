@@ -149,9 +149,8 @@ export async function generateProfile(): Promise<string | undefined> {
       addedProxyServerRouteExcludes
     )
   }
-  // 确保可以拿到基础日志信息
-  // 使用 debug 可以调试内核相关问题 `debug/pprof`
-  if (['info', 'debug'].includes(profile['log-level']) === false) {
+
+  if (!['info', 'debug', 'warning', 'error', 'silent'].includes(profile['log-level'])) {
     profile['log-level'] = 'info'
   }
   // 删除空的局域网允许列表，避免局域网访问异常
