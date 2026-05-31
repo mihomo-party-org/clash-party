@@ -32,6 +32,12 @@ interface TunnelItem {
 
 type ProfileYaml = Record<string, unknown>
 
+const toStringValue = (value: unknown): string => {
+  if (typeof value === 'string') return value
+  if (value === null || value === undefined) return ''
+  return String(value)
+}
+
 const defaultTunnel: TunnelItem = {
   network: ['tcp'],
   address: '',
@@ -64,9 +70,9 @@ const parseTunnelString = (value: string): TunnelItem | undefined => {
 
   return {
     network,
-    address: parts[1],
-    target: parts[2],
-    proxy: parts[3] || ''
+    address: toStringValue(parts[1]),
+    target: toStringValue(parts[2]),
+    proxy: toStringValue(parts[3])
   }
 }
 
@@ -335,7 +341,9 @@ const EditTunnelsModal: React.FC<Props> = (props) => {
                   label={t('profiles.editTunnels.address')}
                   placeholder="127.0.0.1:7777"
                   value={newTunnel.address}
-                  onValueChange={(value) => setNewTunnel({ ...newTunnel, address: value })}
+                  onValueChange={(value) =>
+                    setNewTunnel((prev) => ({ ...prev, address: toStringValue(value) }))
+                  }
                 />
                 {addressInvalid && (
                   <div className="-mt-2 px-1 text-xs text-danger">
@@ -346,7 +354,9 @@ const EditTunnelsModal: React.FC<Props> = (props) => {
                   label={t('profiles.editTunnels.target')}
                   placeholder="target.com:443"
                   value={newTunnel.target}
-                  onValueChange={(value) => setNewTunnel({ ...newTunnel, target: value })}
+                  onValueChange={(value) =>
+                    setNewTunnel((prev) => ({ ...prev, target: toStringValue(value) }))
+                  }
                 />
                 {targetInvalid && (
                   <div className="-mt-2 px-1 text-xs text-danger">
@@ -357,11 +367,13 @@ const EditTunnelsModal: React.FC<Props> = (props) => {
                   label={t('profiles.editTunnels.proxy')}
                   placeholder={t('profiles.editTunnels.proxyPlaceholder')}
                   selectedKey={newTunnel.proxy || null}
-                  inputValue={newTunnel.proxy}
+                  inputValue={newTunnel.proxy || ''}
                   onSelectionChange={(key) =>
-                    setNewTunnel({ ...newTunnel, proxy: key ? String(key) : '' })
+                    setNewTunnel((prev) => ({ ...prev, proxy: toStringValue(key) }))
                   }
-                  onInputChange={(value) => setNewTunnel({ ...newTunnel, proxy: value })}
+                  onInputChange={(value) =>
+                    setNewTunnel((prev) => ({ ...prev, proxy: toStringValue(value) }))
+                  }
                 >
                   {proxyNames.map((proxy) => (
                     <AutocompleteItem key={proxy} textValue={proxy}>

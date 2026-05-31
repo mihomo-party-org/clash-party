@@ -73,6 +73,12 @@ interface RuleItem {
   offset?: number
 }
 
+const toStringValue = (value: unknown): string => {
+  if (typeof value === 'string') return value
+  if (value === null || value === undefined) return ''
+  return String(value)
+}
+
 // 内置路由规则 https://wiki.metacubex.one/config/rules/
 const ruleDefinitionsMap = new Map<
   string,
@@ -597,15 +603,15 @@ const EditRulesModal: React.FC<Props> = (props) => {
       return {
         type: 'MATCH',
         payload: '',
-        proxy: ruleParts[1],
+        proxy: toStringValue(ruleParts[1]),
         offset: offset > 0 ? offset : undefined
       }
     } else {
       const additionalParams = ruleParts.slice(3).filter((param) => param.trim() !== '') || []
       return {
-        type: ruleParts[0],
-        payload: ruleParts[1],
-        proxy: ruleParts[2],
+        type: toStringValue(ruleParts[0]),
+        payload: toStringValue(ruleParts[1]),
+        proxy: toStringValue(ruleParts[2]),
         additionalParams,
         offset: offset > 0 ? offset : undefined
       }
@@ -697,14 +703,14 @@ const EditRulesModal: React.FC<Props> = (props) => {
               return {
                 type: 'MATCH',
                 payload: '',
-                proxy: parts[1]
+                proxy: toStringValue(parts[1])
               }
             } else {
               const additionalParams = parts.slice(3).filter((param) => param.trim() !== '') || []
               return {
-                type: parts[0],
-                payload: parts[1],
-                proxy: parts[2],
+                type: toStringValue(parts[0]),
+                payload: toStringValue(parts[1]),
+                proxy: toStringValue(parts[2]),
                 additionalParams
               }
             }
@@ -1218,7 +1224,8 @@ const EditRulesModal: React.FC<Props> = (props) => {
                   label={t('profiles.editRules.ruleType')}
                   selectedKeys={[newRule.type]}
                   onSelectionChange={(keys) => {
-                    const selected = Array.from(keys)[0] as string
+                    const selected = toStringValue(Array.from(keys)[0])
+                    if (!selected) return
                     handleRuleTypeChange(selected)
                   }}
                 >
@@ -1233,7 +1240,9 @@ const EditRulesModal: React.FC<Props> = (props) => {
                     getRuleExample(newRule.type) || t('profiles.editRules.payloadPlaceholder')
                   }
                   value={newRule.payload}
-                  onValueChange={(value) => setNewRule({ ...newRule, payload: value })}
+                  onValueChange={(value) =>
+                    setNewRule((prev) => ({ ...prev, payload: toStringValue(value) }))
+                  }
                   isDisabled={newRule.type === 'MATCH'}
                   className={`${newRule.payload && newRule.type !== 'MATCH' && !isPayloadValid ? 'border-red-500 ring-1 ring-red-500 rounded-lg' : ''}`}
                 />
@@ -1241,10 +1250,14 @@ const EditRulesModal: React.FC<Props> = (props) => {
                 <Autocomplete
                   label={t('profiles.editRules.proxy')}
                   placeholder={t('profiles.editRules.proxyPlaceholder')}
-                  selectedKey={newRule.proxy}
-                  onSelectionChange={(key) => setNewRule({ ...newRule, proxy: key as string })}
-                  inputValue={newRule.proxy}
-                  onInputChange={(value) => setNewRule({ ...newRule, proxy: value })}
+                  selectedKey={newRule.proxy || null}
+                  onSelectionChange={(key) =>
+                    setNewRule((prev) => ({ ...prev, proxy: toStringValue(key) }))
+                  }
+                  inputValue={newRule.proxy || ''}
+                  onInputChange={(value) =>
+                    setNewRule((prev) => ({ ...prev, proxy: toStringValue(value) }))
+                  }
                 >
                   {proxyGroups.map((group) => (
                     <AutocompleteItem key={group} textValue={group}>
