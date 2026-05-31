@@ -580,7 +580,9 @@ const Proxies: React.FC = () => {
         </div>
       ) : (
         <div className="h-[calc(100vh-50px)]">
+          {/* Reset Virtuoso's measured sizes after toggling unavailable proxy filtering. */}
           <GroupedVirtuoso
+            key={appConfig?.hideUnavailableProxies ? 'hide-unavailable' : 'show-unavailable'}
             ref={virtuosoRef}
             groupCounts={groupCounts}
             defaultItemHeight={80}
