@@ -7,8 +7,16 @@ import path from 'path'
 import { exePath, homeDir } from '../utils/dirs'
 import { managerLogger } from '../utils/logger'
 import { checkAdminPrivileges } from '../core/admin'
+import {
+  hasRegistryAutoRunEntry,
+  hasScheduledAutoRunTask,
+  removeRegistryAutoRunEntry,
+  repairWindowsAutoRun,
+  windowsAutoRunAppName,
+  windowsAutoRunRegistryPath
+} from './windowsAutoRun'
 
-const appName = 'mihomo-party'
+const appName = windowsAutoRunAppName
 
 function getTaskXml(asAdmin: boolean): string {
   const runLevel = asAdmin ? 'HighestAvailable' : 'LeastPrivilege'
@@ -57,26 +65,7 @@ function getTaskXml(asAdmin: boolean): string {
 export async function checkAutoRun(): Promise<boolean> {
   if (process.platform === 'win32') {
     const execPromise = promisify(exec)
-    // 先检查任务计划程序
-    try {
-      const { stdout } = await execPromise(
-        `chcp 437 && %SystemRoot%\\System32\\schtasks.exe /query /tn "${appName}"`
-      )
-      if (stdout.includes(appName)) {
-        return true
-      }
-    } catch {
-      // 任务计划程序中不存在，继续检查注册表
-    }
-
-    // 检查注册表备用方案
-    try {
-      const regPath = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run'
-      const { stdout } = await execPromise(`reg query "${regPath}" /v "${appName}"`)
-      return stdout.includes(appName)
-    } catch {
-      return false
-    }
+    return (await repairWindowsAutoRun(execPromise)) || hasRegistryAutoRunEntry(execPromise)
   }
 
   if (process.platform === 'darwin') {
@@ -91,6 +80,12 @@ export async function checkAutoRun(): Promise<boolean> {
     return existsSync(path.join(homeDir, '.config', 'autostart', `${appName}.desktop`))
   }
   return false
+}
+
+export async function repairAutoRun(): Promise<void> {
+  if (process.platform === 'win32') {
+    await repairWindowsAutoRun(promisify(exec))
+  }
 }
 
 export async function enableAutoRun(): Promise<void> {
@@ -110,6 +105,7 @@ export async function enableAutoRun(): Promise<void> {
         taskCreated = true
       } catch (error) {
         await managerLogger.warn('Failed to create scheduled task as admin:', error)
+        taskCreated = await hasScheduledAutoRunTask(execPromise)
       }
     } else {
       try {
@@ -118,7 +114,7 @@ export async function enableAutoRun(): Promise<void> {
         )
         // 验证任务是否创建成功
         await new Promise((resolve) => setTimeout(resolve, 1000))
-        const created = await checkAutoRun()
+        const created = await hasScheduledAutoRunTask(execPromise)
         taskCreated = created
         if (!created) {
           await managerLogger.warn('Scheduled task creation may have failed or been rejected')
@@ -128,13 +124,16 @@ export async function enableAutoRun(): Promise<void> {
       }
     }
 
-    // 任务计划程序失败时使用注册表备用方案（适用于 Windows IoT LTSC 等受限环境）
-    if (!taskCreated) {
+    if (taskCreated) {
+      await removeRegistryAutoRunEntry(execPromise)
+    } else {
+      // 任务计划程序失败时使用注册表备用方案（适用于 Windows IoT LTSC 等受限环境）
       await managerLogger.info('Using registry fallback for auto-run')
       try {
-        const regPath = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run'
         const regValue = `"${exePath()}"`
-        await execPromise(`reg add "${regPath}" /v "${appName}" /t REG_SZ /d ${regValue} /f`)
+        await execPromise(
+          `reg add "${windowsAutoRunRegistryPath}" /v "${appName}" /t REG_SZ /d ${regValue} /f`
+        )
         await managerLogger.info('Registry auto-run entry created successfully')
       } catch (regError) {
         await managerLogger.error('Failed to create registry auto-run entry:', regError)
@@ -191,12 +190,7 @@ export async function disableAutoRun(): Promise<void> {
     }
 
     // 同时删除注册表备用方案
-    try {
-      const regPath = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run'
-      await execPromise(`reg delete "${regPath}" /v "${appName}" /f`)
-    } catch {
-      // 注册表项可能不存在，忽略错误
-    }
+    await removeRegistryAutoRunEntry(execPromise)
   }
   if (process.platform === 'darwin') {
     const execPromise = promisify(exec)

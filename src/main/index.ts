@@ -37,6 +37,7 @@ import {
   getSystemLanguage
 } from './lifecycle'
 import { configurePortableUserData } from './utils/dirs'
+import { repairAutoRun } from './sys/autoRun'
 
 function getWindowsPowerShellMajorVersion(): number | null {
   const registryKeys = [
@@ -85,6 +86,9 @@ if (process.platform === 'win32') {
 configurePortableUserData()
 
 const mainLogger = createLogger('Main')
+
+// 收敛旧版本可能同时留下的计划任务和注册表启动项
+void repairAutoRun().catch((error) => mainLogger.warn('Failed to repair auto-run entries', error))
 
 export { mainWindow, showMainWindow, triggerMainWindow, closeMainWindow }
 
