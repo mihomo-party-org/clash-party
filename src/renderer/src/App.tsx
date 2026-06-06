@@ -70,9 +70,9 @@ function mergeSiderOrder(saved: string[]): string[] {
 
 const App: React.FC = () => {
   const { t } = useTranslation()
-  useTrafficLogger()
   const { appConfig, patchAppConfig } = useAppConfig()
   const {
+    enableTrafficLogger = true,
     appTheme = 'system',
     customTheme,
     useWindowFrame = false,
@@ -95,6 +95,7 @@ const App: React.FC = () => {
       'usage'
     ]
   } = appConfig || {}
+  useTrafficLogger(enableTrafficLogger)
   const narrowWidth = platform === 'darwin' ? 70 : 60
   const [order, setOrder] = useState(mergeSiderOrder(siderOrder))
   const [siderWidthValue, setSiderWidthValue] = useState(siderWidth)

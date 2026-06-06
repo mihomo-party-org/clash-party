@@ -10,6 +10,7 @@ export const defaultConfig: IAppConfig = {
   useWindowFrame: false,
   proxyInTray: true,
   showCurrentProxyInTray: false,
+  enableTrafficLogger: true,
   trayProxyGroupStyle: 'default',
   disableTrayIconColor: false,
   customTrayIcon: '',

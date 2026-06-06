@@ -103,6 +103,7 @@
   "settings.disableAnimations": "Отключить анимационные эффекты",
   "settings.showTraffic_windows": "Показывать скорость в панели задач",
   "settings.showTraffic_mac": "Показывать скорость в строке состояния",
+  "settings.enableTrafficLogger": "Записывать данные трафика",
   "settings.showDockIcon": "Показывать значок в доке",
   "settings.useWindowFrame": "Использовать системную рамку окна",
   "settings.disableHardwareAcceleration": "Отключить аппаратное ускорение",

@@ -1,4 +1,4 @@
-import { Button, Card, CardBody, CardFooter, Progress, Tooltip } from '@heroui/react'
+import { Button, Card, CardBody, CardFooter, Progress, Switch, Tooltip } from '@heroui/react'
 import { mihomoProxyProviders } from '@renderer/utils/ipc'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { calcTraffic, calcPercent } from '@renderer/utils/calc'
@@ -18,8 +18,12 @@ interface Props {
 const UsageCard: React.FC<Props> = (props) => {
   const { iconOnly } = props
   const { t } = useTranslation()
-  const { appConfig } = useAppConfig()
-  const { usageCardStatus = 'col-span-1', disableAnimations = false } = appConfig || {}
+  const { appConfig, patchAppConfig } = useAppConfig()
+  const {
+    usageCardStatus = 'col-span-1',
+    disableAnimations = false,
+    enableTrafficLogger = true
+  } = appConfig || {}
   const location = useLocation()
   const navigate = useNavigate()
   const match = location.pathname.includes('/traffic')
@@ -43,6 +47,22 @@ const UsageCard: React.FC<Props> = (props) => {
   } = useSortable({ id: 'usage' })
 
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
+  const loggerSwitch = (
+    <div
+      className="app-nodrag flex items-center"
+      onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+    >
+      <Tooltip content={t('settings.enableTrafficLogger')} placement="top">
+        <Switch
+          size="sm"
+          aria-label={t('settings.enableTrafficLogger')}
+          isSelected={enableTrafficLogger}
+          onValueChange={(v) => patchAppConfig({ enableTrafficLogger: v })}
+        />
+      </Tooltip>
+    </div>
+  )
 
   if (iconOnly) {
     return (
@@ -146,12 +166,13 @@ const UsageCard: React.FC<Props> = (props) => {
               </div>
             </div>
           </CardBody>
-          <CardFooter className="pt-1">
+          <CardFooter className="pt-1 justify-between gap-2">
             <h3
               className={`text-md font-bold sider-card-title ${match ? 'text-primary-foreground' : 'text-foreground'}`}
             >
               {t('sider.cards.traffic')}
             </h3>
+            {loggerSwitch}
           </CardFooter>
         </Card>
       ) : (
@@ -163,7 +184,7 @@ const UsageCard: React.FC<Props> = (props) => {
           className={`${match ? 'bg-primary' : 'hover:bg-primary/30'} ${disableAnimations ? '' : `motion-reduce:transition-transform-background ${isDragging ? 'scale-[0.95] tap-highlight-transparent' : ''}`}`}
         >
           <CardBody className="pb-1 pt-0 px-0">
-            <div className="flex justify-between">
+            <div className="flex justify-between items-start">
               <Button
                 isIconOnly
                 className="bg-transparent pointer-events-none"
@@ -174,6 +195,7 @@ const UsageCard: React.FC<Props> = (props) => {
                   className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[24px] font-bold`}
                 />
               </Button>
+              <div className="pt-2 pr-2">{loggerSwitch}</div>
             </div>
           </CardBody>
           <CardFooter className="pt-1">

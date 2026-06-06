@@ -308,6 +308,7 @@ interface IAppConfig {
   useWindowFrame: boolean
   proxyInTray: boolean
   showCurrentProxyInTray: boolean
+  enableTrafficLogger?: boolean
   siderOrder: string[]
   siderWidth: number
   appTheme: AppTheme

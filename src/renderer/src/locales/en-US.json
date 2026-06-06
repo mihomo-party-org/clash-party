@@ -106,6 +106,7 @@
   "settings.disableAnimations": "Disable Animation Effects",
   "settings.showTraffic_windows": "Show Network Speed in Taskbar",
   "settings.showTraffic_mac": "Show Network Speed in Status Bar",
+  "settings.enableTrafficLogger": "Record Traffic Usage Data",
   "settings.hideConnectionCardWave": "Connection Card Pure Number Display",
   "settings.showDockIcon": "Show Dock Icon",
   "settings.useWindowFrame": "Use System Title Bar",

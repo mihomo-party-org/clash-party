@@ -106,6 +106,7 @@
   "settings.disableAnimations": "禁用动画效果",
   "settings.showTraffic_windows": "在任务栏显示网速",
   "settings.showTraffic_mac": "在状态栏显示网速",
+  "settings.enableTrafficLogger": "记录用量数据",
   "settings.hideConnectionCardWave": "连接卡片纯数字显示",
   "settings.showDockIcon": "显示 Dock 图标",
   "settings.useWindowFrame": "使用系统标题栏",

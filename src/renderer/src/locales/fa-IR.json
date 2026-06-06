@@ -101,6 +101,7 @@
   "settings.disableAnimations": "غیرفعال کردن جلوه‌های انیمیشن",
   "settings.showTraffic_windows": "نمایش سرعت شبکه در نوار وظیفه",
   "settings.showTraffic_mac": "نمایش سرعت شبکه در نوار وضعیت",
+  "settings.enableTrafficLogger": "ثبت داده‌های مصرف ترافیک",
   "settings.showDockIcon": "نمایش آیکون Dock",
   "settings.useWindowFrame": "استفاده از نوار عنوان سیستم",
   "settings.disableHardwareAcceleration": "غیرفعال کردن شتاب سخت‌افزاری",
