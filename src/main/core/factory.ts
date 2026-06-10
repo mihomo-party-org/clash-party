@@ -13,6 +13,7 @@ import {
   getOverrideConfig,
   getAppConfig
 } from '../config'
+import { defaultFakeIpFilter, legacyDefaultFakeIpFilter } from '../../shared/fakeIp'
 import {
   mihomoProfileWorkDir,
   mihomoWorkConfigPath,
@@ -104,6 +105,19 @@ function ensureSmartProxyServerTunExclude(profile: IMihomoConfig, enabled: boole
   return added
 }
 
+// 仅升级未改动过的旧默认值，避免覆盖用户自定义的 fake-ip-filter。
+function shouldUpgradeLegacyFakeIpFilter(profile: IMihomoConfig): boolean {
+  if (profile.dns?.enable === false || profile.dns?.['enhanced-mode'] !== 'fake-ip') return false
+
+  const fakeIpFilter = profile.dns?.['fake-ip-filter']
+  if (!Array.isArray(fakeIpFilter)) return false
+
+  return (
+    fakeIpFilter.length === legacyDefaultFakeIpFilter.length &&
+    fakeIpFilter.every((domain, index) => domain === legacyDefaultFakeIpFilter[index])
+  )
+}
+
 export async function generateProfile(): Promise<string | undefined> {
   // 读取最新的配置
   const { current } = await getProfileConfig(true)
@@ -134,6 +148,12 @@ export async function generateProfile(): Promise<string | undefined> {
   }
 
   const profile = deepMerge(currentProfile, controledMihomoConfig)
+  if (shouldUpgradeLegacyFakeIpFilter(profile)) {
+    profile.dns = {
+      ...profile.dns,
+      'fake-ip-filter': defaultFakeIpFilter
+    }
+  }
   // 关闭 DNS 覆写时，如果最终配置没有启用的 DNS 配置，清空 dns-hijack 避免请求被劫持但无法处理
   if (!controlDns && profile.tun && !profile.dns?.enable) {
     profile.tun = { ...profile.tun, 'dns-hijack': [] }
