@@ -248,8 +248,8 @@ function spawnCoreProcess(config: CoreConfig): ChildProcess {
   }
 
   if (!detached) {
-    const stdout = createCappedLogWritableStream(coreLogPath())
-    const stderr = createCappedLogWritableStream(coreLogPath())
+    const stdout = createCappedLogWritableStream(coreLogPath)
+    const stderr = createCappedLogWritableStream(coreLogPath)
     proc.stdout?.pipe(stdout)
     proc.stderr?.pipe(stderr)
   }

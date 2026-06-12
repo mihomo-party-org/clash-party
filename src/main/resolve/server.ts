@@ -110,8 +110,8 @@ export async function startSubStoreBackendServer(): Promise<void> {
     subStorePort = await findAvailablePort(38324)
     const icon = nativeImage.createFromPath(subStoreIcon)
     icon.toDataURL()
-    const stdout = createCappedLogWritableStream(substoreLogPath())
-    const stderr = createCappedLogWritableStream(substoreLogPath())
+    const stdout = createCappedLogWritableStream(substoreLogPath)
+    const stderr = createCappedLogWritableStream(substoreLogPath)
     const env = {
       SUB_STORE_BACKEND_API_PORT: subStorePort.toString(),
       SUB_STORE_BACKEND_API_HOST: subStoreHost,
