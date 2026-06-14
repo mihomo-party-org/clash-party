@@ -1,6 +1,6 @@
 import { tmpdir } from 'os'
 import { mkdir, readFile, rm, writeFile } from 'fs/promises'
-import { exec } from 'child_process'
+import { exec, execFile } from 'child_process'
 import { existsSync } from 'fs'
 import { promisify } from 'util'
 import path from 'path'
@@ -57,6 +57,7 @@ function getTaskXml(asAdmin: boolean): string {
 export async function checkAutoRun(): Promise<boolean> {
   if (process.platform === 'win32') {
     const execPromise = promisify(exec)
+    const execFilePromise = promisify(execFile)
     // 先检查任务计划程序
     try {
       const { stdout } = await execPromise(
@@ -72,7 +73,7 @@ export async function checkAutoRun(): Promise<boolean> {
     // 检查注册表备用方案
     try {
       const regPath = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run'
-      const { stdout } = await execPromise(`reg query "${regPath}" /v "${appName}"`)
+      const { stdout } = await execFilePromise('reg', ['query', regPath, '/v', appName])
       return stdout.includes(appName)
     } catch {
       return false
@@ -96,11 +97,19 @@ export async function checkAutoRun(): Promise<boolean> {
 export async function enableAutoRun(): Promise<void> {
   if (process.platform === 'win32') {
     const execPromise = promisify(exec)
+    const execFilePromise = promisify(execFile)
+    const regPath = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run'
     const taskFilePath = path.join(tmpdir(), `${appName}.xml`)
     const isAdmin = await checkAdminPrivileges()
     await writeFile(taskFilePath, Buffer.from(`\ufeff${getTaskXml(isAdmin)}`, 'utf-16le'))
 
     let taskCreated = false
+
+    try {
+      await execFilePromise('reg', ['delete', regPath, '/v', appName, '/f'])
+    } catch {
+      // ignore
+    }
 
     if (isAdmin) {
       try {
@@ -118,13 +127,23 @@ export async function enableAutoRun(): Promise<void> {
         )
         // 验证任务是否创建成功
         await new Promise((resolve) => setTimeout(resolve, 1000))
-        const created = await checkAutoRun()
+      } catch {
+        await managerLogger.info('Scheduled task creation failed, trying registry fallback')
+      }
+    }
+
+    if (!taskCreated) {
+      try {
+        const { stdout } = await execPromise(
+          `chcp 437 && %SystemRoot%\\System32\\schtasks.exe /query /tn "${appName}"`
+        )
+        const created = stdout.includes(appName)
         taskCreated = created
         if (!created) {
           await managerLogger.warn('Scheduled task creation may have failed or been rejected')
         }
       } catch {
-        await managerLogger.info('Scheduled task creation failed, trying registry fallback')
+        // ignore
       }
     }
 
@@ -132,9 +151,18 @@ export async function enableAutoRun(): Promise<void> {
     if (!taskCreated) {
       await managerLogger.info('Using registry fallback for auto-run')
       try {
-        const regPath = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run'
         const regValue = `"${exePath()}"`
-        await execPromise(`reg add "${regPath}" /v "${appName}" /t REG_SZ /d ${regValue} /f`)
+        await execFilePromise('reg', [
+          'add',
+          regPath,
+          '/v',
+          appName,
+          '/t',
+          'REG_SZ',
+          '/d',
+          regValue,
+          '/f'
+        ])
         await managerLogger.info('Registry auto-run entry created successfully')
       } catch (regError) {
         await managerLogger.error('Failed to create registry auto-run entry:', regError)
@@ -175,6 +203,7 @@ Categories=Utility;
 export async function disableAutoRun(): Promise<void> {
   if (process.platform === 'win32') {
     const execPromise = promisify(exec)
+    const execFilePromise = promisify(execFile)
     const isAdmin = await checkAdminPrivileges()
 
     // 删除任务计划程序中的任务
@@ -193,7 +222,7 @@ export async function disableAutoRun(): Promise<void> {
     // 同时删除注册表备用方案
     try {
       const regPath = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run'
-      await execPromise(`reg delete "${regPath}" /v "${appName}" /f`)
+      await execFilePromise('reg', ['delete', regPath, '/v', appName, '/f'])
     } catch {
       // 注册表项可能不存在，忽略错误
     }
