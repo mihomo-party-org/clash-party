@@ -9,6 +9,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { mihomoHotReloadConfig } from '@renderer/utils/ipc'
 import React, { Key, ReactNode, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { defaultFakeIpFilter } from '../../../shared/fakeIp'
 
 const DNS: React.FC = () => {
   const { t } = useTranslation()
@@ -20,14 +21,7 @@ const DNS: React.FC = () => {
     enable = true,
     ipv6 = false,
     'fake-ip-range': fakeIPRange = '198.18.0.1/16',
-    'fake-ip-filter': fakeIPFilter = [
-      '*',
-      '+.lan',
-      '+.local',
-      'time.*.com',
-      'ntp.*.com',
-      '+.market.xiaomi.com'
-    ],
+    'fake-ip-filter': fakeIPFilter = defaultFakeIpFilter,
     'fake-ip-filter-mode': fakeIPFilterMode = 'blacklist',
     'enhanced-mode': enhancedMode = 'fake-ip',
     'use-hosts': useHosts = false,

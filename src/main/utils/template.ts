@@ -1,3 +1,5 @@
+import { defaultFakeIpFilter } from '../../shared/fakeIp'
+
 export const defaultConfig: IAppConfig = {
   core: 'mihomo',
   enableSmartCore: false,
@@ -108,7 +110,7 @@ export const defaultControledMihomoConfig: Partial<IMihomoConfig> = {
     ipv6: false,
     'enhanced-mode': 'fake-ip',
     'fake-ip-range': '198.18.0.1/16',
-    'fake-ip-filter': ['*', '+.lan', '+.local', 'time.*.com', 'ntp.*.com', '+.market.xiaomi.com'],
+    'fake-ip-filter': defaultFakeIpFilter,
     'use-hosts': false,
     'use-system-hosts': false,
     'respect-rules': false,
