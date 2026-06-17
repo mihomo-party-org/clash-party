@@ -90,7 +90,7 @@ export async function createWindow(): Promise<void> {
     }
   })
 
-  if (savedState.isMaximized) {
+  if (savedState.isMaximized && !silentStart) {
     mainWindow.maximize()
   }
 
