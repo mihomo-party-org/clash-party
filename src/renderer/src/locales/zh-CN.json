@@ -481,6 +481,7 @@
   "tun.dnsHijack": "DNS 劫持",
   "tun.excludeAddress.title": "排除自定义网段",
   "tun.excludeAddress.placeholder": "例：172.20.0.0/16",
+  "tun.excludeAddress.invalid": "请输入有效的 CIDR 网段，例如 172.20.0.0/16",
   "tun.notifications.coreAuthSuccess": "内核授权成功",
   "tun.notifications.firewallResetSuccess": "防火墙重设成功",
   "tun.permissions.title": "需要管理员权限",

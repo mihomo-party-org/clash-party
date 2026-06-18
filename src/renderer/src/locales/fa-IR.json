@@ -456,6 +456,7 @@
   "tun.dnsHijack": "ربایش DNS",
   "tun.excludeAddress.title": "مستثنی کردن شبکه‌های سفارشی",
   "tun.excludeAddress.placeholder": "مثال: 172.20.0.0/16",
+  "tun.excludeAddress.invalid": "یک شبکه CIDR معتبر وارد کنید، مانند 172.20.0.0/16",
   "tun.notifications.coreAuthSuccess": "مجوزدهی به هسته با موفقیت انجام شد",
   "tun.notifications.firewallResetSuccess": "بازنشانی دیوار آتش با موفقیت انجام شد",
   "tun.error.tunPermissionDenied": "راه‌اندازی رابط TUN با شکست مواجه شد، لطفا به صورت دستی به هسته مجوز دهید",

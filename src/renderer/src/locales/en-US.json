@@ -481,6 +481,7 @@
   "tun.dnsHijack": "DNS Hijack",
   "tun.excludeAddress.title": "Exclude Custom Networks",
   "tun.excludeAddress.placeholder": "Example: 172.20.0.0/16",
+  "tun.excludeAddress.invalid": "Enter a valid CIDR network, for example 172.20.0.0/16",
   "tun.notifications.coreAuthSuccess": "Core Authorization Successful",
   "tun.notifications.firewallResetSuccess": "Firewall Reset Successful",
   "tun.permissions.title": "Administrator Privileges Required",

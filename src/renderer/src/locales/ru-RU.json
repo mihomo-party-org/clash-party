@@ -460,6 +460,7 @@
   "tun.dnsHijack": "Перехват DNS",
   "tun.excludeAddress.title": "Исключить пользовательские сети",
   "tun.excludeAddress.placeholder": "Пример: 172.20.0.0/16",
+  "tun.excludeAddress.invalid": "Введите корректную CIDR-сеть, например 172.20.0.0/16",
   "tun.notifications.coreAuthSuccess": "Авторизация ядра успешна",
   "tun.notifications.firewallResetSuccess": "Брандмауэр успешно сброшен",
   "tun.error.tunPermissionDenied": "Ошибка запуска TUN, попробуйте вручную предоставить разрешения ядру",

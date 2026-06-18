@@ -11,6 +11,7 @@ import {
   setupFirewall
 } from '@renderer/utils/ipc'
 import { platform } from '@renderer/utils/init'
+import { ipCIDRValidator } from '@renderer/utils/validate'
 import React, { Key, useState } from 'react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { MdDeleteForever } from 'react-icons/md'
@@ -50,6 +51,20 @@ const Tun: React.FC = () => {
     originSetValues(v)
     setChanged(true)
   }
+  const normalizedRouteExcludeAddress = values.routeExcludeAddress
+    .map((address) => address.trim())
+    .filter(Boolean)
+  const hasInvalidExcludeAddress = normalizedRouteExcludeAddress.some(
+    (address) => !ipCIDRValidator(address)
+  )
+  const excludeAddressInputs = hasInvalidExcludeAddress
+    ? values.routeExcludeAddress
+    : [...values.routeExcludeAddress, '']
+  const getExcludeAddressError = (address: string): string | undefined => {
+    const trimmedAddress = address.trim()
+    if (trimmedAddress === '' || ipCIDRValidator(trimmedAddress)) return undefined
+    return t('tun.excludeAddress.invalid')
+  }
 
   const handleExcludeAddressChange = (value: string, index: number): void => {
     const newExcludeAddresses = [...values.routeExcludeAddress]
@@ -68,11 +83,19 @@ const Tun: React.FC = () => {
   }
 
   const onSave = async (patch: Partial<IMihomoConfig>): Promise<void> => {
+    if (hasInvalidExcludeAddress) return
+
     try {
-      await patchControledMihomoConfig(patch)
+      await patchControledMihomoConfig({
+        ...patch,
+        tun: {
+          ...patch.tun,
+          'route-exclude-address': normalizedRouteExcludeAddress
+        }
+      })
       await mihomoHotReloadConfig()
     } catch (e) {
-      showErrorSync(e, t('common.error.configSaveFailed'))
+      showErrorSync(e, t('common.error.updateCoreConfigFailed'))
     } finally {
       setChanged(false)
     }
@@ -88,6 +111,7 @@ const Tun: React.FC = () => {
               size="sm"
               className="app-nodrag"
               color="primary"
+              isDisabled={hasInvalidExcludeAddress}
               onPress={() =>
                 onSave({
                   tun: {
@@ -251,13 +275,15 @@ const Tun: React.FC = () => {
           </SettingItem>
           <div className="flex flex-col items-stretch">
             <h3 className="mb-2">{t('tun.excludeAddress.title')}</h3>
-            {[...values.routeExcludeAddress, ''].map((address, index) => (
+            {excludeAddressInputs.map((address, index) => (
               <div key={index} className="mb-2 flex">
                 <Input
                   fullWidth
                   size="sm"
                   placeholder={t('tun.excludeAddress.placeholder')}
                   value={address}
+                  isInvalid={Boolean(getExcludeAddressError(address))}
+                  errorMessage={getExcludeAddressError(address)}
                   onValueChange={(v) => handleExcludeAddressChange(v, index)}
                 />
                 {index < values.routeExcludeAddress.length && (
