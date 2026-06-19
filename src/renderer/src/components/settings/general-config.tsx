@@ -69,6 +69,7 @@ const GeneralConfig: React.FC = () => {
     useWindowFrame = false,
     autoQuitWithoutCore = false,
     autoQuitWithoutCoreDelay = 60,
+    autoQuitWithoutCoreMode = 'core',
     customTheme = 'default.css',
     envType = [platform === 'win32' ? 'powershell' : 'bash'],
     autoCheckUpdate,
@@ -237,27 +238,49 @@ const GeneralConfig: React.FC = () => {
           />
         </SettingItem>
         {autoQuitWithoutCore && (
-          <SettingItem title={t('settings.autoQuitWithoutCoreDelay')} divider>
-            <div className="flex items-center gap-2">
-              <Input
+          <>
+            <SettingItem title={t('settings.autoQuitWithoutCoreMode')} divider>
+              <Tabs
                 size="sm"
-                className="w-25"
-                type="number"
-                value={autoQuitWithoutCoreDelay.toString()}
-                onValueChange={async (v: string) => {
-                  const num = parseInt(v)
-                  await patchAppConfig({ autoQuitWithoutCoreDelay: num })
+                color="primary"
+                selectedKey={autoQuitWithoutCoreMode}
+                onSelectionChange={async (key) => {
+                  const mode = key as 'core' | 'tray'
+                  await patchAppConfig({ autoQuitWithoutCoreMode: mode })
+                  if (mode === 'core' && autoQuitWithoutCoreDelay < 5) {
+                    await patchAppConfig({ autoQuitWithoutCoreDelay: 5 })
+                  }
                 }}
-                onBlur={async (e) => {
-                  let num = parseInt(e.target.value)
-                  if (isNaN(num)) num = 5
-                  if (num < 5) num = 5
-                  await patchAppConfig({ autoQuitWithoutCoreDelay: num })
-                }}
-              />
-              <span className="text-default-500">{t('common.seconds')}</span>
-            </div>
-          </SettingItem>
+              >
+                <Tab key="core" title={t('settings.autoQuitWithoutCoreModeCore')} />
+                <Tab key="tray" title={t('settings.autoQuitWithoutCoreModeTray')} />
+              </Tabs>
+            </SettingItem>
+            <SettingItem title={t('settings.autoQuitWithoutCoreDelay')} divider>
+              <div className="flex items-center gap-2">
+                <Input
+                  size="sm"
+                  className="w-25"
+                  type="number"
+                  value={autoQuitWithoutCoreDelay.toString()}
+                  onValueChange={async (v: string) => {
+                    const num = parseInt(v)
+                    if (!isNaN(num)) {
+                      await patchAppConfig({ autoQuitWithoutCoreDelay: num })
+                    }
+                  }}
+                  onBlur={async (e) => {
+                    const minDelay = autoQuitWithoutCoreMode === 'core' ? 5 : 0
+                    let num = parseInt(e.target.value)
+                    if (isNaN(num)) num = minDelay
+                    if (num < minDelay) num = minDelay
+                    await patchAppConfig({ autoQuitWithoutCoreDelay: num })
+                  }}
+                />
+                <span className="text-default-500">{t('common.seconds')}</span>
+              </div>
+            </SettingItem>
+          </>
         )}
         <SettingItem
           title={t('settings.envType')}

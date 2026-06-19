@@ -52,13 +52,26 @@ function ensureVisibleOnScreen(state: WindowState): WindowState {
 
 export let mainWindow: BrowserWindow | null = null
 let quitTimeout: NodeJS.Timeout | null = null
+let createWindowPromise: Promise<void> | null = null
+type AutoQuitWithoutCoreMode = NonNullable<IAppConfig['autoQuitWithoutCoreMode']>
 
 export async function createWindow(): Promise<void> {
+  if (mainWindow && !mainWindow.isDestroyed()) return
+  if (createWindowPromise) return createWindowPromise
+
+  createWindowPromise = createWindowInternal().finally(() => {
+    createWindowPromise = null
+  })
+  return createWindowPromise
+}
+
+async function createWindowInternal(): Promise<void> {
   const {
     useWindowFrame = false,
     silentStart = false,
     autoQuitWithoutCore = false,
-    autoQuitWithoutCoreDelay = 60
+    autoQuitWithoutCoreDelay = 60,
+    autoQuitWithoutCoreMode = 'core'
   } = await getAppConfig()
 
   const savedState = ensureVisibleOnScreen(loadWindowState())
@@ -97,7 +110,8 @@ export async function createWindow(): Promise<void> {
   setupWindowEvents(mainWindow, {
     silentStart,
     autoQuitWithoutCore,
-    autoQuitWithoutCoreDelay
+    autoQuitWithoutCoreDelay,
+    autoQuitWithoutCoreMode
   })
 
   if (is.dev) {
@@ -115,14 +129,16 @@ interface WindowConfig {
   silentStart: boolean
   autoQuitWithoutCore: boolean
   autoQuitWithoutCoreDelay: number
+  autoQuitWithoutCoreMode: AutoQuitWithoutCoreMode
 }
 
 function setupWindowEvents(window: BrowserWindow, config: WindowConfig): void {
-  const { silentStart, autoQuitWithoutCore, autoQuitWithoutCoreDelay } = config
+  const { silentStart, autoQuitWithoutCore, autoQuitWithoutCoreDelay, autoQuitWithoutCoreMode } =
+    config
 
   window.on('ready-to-show', () => {
     if (autoQuitWithoutCore && !window.isVisible()) {
-      scheduleQuitWithoutCore(autoQuitWithoutCoreDelay)
+      scheduleQuitWithoutCore(autoQuitWithoutCoreDelay, autoQuitWithoutCoreMode)
     }
 
     // 开发模式下始终显示窗口
@@ -148,6 +164,7 @@ function setupWindowEvents(window: BrowserWindow, config: WindowConfig): void {
     const {
       autoQuitWithoutCore = false,
       autoQuitWithoutCoreDelay = 60,
+      autoQuitWithoutCoreMode = 'core',
       useDockIcon = true
     } = await getAppConfig()
 
@@ -156,7 +173,13 @@ function setupWindowEvents(window: BrowserWindow, config: WindowConfig): void {
     }
 
     if (autoQuitWithoutCore) {
-      scheduleQuitWithoutCore(autoQuitWithoutCoreDelay)
+      scheduleQuitWithoutCore(autoQuitWithoutCoreDelay, autoQuitWithoutCoreMode)
+    }
+  })
+
+  window.on('closed', () => {
+    if (mainWindow === window) {
+      mainWindow = null
     }
   })
 
@@ -176,9 +199,20 @@ function setupWindowEvents(window: BrowserWindow, config: WindowConfig): void {
   })
 }
 
-function scheduleQuitWithoutCore(delaySeconds: number): void {
+function scheduleQuitWithoutCore(
+  delaySeconds: number,
+  mode: AutoQuitWithoutCoreMode = 'core'
+): void {
   clearQuitTimeout()
   quitTimeout = setTimeout(async () => {
+    if (mode === 'tray') {
+      if (mainWindow && !mainWindow.isVisible()) {
+        mainWindow.destroy()
+        hideDockIcon()
+      }
+      return
+    }
+
     await quitWithoutCore()
   }, delaySeconds * 1000)
 }
@@ -191,7 +225,10 @@ export function clearQuitTimeout(): void {
 }
 
 export function triggerMainWindow(force?: boolean): void {
-  if (!mainWindow) return
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    showMainWindow()
+    return
+  }
 
   getAppConfig()
     .then(({ triggerMainWindowBehavior = 'toggle' }) => {
@@ -209,11 +246,20 @@ export function triggerMainWindow(force?: boolean): void {
 }
 
 export function showMainWindow(): void {
-  if (mainWindow) {
+  clearQuitTimeout()
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
     clearQuitTimeout()
     mainWindow.show()
     mainWindow.focusOnWebView()
+    return
   }
+
+  void createWindow().then(() => {
+    clearQuitTimeout()
+    mainWindow?.show()
+    mainWindow?.focusOnWebView()
+  })
 }
 
 export function closeMainWindow(): void {

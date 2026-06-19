@@ -90,6 +90,31 @@ function hasCoreProcess(): boolean {
   return Boolean(child && !child.killed && child.exitCode === null && child.signalCode === null)
 }
 
+async function stopPidFileCore(): Promise<void> {
+  const pidPath = path.join(dataDir(), 'core.pid')
+  if (!existsSync(pidPath)) return
+
+  const pidString = await readFile(pidPath, 'utf-8').catch(() => '')
+  const pid = parseInt(pidString.trim())
+  if (!isNaN(pid)) {
+    try {
+      process.kill(pid, 0)
+      process.kill(pid, 'SIGINT')
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      try {
+        process.kill(pid, 0)
+        process.kill(pid, 'SIGKILL')
+      } catch {
+        // ignore
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  await rm(pidPath).catch(() => {})
+}
+
 // 初始化核心文件监听
 export function initCoreWatcher(): void {
   if (coreWatcher) return
@@ -183,18 +208,8 @@ async function prepareCore(detached: boolean, skipStop = false): Promise<CoreCon
 
   const { 'log-level': logLevel = 'info' as LogLevel, tun } = mihomoConfig
 
-  // 清理旧进程
-  const pidPath = path.join(dataDir(), 'core.pid')
-  if (existsSync(pidPath)) {
-    const pid = parseInt(await readFile(pidPath, 'utf-8'))
-    try {
-      process.kill(pid, 'SIGINT')
-    } catch {
-      // ignore
-    } finally {
-      await rm(pidPath)
-    }
-  }
+  // 清理轻量模式遗留的后台核心
+  await stopPidFileCore()
 
   // 管理 Smart 内核覆写配置
   await manageSmartOverride()
@@ -416,6 +431,7 @@ export async function stopCore(force = false): Promise<void> {
     managerLogger.warn('Failed to refresh axios instance:', error)
   }
 
+  await stopPidFileCore()
   await cleanupSocketFile()
 }
 
@@ -477,18 +493,7 @@ export async function keepCoreAlive(): Promise<void> {
 // 退出但保持核心运行
 export async function quitWithoutCore(): Promise<void> {
   managerLogger.info(`Starting lightweight mode on platform: ${process.platform}`)
-
-  try {
-    await startCore(true)
-    if (child?.pid) {
-      await writeFile(path.join(dataDir(), 'core.pid'), child.pid.toString())
-      managerLogger.info(`Core started in lightweight mode with PID: ${child.pid}`)
-    }
-  } catch (e) {
-    managerLogger.error('Failed to start core in lightweight mode:', e)
-    safeShowErrorBox('mihomo.error.coreStartFailed', `${e}`)
-  }
-
+  await keepCoreAlive()
   await startMonitor(true)
   managerLogger.info('Exiting main process, core will continue running in background')
   app.exit()
