@@ -658,7 +658,7 @@ jobs:
       - name: Submit to Winget
         uses: vedantmgoyal9/winget-releaser@main
         with:
-          identifier: Mihomo-Party.Mihomo-Party
+          identifier: Mihomo-Party.Clash-Party
           version: ${{env.VERSION}}
           release-tag: v${{env.VERSION}}
           installers-regex: 'clash-party-windows-.*setup\.exe$'
