@@ -6,7 +6,8 @@ import {
   Dropdown,
   DropdownItem,
   DropdownMenu,
-  DropdownTrigger
+  DropdownTrigger,
+  Switch
 } from '@heroui/react'
 import { toast } from '@renderer/components/base/toast'
 import { IoMdMore, IoMdRefresh } from 'react-icons/io'
@@ -41,6 +42,7 @@ const OverrideItem: React.FC<Props> = (props) => {
   const { info, addOverrideItem, removeOverrideItem, mutateOverrideConfig, updateOverrideItem } =
     props
   const [updating, setUpdating] = useState(false)
+  const [savingGlobal, setSavingGlobal] = useState(false)
   const [openInfoEditor, setOpenInfoEditor] = useState(false)
   const [openFileEditor, setOpenFileEditor] = useState(false)
   const [openLog, setOpenLog] = useState(false)
@@ -131,6 +133,22 @@ const OverrideItem: React.FC<Props> = (props) => {
     setDropdownOpen(true)
   }
 
+  const stopCardInteraction = (e: React.SyntheticEvent): void => {
+    e.stopPropagation()
+  }
+
+  const handleGlobalChange = async (global: boolean): Promise<void> => {
+    setSavingGlobal(true)
+    try {
+      await updateOverrideItem({ ...info, global })
+      await mihomoHotReloadConfig()
+    } catch (e) {
+      toast.error(String(e))
+    } finally {
+      setSavingGlobal(false)
+    }
+  }
+
   return (
     <div
       className="grid col-span-1"
@@ -162,7 +180,11 @@ const OverrideItem: React.FC<Props> = (props) => {
         className="cursor-pointer"
         onContextMenu={handleContextMenu}
         onDoubleClick={(e) => {
-          if ((e.target as Element)?.closest('button, [role="menu"], [role="menuitem"]')) {
+          if (
+            (e.target as Element)?.closest(
+              '[data-interactive="true"], button, [role="menu"], [role="menuitem"]'
+            )
+          ) {
             return
           }
           setOpenFileEditor(true)
@@ -184,7 +206,7 @@ const OverrideItem: React.FC<Props> = (props) => {
                     size="sm"
                     variant="light"
                     color="default"
-                    disabled={updating}
+                    disabled={updating || savingGlobal}
                     onPress={async () => {
                       setUpdating(true)
                       try {
@@ -225,22 +247,31 @@ const OverrideItem: React.FC<Props> = (props) => {
                 </Dropdown>
               </div>
             </div>
-            <div className="flex justify-between">
-              <div className={`mt-2 flex justify-start`}>
-                {info.global && (
-                  <Chip size="sm" variant="dot" color="primary" className="mr-2">
-                    {t('override.labels.global')}
-                  </Chip>
-                )}
+            <div className="mt-2 flex items-center justify-between gap-2">
+              <div className="flex items-center justify-start">
                 <Chip size="sm" variant="bordered">
                   {info.ext === 'yaml' ? 'YAML' : 'JavaScript'}
                 </Chip>
               </div>
-              {info.type === 'remote' && (
-                <div className={`mt-2 flex justify-end`}>
-                  <small>{dayjs(info.updated).fromNow()}</small>
+              <div className="flex items-center justify-end gap-3">
+                {info.type === 'remote' && <small>{dayjs(info.updated).fromNow()}</small>}
+                <div
+                  data-interactive="true"
+                  className="flex items-center gap-2"
+                  onClick={stopCardInteraction}
+                  onDoubleClick={stopCardInteraction}
+                  onPointerDown={stopCardInteraction}
+                >
+                  <span className="text-xs text-default-500">{t('override.editInfo.global')}</span>
+                  <Switch
+                    size="sm"
+                    aria-label={t('override.editInfo.global')}
+                    isSelected={Boolean(info.global)}
+                    isDisabled={updating || savingGlobal}
+                    onValueChange={handleGlobalChange}
+                  />
                 </div>
-              )}
+              </div>
             </div>
           </CardBody>
         </div>
