@@ -8,6 +8,8 @@ import {
   Button,
   Input,
   Switch,
+  Select,
+  SelectItem,
   Dropdown,
   DropdownTrigger,
   DropdownMenu,
@@ -16,7 +18,12 @@ import {
 import { toast } from '@renderer/components/base/toast'
 import React, { useState } from 'react'
 import { useOverrideConfig } from '@renderer/hooks/use-override-config'
-import { mihomoHotReloadConfig, addProfileUpdater } from '@renderer/utils/ipc'
+import {
+  mihomoHotReloadConfig,
+  addProfileUpdater,
+  getFilePath,
+  readTextFile
+} from '@renderer/utils/ipc'
 import { MdDeleteForever } from 'react-icons/md'
 import { FaPlus } from 'react-icons/fa6'
 import { useTranslation } from 'react-i18next'
@@ -25,11 +32,13 @@ import SettingItem from '../base/base-setting-item'
 
 interface Props {
   item: IProfileItem
-  updateProfileItem: (item: IProfileItem) => Promise<void>
+  mode?: 'edit' | 'import'
+  updateProfileItem?: (item: IProfileItem) => Promise<void>
+  addProfileItem?: (item: Partial<IProfileItem>) => Promise<void>
   onClose: () => void
 }
 const EditInfoModal: React.FC<Props> = (props) => {
-  const { item, updateProfileItem, onClose } = props
+  const { item, mode = 'edit', updateProfileItem, addProfileItem, onClose } = props
   const { overrideConfig } = useOverrideConfig()
   const { items: overrideItems = [] } = overrideConfig || {}
   const [values, setValues] = useState({
@@ -37,6 +46,9 @@ const EditInfoModal: React.FC<Props> = (props) => {
   })
   const inputWidth = 'w-[400px] md:w-[400px] lg:w-[600px] xl:w-[800px]'
   const { t } = useTranslation()
+  const isImportMode = mode === 'import'
+  const canSave =
+    !isImportMode || (values.type === 'remote' ? Boolean(values.url?.trim()) : values.file != null)
 
   const onSave = async (): Promise<void> => {
     try {
@@ -47,13 +59,33 @@ const EditInfoModal: React.FC<Props> = (props) => {
             overrideItems.find((t) => t.id === i) && !overrideItems.find((t) => t.id === i)?.global
         )
       }
-      await updateProfileItem(updatedItem)
-      await addProfileUpdater(updatedItem)
-      await mihomoHotReloadConfig()
+      if (isImportMode) {
+        if (!addProfileItem) throw new Error('Missing profile import handler')
+        await addProfileItem(updatedItem)
+      } else {
+        if (!updateProfileItem) throw new Error('Missing profile update handler')
+        await updateProfileItem(updatedItem)
+        await addProfileUpdater(updatedItem)
+        await mihomoHotReloadConfig()
+      }
       onClose()
     } catch (e) {
       toast.error(String(e))
     }
+  }
+
+  const selectLocalFile = async (): Promise<void> => {
+    const files = await getFilePath(['yml', 'yaml'])
+    if (!files?.length) return
+
+    const file = await readTextFile(files[0])
+    const fileName = files[0].split('/').pop()?.split('\\').pop()
+    setValues({
+      ...values,
+      type: 'local',
+      file,
+      name: values.name || fileName || values.name
+    })
   }
 
   return (
@@ -70,8 +102,30 @@ const EditInfoModal: React.FC<Props> = (props) => {
       scrollBehavior="inside"
     >
       <ModalContent>
-        <ModalHeader className="flex app-drag">{t('profiles.editInfo.title')}</ModalHeader>
+        <ModalHeader className="flex app-drag">
+          {isImportMode ? t('profiles.import') : t('profiles.editInfo.title')}
+        </ModalHeader>
         <ModalBody>
+          {isImportMode && (
+            <SettingItem title={t('profiles.editInfo.type')}>
+              <Select
+                classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
+                size="sm"
+                className={cn(inputWidth)}
+                selectedKeys={new Set([values.type])}
+                disallowEmptySelection={true}
+                onSelectionChange={(v) => {
+                  setValues({
+                    ...values,
+                    type: v.currentKey as 'remote' | 'local'
+                  })
+                }}
+              >
+                <SelectItem key="remote">{t('profiles.remote')}</SelectItem>
+                <SelectItem key="local">{t('profiles.local')}</SelectItem>
+              </Select>
+            </SettingItem>
+          )}
           <SettingItem title={t('profiles.editInfo.name')}>
             <Input
               size="sm"
@@ -82,6 +136,33 @@ const EditInfoModal: React.FC<Props> = (props) => {
               }}
             />
           </SettingItem>
+          <SettingItem title={t('profiles.editInfo.ageSecretKey')}>
+            <Input
+              size="sm"
+              type="password"
+              className={cn(inputWidth)}
+              value={values.ageSecretKey || ''}
+              onValueChange={(v) => {
+                setValues({ ...values, ageSecretKey: v || undefined })
+              }}
+              placeholder={t('profiles.editInfo.ageSecretKeyPlaceholder')}
+            />
+          </SettingItem>
+          {isImportMode && values.type === 'local' && (
+            <SettingItem title={t('profiles.editInfo.file')}>
+              <div className={cn(inputWidth, 'flex justify-end')}>
+                <Button
+                  size="sm"
+                  variant={values.file ? 'flat' : 'solid'}
+                  onPress={selectLocalFile}
+                >
+                  {values.file
+                    ? values.name || t('profiles.editInfo.selectFile')
+                    : t('profiles.editInfo.selectFile')}
+                </Button>
+              </div>
+            </SettingItem>
+          )}
           {values.type === 'remote' && (
             <>
               <SettingItem title={t('profiles.editInfo.url')}>
@@ -290,8 +371,8 @@ const EditInfoModal: React.FC<Props> = (props) => {
           <Button size="sm" variant="light" onPress={onClose}>
             {t('common.cancel')}
           </Button>
-          <Button size="sm" color="primary" onPress={onSave}>
-            {t('common.save')}
+          <Button size="sm" color="primary" isDisabled={!canSave} onPress={onSave}>
+            {isImportMode ? t('profiles.import') : t('common.save')}
           </Button>
         </ModalFooter>
       </ModalContent>

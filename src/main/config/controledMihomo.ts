@@ -7,6 +7,7 @@ import { patchMihomoConfig, startMihomoLogs } from '../core/mihomoApi'
 import { defaultControledMihomoConfig } from '../utils/template'
 import { deepMerge } from '../utils/merge'
 import { createLogger } from '../utils/logger'
+import { DEFAULT_CONTROL_DNS, DEFAULT_CONTROL_SNIFF } from '../../shared/appConfig'
 import { getAppConfig, patchAppConfig } from './app'
 
 const controledMihomoLogger = createLogger('ControledMihomo')
@@ -54,7 +55,11 @@ export async function getControledMihomoConfig(force = false): Promise<Partial<I
 export async function patchControledMihomoConfig(patch: Partial<IMihomoConfig>): Promise<void> {
   controledMihomoWriteQueue = controledMihomoWriteQueue.then(async () => {
     const appConfig = await getAppConfig()
-    const { controlDns = true, controlSniff = true, controlDnsBeforePause } = appConfig
+    const {
+      controlDns = DEFAULT_CONTROL_DNS,
+      controlSniff = DEFAULT_CONTROL_SNIFF,
+      controlDnsBeforePause
+    } = appConfig
 
     // 当模式从 direct 切换到 rule/global 时，恢复之前保存的 DNS 状态
     const currentMode = controledMihomoConfig?.mode
@@ -99,7 +104,7 @@ export async function patchControledMihomoConfig(patch: Partial<IMihomoConfig>):
       )
     }
     if (controlSniff && !controledMihomoConfig.sniffer) {
-      controledMihomoConfig.sniffer = defaultControledMihomoConfig.sniffer
+      controledMihomoConfig.sniffer = cloneDefaultControledMihomoConfig().sniffer
     }
 
     await generateProfile()

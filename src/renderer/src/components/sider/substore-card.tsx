@@ -5,6 +5,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
+import { DEFAULT_USE_SUB_STORE } from '../../../../shared/appConfig'
 import SubStoreIcon from '../base/substore-icon'
 
 interface Props {
@@ -17,7 +18,7 @@ const SubStoreCard: React.FC<Props> = (props) => {
   const { iconOnly } = props
   const {
     substoreCardStatus = 'col-span-1',
-    useSubStore = true,
+    useSubStore = DEFAULT_USE_SUB_STORE,
     disableAnimations = false
   } = appConfig || {}
   const location = useLocation()

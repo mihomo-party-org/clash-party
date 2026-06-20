@@ -3,6 +3,7 @@ import { existsSync } from 'fs'
 import { overrideConfigPath, overridePath } from '../utils/dirs'
 import * as chromeRequest from '../utils/chromeRequest'
 import { parse, stringify } from '../utils/yaml'
+import { DEFAULT_MIHOMO_PORTS } from '../../shared/appConfig'
 import { getControledMihomoConfig } from './controledMihomo'
 
 let overrideConfig: IOverrideConfig // override.yaml
@@ -76,7 +77,8 @@ export async function createOverride(item: Partial<IOverrideItem>): Promise<IOve
   } as IOverrideItem
   switch (newItem.type) {
     case 'remote': {
-      const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
+      const { 'mixed-port': mixedPort = DEFAULT_MIHOMO_PORTS.mixed } =
+        await getControledMihomoConfig()
       if (!item.url) throw new Error('Empty URL')
       const res = await chromeRequest.get(item.url, {
         proxy: {

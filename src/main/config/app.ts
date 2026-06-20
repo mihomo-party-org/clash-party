@@ -4,6 +4,7 @@ import { parse, stringify } from '../utils/yaml'
 import { deepMerge } from '../utils/merge'
 import { defaultConfig } from '../utils/template'
 import { normalizeMaxLogFileSizeMB, setGlobalMaxLogFileSizeMB } from '../utils/logFile'
+import { setAppLogDisabled } from '../utils/logger'
 
 let appConfig: IAppConfig // config.yaml
 let appConfigWriteQueue: Promise<void> = Promise.resolve()
@@ -23,6 +24,7 @@ export async function getAppConfig(force = false): Promise<IAppConfig> {
         await writeFile(appConfigPath(), stringify(mergedConfig))
       }
       setGlobalMaxLogFileSizeMB(mergedConfig.maxLogFileSize)
+      setAppLogDisabled(mergedConfig.disableAppLog === true)
       appConfig = mergedConfig
     })
     await appConfigWriteQueue
@@ -40,6 +42,7 @@ export async function patchAppConfig(patch: Partial<IAppConfig>): Promise<void> 
     }
     appConfig.maxLogFileSize = normalizeMaxLogFileSizeMB(appConfig.maxLogFileSize)
     setGlobalMaxLogFileSizeMB(appConfig.maxLogFileSize)
+    setAppLogDisabled(appConfig.disableAppLog === true)
     await writeFile(appConfigPath(), stringify(appConfig))
   })
   await appConfigWriteQueue

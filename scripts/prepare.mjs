@@ -317,8 +317,8 @@ const resolveEnableLoopback = () =>
     downloadURL: `https://github.com/Kuingsmile/uwp-tool/releases/download/latest/enableLoopback.exe`
   })
 /* ======= sysproxy-rs ======= */
-const SYSPROXY_RS_VERSION = 'v0.1.0'
-const SYSPROXY_RS_URL_PREFIX = `https://github.com/mihomo-party-org/sysproxy-rs-opti/releases/download/${SYSPROXY_RS_VERSION}`
+const SYSPROXY_RS_URL_PREFIX =
+  'https://github.com/mihomo-party-org/sysproxy-rs-opti/releases/latest/download'
 
 function getSysproxyNodeName() {
   // 检测是否为 musl 系统（与 src/native/sysproxy/index.js 保持一致）

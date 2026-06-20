@@ -155,6 +155,8 @@ interface IpcApi {
   registerShortcut: (oldShortcut: string, newShortcut: string, action: string) => Promise<boolean>
   // Misc
   getGistUrl: () => Promise<string>
+  generateGistAgeKeyPair: () => Promise<{ secretKey: string; recipient: string }>
+  exportGistAgeSecretKey: () => Promise<boolean>
   fetchIPInfo: (url: string) => Promise<unknown>
   measureLatency: (url: string) => Promise<number | null>
   getImageDataURL: (url: string) => Promise<string>
@@ -310,6 +312,8 @@ export const {
   registerShortcut,
   // Misc
   getGistUrl,
+  generateGistAgeKeyPair,
+  exportGistAgeSecretKey,
   fetchIPInfo,
   measureLatency,
   getImageDataURL,

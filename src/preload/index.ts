@@ -147,6 +147,8 @@ const validInvokeChannels = [
   'registerShortcut',
   // Misc
   'getGistUrl',
+  'generateGistAgeKeyPair',
+  'exportGistAgeSecretKey',
   'fetchIPInfo',
   'measureLatency',
   'getImageDataURL',

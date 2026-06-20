@@ -1,6 +1,6 @@
 import { tmpdir } from 'os'
 import { mkdir, readFile, rm, writeFile } from 'fs/promises'
-import { exec } from 'child_process'
+import { exec, execFile } from 'child_process'
 import { existsSync } from 'fs'
 import { promisify } from 'util'
 import path from 'path'
@@ -65,7 +65,11 @@ function getTaskXml(asAdmin: boolean): string {
 export async function checkAutoRun(): Promise<boolean> {
   if (process.platform === 'win32') {
     const execPromise = promisify(exec)
-    return (await repairWindowsAutoRun(execPromise)) || hasRegistryAutoRunEntry(execPromise)
+    const execFilePromise = promisify(execFile)
+    return (
+      (await repairWindowsAutoRun(execPromise, execFilePromise)) ||
+      hasRegistryAutoRunEntry(execFilePromise)
+    )
   }
 
   if (process.platform === 'darwin') {
@@ -84,18 +88,21 @@ export async function checkAutoRun(): Promise<boolean> {
 
 export async function repairAutoRun(): Promise<void> {
   if (process.platform === 'win32') {
-    await repairWindowsAutoRun(promisify(exec))
+    await repairWindowsAutoRun(promisify(exec), promisify(execFile))
   }
 }
 
 export async function enableAutoRun(): Promise<void> {
   if (process.platform === 'win32') {
     const execPromise = promisify(exec)
+    const execFilePromise = promisify(execFile)
     const taskFilePath = path.join(tmpdir(), `${appName}.xml`)
     const isAdmin = await checkAdminPrivileges()
     await writeFile(taskFilePath, Buffer.from(`\ufeff${getTaskXml(isAdmin)}`, 'utf-16le'))
 
     let taskCreated = false
+
+    await removeRegistryAutoRunEntry(execFilePromise)
 
     if (isAdmin) {
       try {
@@ -125,15 +132,23 @@ export async function enableAutoRun(): Promise<void> {
     }
 
     if (taskCreated) {
-      await removeRegistryAutoRunEntry(execPromise)
+      await removeRegistryAutoRunEntry(execFilePromise)
     } else {
       // 任务计划程序失败时使用注册表备用方案（适用于 Windows IoT LTSC 等受限环境）
       await managerLogger.info('Using registry fallback for auto-run')
       try {
         const regValue = `"${exePath()}"`
-        await execPromise(
-          `reg add "${windowsAutoRunRegistryPath}" /v "${appName}" /t REG_SZ /d ${regValue} /f`
-        )
+        await execFilePromise('reg', [
+          'add',
+          windowsAutoRunRegistryPath,
+          '/v',
+          appName,
+          '/t',
+          'REG_SZ',
+          '/d',
+          regValue,
+          '/f'
+        ])
         await managerLogger.info('Registry auto-run entry created successfully')
       } catch (regError) {
         await managerLogger.error('Failed to create registry auto-run entry:', regError)
@@ -174,6 +189,7 @@ Categories=Utility;
 export async function disableAutoRun(): Promise<void> {
   if (process.platform === 'win32') {
     const execPromise = promisify(exec)
+    const execFilePromise = promisify(execFile)
     const isAdmin = await checkAdminPrivileges()
 
     // 删除任务计划程序中的任务
@@ -190,7 +206,7 @@ export async function disableAutoRun(): Promise<void> {
     }
 
     // 同时删除注册表备用方案
-    await removeRegistryAutoRunEntry(execPromise)
+    await removeRegistryAutoRunEntry(execFilePromise)
   }
   if (process.platform === 'darwin') {
     const execPromise = promisify(exec)

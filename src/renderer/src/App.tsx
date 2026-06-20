@@ -38,65 +38,30 @@ import { useTrafficLogger } from '@renderer/hooks/use-traffic-logger'
 import { createTourDriver, getDriver, startTourIfNeeded } from '@renderer/utils/tour'
 import 'driver.js/dist/driver.css'
 import { useTranslation } from 'react-i18next'
+import { DEFAULT_ENABLE_TRAFFIC_LOGGER, DEFAULT_SIDER_ORDER } from '../../shared/appConfig'
 import MihomoIcon from './components/base/mihomo-icon'
+import { SIDER_CARD_ROUTES, getSiderCardByPath, mergeSiderOrder } from './utils/sider'
 
 let navigate: NavigateFunction
 
 export { getDriver }
 
-const ALL_SIDER_KEYS = [
-  'sysproxy',
-  'tun',
-  'profile',
-  'proxy',
-  'rule',
-  'resource',
-  'override',
-  'connection',
-  'mihomo',
-  'dns',
-  'sniff',
-  'log',
-  'substore',
-  'network',
-  'usage'
-]
-
-function mergeSiderOrder(saved: string[]): string[] {
-  const valid = saved.filter((k) => ALL_SIDER_KEYS.includes(k))
-  const missing = ALL_SIDER_KEYS.filter((k) => !valid.includes(k))
-  return [...valid, ...missing]
-}
-
 const App: React.FC = () => {
   const { t } = useTranslation()
-  useTrafficLogger()
   const { appConfig, patchAppConfig } = useAppConfig()
+  const hasAppConfig = Boolean(appConfig)
   const {
+    enableTrafficLogger = DEFAULT_ENABLE_TRAFFIC_LOGGER,
     appTheme = 'system',
     customTheme,
     useWindowFrame = false,
     siderWidth = 250,
-    siderOrder = [
-      'sysproxy',
-      'tun',
-      'profile',
-      'proxy',
-      'rule',
-      'resource',
-      'override',
-      'connection',
-      'mihomo',
-      'dns',
-      'sniff',
-      'log',
-      'substore',
-      'network',
-      'usage'
-    ]
+    siderOrder = DEFAULT_SIDER_ORDER,
+    lastSelectedSiderCard = 'proxy'
   } = appConfig || {}
+  useTrafficLogger(enableTrafficLogger)
   const narrowWidth = platform === 'darwin' ? 70 : 60
-  const [order, setOrder] = useState(mergeSiderOrder(siderOrder))
+  const [order, setOrder] = useState<SiderCardKey[]>(mergeSiderOrder(siderOrder))
   const [siderWidthValue, setSiderWidthValue] = useState(siderWidth)
   const siderWidthValueRef = useRef(siderWidthValue)
   const [resizing, setResizing] = useState(false)
@@ -125,6 +90,13 @@ const App: React.FC = () => {
     setOrder(mergeSiderOrder(siderOrder))
     setSiderWidthValue(siderWidth)
   }, [siderOrder, siderWidth])
+
+  useEffect(() => {
+    if (!hasAppConfig) return
+    const currentSiderCard = getSiderCardByPath(location.pathname)
+    if (!currentSiderCard || currentSiderCard === lastSelectedSiderCard) return
+    patchAppConfig({ lastSelectedSiderCard: currentSiderCard })
+  }, [hasAppConfig, lastSelectedSiderCard, location.pathname, patchAppConfig])
 
   useEffect(() => {
     siderWidthValueRef.current = siderWidthValue
@@ -165,41 +137,26 @@ const App: React.FC = () => {
 
   const onDragEnd = async (event: DragEndEvent): Promise<void> => {
     const { active, over } = event
+    const activeId = active.id as SiderCardKey
     if (over) {
       if (active.id !== over.id) {
+        const overId = over.id as SiderCardKey
         const newOrder = order.slice()
-        const activeIndex = newOrder.indexOf(active.id as string)
-        const overIndex = newOrder.indexOf(over.id as string)
+        const activeIndex = newOrder.indexOf(activeId)
+        const overIndex = newOrder.indexOf(overId)
+        if (activeIndex === -1 || overIndex === -1) return
         newOrder.splice(activeIndex, 1)
-        newOrder.splice(overIndex, 0, active.id as string)
+        newOrder.splice(overIndex, 0, activeId)
         setOrder(newOrder)
         await patchAppConfig({ siderOrder: newOrder })
         return
       }
     }
-    const dest = navigateMap[active.id as string]
+    const dest = SIDER_CARD_ROUTES[activeId]
     if (dest) navigate(dest)
   }
 
-  const navigateMap = {
-    sysproxy: 'sysproxy',
-    tun: 'tun',
-    profile: 'profiles',
-    proxy: 'proxies',
-    mihomo: 'mihomo',
-    connection: 'connections',
-    dns: 'dns',
-    sniff: 'sniffer',
-    log: 'logs',
-    rule: 'rules',
-    resource: 'resources',
-    override: 'override',
-    substore: 'substore',
-    network: 'network',
-    usage: 'traffic'
-  }
-
-  const componentMap = {
+  const componentMap: Record<SiderCardKey, React.FC<{ iconOnly?: boolean }>> = {
     sysproxy: SysproxySwitcher,
     tun: TunSwitcher,
     profile: ProfileCard,
@@ -241,9 +198,8 @@ const App: React.FC = () => {
           </div>
           <div className="h-[calc(100%-110px)] overflow-y-auto no-scrollbar">
             <div className="h-full w-full flex flex-col gap-2">
-              {order.map((key: string) => {
+              {order.map((key) => {
                 const Component = componentMap[key]
-                if (!Component) return null
                 return <Component key={key} iconOnly={true} />
               })}
             </div>
@@ -298,9 +254,8 @@ const App: React.FC = () => {
             <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={onDragEnd}>
               <div className="grid grid-cols-2 gap-2 m-2">
                 <SortableContext items={order}>
-                  {order.map((key: string) => {
+                  {order.map((key) => {
                     const Component = componentMap[key]
-                    if (!Component) return null
                     return <Component key={key} />
                   })}
                 </SortableContext>

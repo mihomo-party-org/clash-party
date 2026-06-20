@@ -9,6 +9,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
+import { DEFAULT_CONTROL_DNS } from '../../../../shared/appConfig'
 
 interface Props {
   iconOnly?: boolean
@@ -19,7 +20,7 @@ const DNSCard: React.FC<Props> = (props) => {
   const { iconOnly } = props
   const {
     dnsCardStatus = 'col-span-1',
-    controlDns = true,
+    controlDns = DEFAULT_CONTROL_DNS,
     disableAnimations = false
   } = appConfig || {}
   const location = useLocation()

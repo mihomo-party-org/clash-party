@@ -3,9 +3,14 @@ import { toast } from '@renderer/components/base/toast'
 import { Button, Input, Select, SelectItem, Switch, Tooltip } from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import debounce from '@renderer/utils/debounce'
-import { getGistUrl, restartCore } from '@renderer/utils/ipc'
+import {
+  exportGistAgeSecretKey,
+  generateGistAgeKeyPair,
+  getGistUrl,
+  restartCore
+} from '@renderer/utils/ipc'
 import { MdDeleteForever } from 'react-icons/md'
-import { BiCopy } from 'react-icons/bi'
+import { BiCopy, BiDownload, BiKey } from 'react-icons/bi'
 import { IoIosHelpCircle } from 'react-icons/io'
 import { platform, version } from '@renderer/utils/init'
 import { useTranslation } from 'react-i18next'
@@ -22,6 +27,9 @@ const MihomoConfig: React.FC = () => {
     delayTestConcurrency,
     delayTestTimeout,
     githubToken = '',
+    gistAgeEncrypt = false,
+    gistAgeRecipient = '',
+    gistAgeSecretKey = '',
     autoCloseConnection = true,
     testProfileOnStart = true,
     pauseSSID = [],
@@ -41,6 +49,42 @@ const MihomoConfig: React.FC = () => {
   const setUaDebounce = debounce((v: string) => {
     patchAppConfig({ userAgent: v })
   }, 500)
+  const [isGeneratingGistAgeKey, setIsGeneratingGistAgeKey] = useState(false)
+  const [isExportingGistAgeKey, setIsExportingGistAgeKey] = useState(false)
+  const handleGenerateGistAgeKeyPair = async (): Promise<void> => {
+    if (gistAgeSecretKey && !window.confirm(t('mihomo.gist.ageGenerateConfirm'))) return
+
+    setIsGeneratingGistAgeKey(true)
+    try {
+      const { secretKey, recipient } = await generateGistAgeKeyPair()
+      await patchAppConfig({
+        gistAgeEncrypt: true,
+        gistAgeRecipient: recipient,
+        gistAgeSecretKey: secretKey
+      })
+      toast.success(t('mihomo.gist.generateKeyPairSuccess'))
+    } catch (e) {
+      toast.error(String(e))
+    } finally {
+      setIsGeneratingGistAgeKey(false)
+    }
+  }
+  const handleExportGistAgeSecretKey = async (): Promise<void> => {
+    setIsExportingGistAgeKey(true)
+    try {
+      const exported = await exportGistAgeSecretKey()
+      if (exported) toast.success(t('mihomo.gist.exportPrivateKeySuccess'))
+    } catch (e) {
+      toast.error(String(e))
+    } finally {
+      setIsExportingGistAgeKey(false)
+    }
+  }
+  const handleCopyGistAgeSecretKey = async (): Promise<void> => {
+    if (!gistAgeSecretKey) return
+    await navigator.clipboard.writeText(gistAgeSecretKey)
+    toast.success(t('mihomo.gist.copyPrivateKeySuccess'))
+  }
   return (
     <SettingCard>
       <SettingItem title={t('mihomo.userAgent')} divider>
@@ -146,6 +190,72 @@ const MihomoConfig: React.FC = () => {
             patchAppConfig({ githubToken: v })
           }}
         />
+      </SettingItem>
+      <SettingItem
+        title={t('mihomo.gist.ageEncrypt')}
+        actions={
+          <Tooltip content={<div className="max-w-80">{t('mihomo.gist.ageEncryptTooltip')}</div>}>
+            <Button isIconOnly size="sm" variant="light">
+              <IoIosHelpCircle className="text-lg" />
+            </Button>
+          </Tooltip>
+        }
+        divider
+      >
+        <Switch
+          size="sm"
+          isSelected={gistAgeEncrypt}
+          onValueChange={(v) => {
+            patchAppConfig({ gistAgeEncrypt: v })
+          }}
+        />
+      </SettingItem>
+      <SettingItem title={t('mihomo.gist.ageRecipient')} divider>
+        <Input
+          size="sm"
+          className="w-[60%]"
+          value={gistAgeRecipient}
+          placeholder={t('mihomo.gist.ageRecipientPlaceholder')}
+          isDisabled={!gistAgeEncrypt}
+          onValueChange={(v) => {
+            patchAppConfig({ gistAgeRecipient: v })
+          }}
+        />
+      </SettingItem>
+      <SettingItem title={t('mihomo.gist.ageKeys')} divider>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="flat"
+            isLoading={isGeneratingGistAgeKey}
+            startContent={<BiKey className="text-base" />}
+            onPress={handleGenerateGistAgeKeyPair}
+          >
+            {t('mihomo.gist.generateKeyPair')}
+          </Button>
+          <Button
+            size="sm"
+            variant="flat"
+            isDisabled={!gistAgeSecretKey}
+            isLoading={isExportingGistAgeKey}
+            startContent={<BiDownload className="text-base" />}
+            onPress={handleExportGistAgeSecretKey}
+          >
+            {t('mihomo.gist.exportPrivateKey')}
+          </Button>
+          <Tooltip content={t('mihomo.gist.copyPrivateKey')}>
+            <Button
+              title={t('mihomo.gist.copyPrivateKey')}
+              isIconOnly
+              size="sm"
+              variant="light"
+              isDisabled={!gistAgeSecretKey}
+              onPress={handleCopyGistAgeSecretKey}
+            >
+              <BiCopy className="text-lg" />
+            </Button>
+          </Tooltip>
+        </div>
       </SettingItem>
       <SettingItem title={t('mihomo.proxyColumns.title')} divider>
         <Select

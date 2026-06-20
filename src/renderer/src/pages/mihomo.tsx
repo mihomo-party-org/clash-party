@@ -48,6 +48,11 @@ import React, { useState, useEffect, useRef } from 'react'
 import InterfaceModal from '@renderer/components/mihomo/interface-modal'
 import { MdDeleteForever, MdEdit, MdDelete, MdOpenInNew } from 'react-icons/md'
 import { useTranslation } from 'react-i18next'
+import {
+  DEFAULT_MIHOMO_LAN_ALLOWED_IPS,
+  DEFAULT_MIHOMO_PORTS,
+  DEFAULT_MIHOMO_SKIP_AUTH_PREFIXES
+} from '../../../shared/appConfig'
 
 const CoreMap = {
   mihomo: 'mihomo.stableVersion',
@@ -117,19 +122,19 @@ const Mihomo: React.FC = () => {
     'external-controller': externalController = '',
     secret = '',
     authentication = [],
-    'skip-auth-prefixes': skipAuthPrefixes = ['127.0.0.1/32', '::1/128'],
+    'skip-auth-prefixes': skipAuthPrefixes = DEFAULT_MIHOMO_SKIP_AUTH_PREFIXES,
     'log-level': logLevel = 'info',
     'find-process-mode': findProcessMode = 'strict',
     'allow-lan': allowLan,
-    'lan-allowed-ips': lanAllowedIps = ['0.0.0.0/0', '::/0'],
+    'lan-allowed-ips': lanAllowedIps = DEFAULT_MIHOMO_LAN_ALLOWED_IPS,
     'lan-disallowed-ips': lanDisallowedIps = [],
     'unified-delay': unifiedDelay,
     'tcp-concurrent': tcpConcurrent,
-    'mixed-port': mixedPort = 7890,
-    'socks-port': socksPort = 7891,
-    port: httpPort = 7892,
-    'redir-port': redirPort = 0,
-    'tproxy-port': tproxyPort = 0,
+    'mixed-port': mixedPort = DEFAULT_MIHOMO_PORTS.mixed,
+    'socks-port': socksPort = DEFAULT_MIHOMO_PORTS.socks,
+    port: httpPort = DEFAULT_MIHOMO_PORTS.http,
+    'redir-port': redirPort = DEFAULT_MIHOMO_PORTS.redir,
+    'tproxy-port': tproxyPort = DEFAULT_MIHOMO_PORTS.tproxy,
     profile = {}
   } = controledMihomoConfig || {}
   const { 'store-selected': storeSelected, 'store-fake-ip': storeFakeIp } = profile

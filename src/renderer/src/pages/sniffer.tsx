@@ -9,39 +9,26 @@ import { mihomoHotReloadConfig } from '@renderer/utils/ipc'
 import React, { ReactNode, useState } from 'react'
 import { MdDeleteForever } from 'react-icons/md'
 import { useTranslation } from 'react-i18next'
+import { DEFAULT_CONTROL_SNIFF, DEFAULT_MIHOMO_SNIFFER_CONFIG } from '../../../shared/appConfig'
 
 const Sniffer: React.FC = () => {
   const { t } = useTranslation()
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
   const { appConfig } = useAppConfig()
-  const { controlSniff = true } = appConfig || {}
+  const { controlSniff = DEFAULT_CONTROL_SNIFF } = appConfig || {}
   const { sniffer } = controledMihomoConfig || {}
   const {
-    enable = true,
-    'parse-pure-ip': parsePureIP = true,
-    'force-dns-mapping': forceDNSMapping = true,
-    'override-destination': overrideDestination = false,
-    sniff = {
-      HTTP: { ports: [80, 443], 'override-destination': false },
-      TLS: { ports: [443] },
-      QUIC: { ports: [] }
-    },
-    'skip-domain': skipDomain = ['+.push.apple.com'],
-    'force-domain': forceDomain = [],
-    'skip-dst-address': skipDstAddress = [
-      '91.105.192.0/23',
-      '91.108.4.0/22',
-      '91.108.8.0/21',
-      '91.108.16.0/21',
-      '91.108.56.0/22',
-      '95.161.64.0/20',
-      '149.154.160.0/20',
-      '185.76.151.0/24',
-      '2001:67c:4e8::/48',
-      '2001:b28:f23c::/47',
-      '2001:b28:f23f::/48',
-      '2a0a:f280:203::/48'
+    enable = DEFAULT_MIHOMO_SNIFFER_CONFIG.enable,
+    'parse-pure-ip': parsePureIP = DEFAULT_MIHOMO_SNIFFER_CONFIG['parse-pure-ip'],
+    'force-dns-mapping': forceDNSMapping = DEFAULT_MIHOMO_SNIFFER_CONFIG['force-dns-mapping'],
+    'override-destination': overrideDestination = DEFAULT_MIHOMO_SNIFFER_CONFIG[
+      'override-destination'
     ],
+    // QUIC 仅用于设置页编辑（含 keyof 类型推导），不属于默认下发配置
+    sniff = { ...DEFAULT_MIHOMO_SNIFFER_CONFIG.sniff, QUIC: { ports: [] } },
+    'skip-domain': skipDomain = DEFAULT_MIHOMO_SNIFFER_CONFIG['skip-domain'],
+    'force-domain': forceDomain = [],
+    'skip-dst-address': skipDstAddress = DEFAULT_MIHOMO_SNIFFER_CONFIG['skip-dst-address'],
     'skip-src-address': skipSrcAddress = []
   } = sniffer || {}
   const [changed, setChanged] = useState(false)

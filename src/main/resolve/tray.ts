@@ -10,6 +10,7 @@ import {
   patchAppConfig,
   patchControledMihomoConfig
 } from '../config'
+import { DEFAULT_MIHOMO_PORTS } from '../../shared/appConfig'
 import icoIcon from '../../../resources/icon.ico?asset'
 import icoIconBlue from '../../../resources/icon_blue.ico?asset'
 import icoIconRed from '../../../resources/icon_red.ico?asset'
@@ -495,7 +496,7 @@ async function updateTrayMenu(): Promise<void> {
 export async function copyEnv(
   type: 'bash' | 'cmd' | 'powershell' | 'fish' | 'nushell'
 ): Promise<void> {
-  const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
+  const { 'mixed-port': mixedPort = DEFAULT_MIHOMO_PORTS.mixed } = await getControledMihomoConfig()
   const { sysProxy } = await getAppConfig()
   const { host } = sysProxy
   const proxyUrl = `http://${host || '127.0.0.1'}:${mixedPort}`

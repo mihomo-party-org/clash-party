@@ -1,3 +1,4 @@
+import { createConnection } from 'net'
 import axios, { AxiosInstance } from 'axios'
 import WebSocket from 'ws'
 import { getAppConfig, getControledMihomoConfig } from '../config'
@@ -140,6 +141,25 @@ function closeErroredStreamSocket(
     ws.close()
   } else if (ws.readyState === WebSocket.CONNECTING) {
     ws.terminate()
+  }
+}
+
+function createMihomoWebSocket(endpoint: string): {
+  ws: WebSocket
+  ipcPath: string
+  wsUrl: string
+} {
+  const ipcPath = getMihomoIpcPath()
+  const wsUrl = `ws://localhost${endpoint}`
+
+  // Keep the named pipe path out of ws+unix URLs. URL parsing percent-encodes
+  // non-ASCII Windows usernames, which changes the pipe name before ws connects.
+  const createIpcConnection = (() => createConnection({ path: ipcPath })) as typeof createConnection
+
+  return {
+    ws: new WebSocket(wsUrl, { createConnection: createIpcConnection }),
+    ipcPath,
+    wsUrl
   }
 }
 
@@ -357,11 +377,9 @@ const mihomoTraffic = async (): Promise<void> => {
   const generation = beginStreamConnection(trafficStream)
   if (generation === null) return
 
-  const dynamicIpcPath = getMihomoIpcPath()
-  const wsUrl = `ws+unix:${dynamicIpcPath}:/traffic`
+  const { ws, ipcPath, wsUrl } = createMihomoWebSocket('/traffic')
 
-  mihomoApiLogger.info(`Creating traffic WebSocket with URL: ${wsUrl}`)
-  const ws = new WebSocket(wsUrl)
+  mihomoApiLogger.info(`Creating traffic WebSocket with URL: ${wsUrl}, IPC path: ${ipcPath}`)
   trafficStream.ws = ws
 
   ws.onmessage = async (e): Promise<void> => {
@@ -411,9 +429,7 @@ const mihomoMemory = async (): Promise<void> => {
   const generation = beginStreamConnection(memoryStream)
   if (generation === null) return
 
-  const dynamicIpcPath = getMihomoIpcPath()
-  const wsUrl = `ws+unix:${dynamicIpcPath}:/memory`
-  const ws = new WebSocket(wsUrl)
+  const { ws } = createMihomoWebSocket('/memory')
   memoryStream.ws = ws
 
   ws.onmessage = (e): void => {
@@ -453,10 +469,8 @@ const mihomoLogs = async (): Promise<void> => {
   if (generation === null) return
 
   const { 'log-level': logLevel = 'info' } = await getControledMihomoConfig()
-  const dynamicIpcPath = getMihomoIpcPath()
-  const wsUrl = `ws+unix:${dynamicIpcPath}:/logs?level=${logLevel}`
 
-  const ws = new WebSocket(wsUrl)
+  const { ws } = createMihomoWebSocket(`/logs?level=${logLevel}`)
   logsStream.ws = ws
 
   ws.onmessage = (e): void => {
@@ -495,9 +509,7 @@ const mihomoConnections = async (): Promise<void> => {
   const generation = beginStreamConnection(connectionsStream)
   if (generation === null) return
 
-  const dynamicIpcPath = getMihomoIpcPath()
-  const wsUrl = `ws+unix:${dynamicIpcPath}:/connections`
-  const ws = new WebSocket(wsUrl)
+  const { ws } = createMihomoWebSocket('/connections')
   connectionsStream.ws = ws
 
   ws.onmessage = (e): void => {

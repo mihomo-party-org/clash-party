@@ -15,6 +15,7 @@ import React, { Key, useState } from 'react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { MdDeleteForever } from 'react-icons/md'
 import { useTranslation } from 'react-i18next'
+import { DEFAULT_MIHOMO_TUN_CONFIG, getDefaultMihomoTunDevice } from '../../../shared/appConfig'
 
 const Tun: React.FC = () => {
   const { t } = useTranslation()
@@ -24,15 +25,19 @@ const Tun: React.FC = () => {
   const { tun } = controledMihomoConfig || {}
   const [loading, setLoading] = useState(false)
   const {
-    device = platform === 'darwin' ? 'utun1500' : 'Mihomo',
-    stack = 'mixed',
-    'auto-route': autoRoute = true,
-    'auto-redirect': autoRedirect = false,
-    'auto-detect-interface': autoDetectInterface = true,
-    'dns-hijack': dnsHijack = ['any:53'],
-    'route-exclude-address': routeExcludeAddress = [],
+    device = getDefaultMihomoTunDevice(platform),
+    stack = DEFAULT_MIHOMO_TUN_CONFIG.stack,
+    'auto-route': autoRoute = DEFAULT_MIHOMO_TUN_CONFIG['auto-route'],
+    'auto-redirect': autoRedirect = DEFAULT_MIHOMO_TUN_CONFIG['auto-redirect'],
+    'auto-detect-interface': autoDetectInterface = DEFAULT_MIHOMO_TUN_CONFIG[
+      'auto-detect-interface'
+    ],
+    'dns-hijack': dnsHijack = DEFAULT_MIHOMO_TUN_CONFIG['dns-hijack'],
+    'route-exclude-address': routeExcludeAddress = DEFAULT_MIHOMO_TUN_CONFIG[
+      'route-exclude-address'
+    ],
     'strict-route': strictRoute = false,
-    mtu = 1500
+    mtu = DEFAULT_MIHOMO_TUN_CONFIG.mtu
   } = tun || {}
   const [changed, setChanged] = useState(false)
   const [values, originSetValues] = useState({
@@ -181,7 +186,7 @@ const Tun: React.FC = () => {
               size="sm"
               className="w-25"
               value={values.device}
-              placeholder={platform === 'darwin' ? 'utun1500' : 'Mihomo'}
+              placeholder={getDefaultMihomoTunDevice(platform)}
               onValueChange={(v) => {
                 setValues({ ...values, device: v })
               }}
@@ -234,7 +239,7 @@ const Tun: React.FC = () => {
               value={values.mtu.toString()}
               onValueChange={(v) => {
                 const num = parseInt(v)
-                setValues({ ...values, mtu: isNaN(num) ? 1500 : num })
+                setValues({ ...values, mtu: isNaN(num) ? DEFAULT_MIHOMO_TUN_CONFIG.mtu : num })
               }}
             />
           </SettingItem>

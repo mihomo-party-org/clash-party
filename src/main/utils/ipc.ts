@@ -119,7 +119,7 @@ import {
   writeTheme
 } from '../resolve/theme'
 import { subStoreCollections, subStoreSubs } from '../core/subStoreApi'
-import { getGistUrl } from '../resolve/gistApi'
+import { exportGistAgeSecretKey, generateGistAgeKeyPair, getGistUrl } from '../resolve/gistApi'
 import { startMonitor } from '../resolve/trafficMonitor'
 import { closeFloatingWindow, showContextMenu, showFloatingWindow } from '../resolve/floatingWindow'
 import { addProfileUpdater, removeProfileUpdater } from '../core/profileUpdater'
@@ -341,6 +341,8 @@ const asyncHandlers: Record<string, AsyncFn> = {
   showContextMenu,
   // Misc
   getGistUrl,
+  generateGistAgeKeyPair,
+  exportGistAgeSecretKey,
   fetchIPInfo,
   measureLatency,
   getImageDataURL,

@@ -7,9 +7,11 @@ import { randomBytes } from 'crypto'
 import { tmpdir } from 'os'
 import { app } from 'electron'
 import i18next from 'i18next'
-import * as chromeRequest from '../utils/chromeRequest'
+import axios, { AxiosResponse } from 'axios'
 import { parse, stringify } from '../utils/yaml'
 import { defaultProfile } from '../utils/template'
+import { decryptAgeContent } from '../utils/age'
+import { DEFAULT_MIHOMO_PORTS } from '../../shared/appConfig'
 import { subStorePort } from '../resolve/server'
 import { mihomoCloseAllConnections, mihomoHotReloadConfig } from '../core/mihomoApi'
 import { restartCore } from '../core/manager'
@@ -256,6 +258,7 @@ interface FetchOptions {
   useProxy: boolean
   mixedPort: number
   userAgent: string
+  ageSecretKey?: string
   authToken?: string
   timeout: number
   substore: boolean
@@ -269,8 +272,53 @@ interface FetchResult {
 const MAX_TIMER_DELAY_MS = 2_147_483_647
 const MAX_PROFILE_INTERVAL_MINUTES = Math.floor(MAX_TIMER_DELAY_MS / (60 * 1000))
 
+function redactSubscriptionUrl(url: string): string {
+  try {
+    const urlObj = new URL(url)
+    if (urlObj.username) urlObj.username = '***'
+    if (urlObj.password) urlObj.password = '***'
+    if (urlObj.search) urlObj.search = '?***'
+    return urlObj.toString()
+  } catch {
+    return url.includes('?') ? `${url.split('?')[0]}?***` : url
+  }
+}
+
+function normalizeAxiosHeaders(headers: AxiosResponse['headers']): Record<string, string> {
+  const normalized: Record<string, string> = {}
+  Object.entries(headers as Record<string, unknown>).forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      normalized[key.toLowerCase()] = value.join(', ')
+    } else if (value !== undefined) {
+      normalized[key.toLowerCase()] = String(value)
+    }
+  })
+  return normalized
+}
+
+function parsedProfileSummary(parsed: Record<string, unknown>): string {
+  const topKeys = Object.keys(parsed).slice(0, 20)
+  const proxies = parsed['proxies']
+  const proxyProviders = parsed['proxy-providers']
+  const proxyCount = Array.isArray(proxies) ? proxies.length : undefined
+  const providerCount =
+    proxyProviders && typeof proxyProviders === 'object'
+      ? Object.keys(proxyProviders).length
+      : undefined
+
+  return JSON.stringify({
+    topKeys,
+    hasProxies: Boolean(proxies),
+    hasProxyProviders: Boolean(proxyProviders),
+    proxyCount,
+    providerCount
+  })
+}
+
 async function fetchAndValidateSubscription(options: FetchOptions): Promise<FetchResult> {
   const { url, useProxy, mixedPort, userAgent, authToken, timeout, substore } = options
+  const redactedUrl = redactSubscriptionUrl(url)
+  const fetchMode = substore ? 'substore' : useProxy ? 'proxy' : 'direct'
 
   const headers: Record<string, string> = {
     'User-Agent': userAgent,
@@ -278,37 +326,86 @@ async function fetchAndValidateSubscription(options: FetchOptions): Promise<Fetc
   }
   if (authToken) headers['Authorization'] = authToken
 
-  let res: chromeRequest.Response<string>
+  await profileLogger.info(
+    `Fetching remote profile url=${redactedUrl} mode=${fetchMode} timeout=${timeout}ms auth=${authToken ? 'yes' : 'no'}`
+  )
+
+  let requestUrl = url
+  let proxy:
+    | {
+        protocol: 'http'
+        host: string
+        port: number
+      }
+    | false = false
+
   if (substore) {
     const urlObj = new URL(`http://127.0.0.1:${subStorePort}${url}`)
     urlObj.searchParams.set('target', 'ClashMeta')
     urlObj.searchParams.set('noCache', 'true')
-    if (useProxy) {
+    if (useProxy && mixedPort !== 0) {
       urlObj.searchParams.set('proxy', `http://127.0.0.1:${mixedPort}`)
     }
-    res = await chromeRequest.get(urlObj.toString(), { headers, responseType: 'text', timeout })
-  } else {
-    res = await chromeRequest.get(url, {
+    requestUrl = urlObj.toString()
+  } else if (useProxy && mixedPort !== 0) {
+    proxy = { protocol: 'http', host: '127.0.0.1', port: mixedPort }
+  }
+
+  let res: AxiosResponse<string>
+  try {
+    res = await axios.get<string>(requestUrl, {
       headers,
       responseType: 'text',
       timeout,
-      proxy: useProxy ? { protocol: 'http', host: '127.0.0.1', port: mixedPort } : false
+      proxy,
+      validateStatus: () => true,
+      transformResponse: [(data) => data]
     })
+  } catch (error) {
+    await profileLogger.warn(
+      `Remote profile request failed url=${redactedUrl} mode=${fetchMode}`,
+      error
+    )
+    throw error
   }
 
+  const data = typeof res.data === 'string' ? res.data : String(res.data ?? '')
+  const responseHeaders = normalizeAxiosHeaders(res.headers)
+
+  await profileLogger.info(
+    `Remote profile response url=${redactedUrl} mode=${fetchMode} status=${res.status} contentType=${String(
+      responseHeaders['content-type'] || ''
+    )} bytes=${Buffer.byteLength(data, 'utf8')}`
+  )
+
   if (res.status < 200 || res.status >= 300) {
+    await profileLogger.warn(
+      `Remote profile request rejected url=${redactedUrl} mode=${fetchMode} status=${res.status}`
+    )
     throw new Error(`Subscription failed: Request status code ${res.status}`)
   }
 
-  const parsed = parse(res.data) as Record<string, unknown> | null
+  const decryptedData = await decryptAgeContent(data, options.ageSecretKey, 'subscription')
+  const parsed = parse(decryptedData) as Record<string, unknown> | null
   if (typeof parsed !== 'object' || parsed === null) {
+    await profileLogger.warn(
+      `Remote profile parse failed url=${redactedUrl} mode=${fetchMode} parsedType=${typeof parsed}`
+    )
     throw new Error('Subscription failed: Profile is not a valid YAML')
   }
+  await profileLogger.info(
+    `Remote profile parsed url=${redactedUrl} mode=${fetchMode} summary=${parsedProfileSummary(parsed)}`
+  )
   if (!parsed['proxies'] && !parsed['proxy-providers']) {
+    await profileLogger.warn(
+      `Remote profile validation failed url=${redactedUrl} mode=${fetchMode} reason=missing-proxies-or-providers summary=${parsedProfileSummary(
+        parsed
+      )}`
+    )
     throw new Error('Subscription failed: Profile missing proxies or providers')
   }
 
-  return { data: res.data, headers: res.headers }
+  return { data, headers: responseHeaders }
 }
 
 export async function createProfile(item: Partial<IProfileItem>): Promise<IProfileItem> {
@@ -326,6 +423,7 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
     autoUpdate: item.autoUpdate ?? false,
     authToken: item.authToken,
     userAgent: item.userAgent,
+    ageSecretKey: item.ageSecretKey,
     updated: new Date().getTime(),
     updateTimeout: item.updateTimeout
   }
@@ -340,13 +438,24 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
   if (!item.url) throw new Error('Empty URL')
 
   const profileUrl = item.url
+  await profileLogger.info(
+    `Creating/updating remote profile id=${id} name=${newItem.name} url=${redactSubscriptionUrl(
+      profileUrl
+    )} useProxy=${newItem.useProxy} substore=${newItem.substore}`
+  )
   const dedupKey = `${id}::${profileUrl}`
   const existing = inflightRemoteFetches.get(dedupKey)
-  if (existing) return existing
+  if (existing) {
+    await profileLogger.info(
+      `Remote profile fetch deduplicated id=${id} url=${redactSubscriptionUrl(profileUrl)}`
+    )
+    return existing
+  }
 
   const promise = (async (): Promise<IProfileItem> => {
     const { userAgent, subscriptionTimeout = 30000 } = await getAppConfig()
-    const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
+    const { 'mixed-port': mixedPort = DEFAULT_MIHOMO_PORTS.mixed } =
+      await getControledMihomoConfig()
     const userItemTimeoutMs =
       typeof newItem.updateTimeout === 'number' && newItem.updateTimeout > 0
         ? newItem.updateTimeout * 1000
@@ -356,6 +465,7 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
       url: profileUrl,
       mixedPort,
       userAgent: item.userAgent || userAgent || `mihomo.party/v${app.getVersion()} (clash.meta)`,
+      ageSecretKey: newItem.ageSecretKey,
       authToken: item.authToken,
       substore: newItem.substore || false
     }
@@ -370,6 +480,12 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
       try {
         result = await fetchSub(false, userItemTimeoutMs)
       } catch (directError) {
+        await profileLogger.warn(
+          `Direct remote profile fetch failed id=${id} url=${redactSubscriptionUrl(
+            profileUrl
+          )}; trying proxy fallback`,
+          directError
+        )
         try {
           // smart fallback
           result = await fetchSub(true, subscriptionTimeout)
@@ -398,6 +514,11 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
     }
 
     await setProfileStr(id, data)
+    await profileLogger.info(
+      `Remote profile saved id=${id} name=${newItem.name} path=${profilePath(
+        id
+      )} bytes=${Buffer.byteLength(data || '', 'utf8')}`
+    )
     return newItem
   })()
 
@@ -440,7 +561,12 @@ export async function setProfileStr(id: string, content: string): Promise<void> 
 }
 
 export async function getProfile(id: string | undefined): Promise<IMihomoConfig> {
-  const profile = await getProfileStr(id)
+  const item = await getProfileItem(id)
+  const profile = await decryptAgeContent(
+    await getProfileStr(id),
+    item?.ageSecretKey,
+    `profile "${id || 'default'}"`
+  )
 
   // 检测是否为 HTML 内容（订阅返回错误页面）
   const trimmed = profile.trim()

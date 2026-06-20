@@ -116,6 +116,10 @@ export function setupAppLifecycle(): void {
     )
   }
 
+  app.on('window-all-closed', () => {
+    // Keep the app and tray alive when lightweight tray mode destroys the renderer window.
+  })
+
   app.on('before-quit', async (e) => {
     e.preventDefault()
     await cleanupBeforeExit()

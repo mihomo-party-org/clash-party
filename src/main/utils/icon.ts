@@ -7,6 +7,7 @@ import axios from 'axios'
 import { getIcon } from 'file-icon-info'
 import { app } from 'electron'
 import { getControledMihomoConfig } from '../config'
+import { DEFAULT_MIHOMO_PORTS } from '../../shared/appConfig'
 import { windowsDefaultIcon, darwinDefaultIcon, otherDevicesIcon } from './defaultIcon'
 
 export function isIOSApp(appPath: string): boolean {
@@ -271,7 +272,7 @@ export async function getIconDataURL(appPath: string): Promise<string> {
 }
 
 export async function getImageDataURL(url: string): Promise<string> {
-  const { 'mixed-port': port = 7890 } = await getControledMihomoConfig()
+  const { 'mixed-port': port = DEFAULT_MIHOMO_PORTS.mixed } = await getControledMihomoConfig()
   const res = await axios.get(url, {
     responseType: 'arraybuffer',
     ...(port !== 0 && {

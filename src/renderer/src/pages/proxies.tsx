@@ -323,12 +323,12 @@ const Proxies: React.FC = () => {
               })
             }}
           >
-            <CardBody className="w-full">
-              <div className="flex justify-between">
-                <div className="flex text-ellipsis overflow-hidden whitespace-nowrap">
+            <CardBody className="w-full h-14">
+              <div className="flex justify-between h-full gap-3">
+                <div className="flex min-w-0 h-full text-ellipsis overflow-hidden whitespace-nowrap">
                   {groups[index].icon ? (
                     <Avatar
-                      className="bg-transparent mr-2"
+                      className="bg-transparent mr-2 shrink-0"
                       size="sm"
                       radius="sm"
                       src={
@@ -338,86 +338,88 @@ const Proxies: React.FC = () => {
                       }
                     />
                   ) : null}
-                  <div className="text-ellipsis overflow-hidden whitespace-nowrap">
-                    <div
-                      title={groups[index].name}
-                      className="inline flag-emoji h-8 text-md leading-8"
-                    >
-                      {groups[index].name}
+                  <div className="flex min-w-0 flex-col h-full">
+                    <div className="text-ellipsis overflow-hidden whitespace-nowrap leading-tight text-md flex-5 flex items-center">
+                      <span title={groups[index].name} className="flag-emoji inline-block truncate">
+                        {groups[index].name}
+                      </span>
                     </div>
-                    {proxyDisplayMode === 'full' && (
-                      <div
-                        title={groups[index].type}
-                        className="inline ml-2 text-sm text-foreground-500"
+                    <div className="text-ellipsis overflow-hidden whitespace-nowrap text-[10px] text-foreground-500 leading-tight flex-3 flex items-center">
+                      <span>{groups[index].type}</span>
+                      <span
+                        title={groups[index].now}
+                        className="flag-emoji ml-1 inline-block truncate"
                       >
-                        {groups[index].type}
-                      </div>
-                    )}
-                    {proxyDisplayMode === 'full' && (
-                      <div className="inline flag-emoji ml-2 text-sm text-foreground-500">
                         {groups[index].now}
-                      </div>
-                    )}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <div className="flex">
-                  {proxyDisplayMode === 'full' && (
-                    <Chip size="sm" className="my-1 mr-2">
-                      {groups[index].all.length}
-                    </Chip>
-                  )}
-                  <CollapseInput
-                    title={t('proxies.search.placeholder')}
-                    value={searchValue[index]}
-                    onValueChange={(v) => {
-                      setSearchValue((prev) => {
-                        const newSearchValue = [...prev]
-                        newSearchValue[index] = v
-                        return newSearchValue
-                      })
-                    }}
-                  />
-                  <Button
-                    title={t('proxies.locate')}
-                    variant="light"
-                    size="sm"
-                    isIconOnly
-                    onPress={() => {
-                      if (!isOpen[index]) {
-                        setIsOpen((prev) => {
-                          const newOpen = [...prev]
-                          newOpen[index] = true
-                          return newOpen
+                <div className="flex items-center">
+                  <div
+                    className="flex items-center"
+                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  >
+                    {proxyDisplayMode === 'full' && (
+                      <Chip size="sm" className="my-1 mr-2">
+                        {groups[index].all.length}
+                      </Chip>
+                    )}
+                    <CollapseInput
+                      title={t('proxies.search.placeholder')}
+                      value={searchValue[index]}
+                      onValueChange={(v) => {
+                        setSearchValue((prev) => {
+                          const newSearchValue = [...prev]
+                          newSearchValue[index] = v
+                          return newSearchValue
                         })
-                      }
-                      let i = 0
-                      for (let j = 0; j < index; j++) {
-                        i += groupCounts[j]
-                      }
-                      i += Math.floor(
-                        allProxies[index].findIndex((proxy) => proxy.name === groups[index].now) /
-                          cols
-                      )
-                      virtuosoRef.current?.scrollToIndex({
-                        index: Math.floor(i),
-                        align: 'start'
-                      })
-                    }}
-                  >
-                    <FaLocationCrosshairs className="text-lg text-foreground-500" />
-                  </Button>
-                  <Button
-                    title={t('proxies.delay.test')}
-                    variant="light"
-                    isLoading={(delaying[index]?.size ?? 0) > 0}
-                    size="sm"
-                    isIconOnly
-                    onPress={() => {
-                      onGroupDelay(index)
-                    }}
-                  >
-                    <MdOutlineSpeed className="text-lg text-foreground-500" />
-                  </Button>
+                      }}
+                    />
+                    <Button
+                      title={t('proxies.locate')}
+                      variant="light"
+                      size="sm"
+                      isIconOnly
+                      onPress={() => {
+                        if (!isOpen[index]) {
+                          setIsOpen((prev) => {
+                            const newOpen = [...prev]
+                            newOpen[index] = true
+                            return newOpen
+                          })
+                        }
+                        let i = 0
+                        for (let j = 0; j < index; j++) {
+                          i += groupCounts[j]
+                        }
+                        i += Math.floor(
+                          allProxies[index].findIndex((proxy) => proxy.name === groups[index].now) /
+                            cols
+                        )
+                        virtuosoRef.current?.scrollToIndex({
+                          index: Math.floor(i),
+                          align: 'start'
+                        })
+                      }}
+                    >
+                      <FaLocationCrosshairs className="text-lg text-foreground-500" />
+                    </Button>
+                    <Button
+                      title={t('proxies.delay.test')}
+                      variant="light"
+                      isLoading={(delaying[index]?.size ?? 0) > 0}
+                      size="sm"
+                      isIconOnly
+                      onPress={() => {
+                        onGroupDelay(index)
+                      }}
+                    >
+                      <MdOutlineSpeed className="text-lg text-foreground-500" />
+                    </Button>
+                  </div>
                   <IoIosArrowBack
                     className={`transition duration-200 ml-2 h-8 text-lg text-foreground-500 ${isOpen[index] ? '-rotate-90' : ''}`}
                   />

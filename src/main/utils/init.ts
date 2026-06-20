@@ -18,6 +18,11 @@ import {
 } from '../config'
 import { startSSIDCheck } from '../sys/ssid'
 import i18next, { resources } from '../../shared/i18n'
+import {
+  DEFAULT_MIHOMO_LAN_ALLOWED_IPS,
+  DEFAULT_MIHOMO_SKIP_AUTH_PREFIXES,
+  getDefaultMihomoTunDevice
+} from '../../shared/appConfig'
 import { stringify } from './yaml'
 import {
   defaultConfig,
@@ -348,15 +353,14 @@ async function migrateMihomoConfig(): Promise<void> {
 
   // skip-auth-prefixes
   if (!config['skip-auth-prefixes']) {
-    patches['skip-auth-prefixes'] = ['127.0.0.1/32', '::1/128']
+    patches['skip-auth-prefixes'] = [...DEFAULT_MIHOMO_SKIP_AUTH_PREFIXES]
   } else if (
     config['skip-auth-prefixes'].length >= 1 &&
-    config['skip-auth-prefixes'][0] === '127.0.0.1/32' &&
-    !config['skip-auth-prefixes'].includes('::1/128')
+    config['skip-auth-prefixes'][0] === DEFAULT_MIHOMO_SKIP_AUTH_PREFIXES[0] &&
+    !config['skip-auth-prefixes'].includes(DEFAULT_MIHOMO_SKIP_AUTH_PREFIXES[1])
   ) {
     patches['skip-auth-prefixes'] = [
-      '127.0.0.1/32',
-      '::1/128',
+      ...DEFAULT_MIHOMO_SKIP_AUTH_PREFIXES,
       ...config['skip-auth-prefixes'].slice(1)
     ]
   }
@@ -364,14 +368,14 @@ async function migrateMihomoConfig(): Promise<void> {
   // 其他默认值
   if (!config.authentication) patches.authentication = []
   if (!config['bind-address']) patches['bind-address'] = '*'
-  if (!config['lan-allowed-ips']) patches['lan-allowed-ips'] = ['0.0.0.0/0', '::/0']
+  if (!config['lan-allowed-ips']) patches['lan-allowed-ips'] = [...DEFAULT_MIHOMO_LAN_ALLOWED_IPS]
   if (!config['lan-disallowed-ips']) patches['lan-disallowed-ips'] = []
 
   // tun device
   if (!config.tun?.device || (process.platform === 'darwin' && config.tun.device === 'Mihomo')) {
     patches.tun = {
       ...config.tun,
-      device: process.platform === 'darwin' ? 'utun1500' : 'Mihomo'
+      device: getDefaultMihomoTunDevice(process.platform)
     }
   }
 

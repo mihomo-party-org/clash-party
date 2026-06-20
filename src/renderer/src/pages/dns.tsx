@@ -9,44 +9,40 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { mihomoHotReloadConfig } from '@renderer/utils/ipc'
 import React, { Key, ReactNode, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import {
+  DEFAULT_CONTROL_DNS,
+  DEFAULT_MIHOMO_DNS_CONFIG,
+  DEFAULT_USE_NAMESERVER_POLICY
+} from '../../../shared/appConfig'
 
 const DNS: React.FC = () => {
   const { t } = useTranslation()
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
   const { appConfig, patchAppConfig } = useAppConfig()
-  const { nameserverPolicy, useNameserverPolicy, controlDns = true } = appConfig || {}
+  const {
+    nameserverPolicy,
+    useNameserverPolicy = DEFAULT_USE_NAMESERVER_POLICY,
+    controlDns = DEFAULT_CONTROL_DNS
+  } = appConfig || {}
   const { dns, hosts } = controledMihomoConfig || {}
   const {
-    enable = true,
-    ipv6 = false,
-    'fake-ip-range': fakeIPRange = '198.18.0.1/16',
-    'fake-ip-filter': fakeIPFilter = [
-      '*',
-      '+.lan',
-      '+.local',
-      'time.*.com',
-      'ntp.*.com',
-      '+.market.xiaomi.com'
-    ],
+    enable = DEFAULT_MIHOMO_DNS_CONFIG.enable,
+    ipv6 = DEFAULT_MIHOMO_DNS_CONFIG.ipv6,
+    'fake-ip-range': fakeIPRange = DEFAULT_MIHOMO_DNS_CONFIG['fake-ip-range'],
+    'fake-ip-filter': fakeIPFilter = DEFAULT_MIHOMO_DNS_CONFIG['fake-ip-filter'],
     'fake-ip-filter-mode': fakeIPFilterMode = 'blacklist',
-    'enhanced-mode': enhancedMode = 'fake-ip',
-    'use-hosts': useHosts = false,
-    'use-system-hosts': useSystemHosts = false,
-    'respect-rules': respectRules = false,
-    'default-nameserver': defaultNameserver = ['tls://223.5.5.5'],
-    nameserver = ['https://doh.pub/dns-query', 'https://dns.alidns.com/dns-query'],
-    'proxy-server-nameserver': proxyServerNameserver = [
-      'https://doh.pub/dns-query',
-      'https://dns.alidns.com/dns-query'
+    'enhanced-mode': enhancedMode = DEFAULT_MIHOMO_DNS_CONFIG['enhanced-mode'],
+    'use-hosts': useHosts = DEFAULT_MIHOMO_DNS_CONFIG['use-hosts'],
+    'use-system-hosts': useSystemHosts = DEFAULT_MIHOMO_DNS_CONFIG['use-system-hosts'],
+    'respect-rules': respectRules = DEFAULT_MIHOMO_DNS_CONFIG['respect-rules'],
+    'default-nameserver': defaultNameserver = DEFAULT_MIHOMO_DNS_CONFIG['default-nameserver'],
+    nameserver = DEFAULT_MIHOMO_DNS_CONFIG.nameserver,
+    'proxy-server-nameserver': proxyServerNameserver = DEFAULT_MIHOMO_DNS_CONFIG[
+      'proxy-server-nameserver'
     ],
-    'direct-nameserver': directNameserver = [],
-    fallback = [],
-    'fallback-filter': fallbackFilter = {
-      geoip: true,
-      'geoip-code': 'CN',
-      ipcidr: ['240.0.0.0/4', '0.0.0.0/32'],
-      domain: ['+.google.com', '+.facebook.com', '+.youtube.com']
-    }
+    'direct-nameserver': directNameserver = DEFAULT_MIHOMO_DNS_CONFIG['direct-nameserver'],
+    fallback = DEFAULT_MIHOMO_DNS_CONFIG.fallback,
+    'fallback-filter': fallbackFilter = DEFAULT_MIHOMO_DNS_CONFIG['fallback-filter']
   } = dns || {}
   const [changed, setChanged] = useState(false)
   const [values, originSetValues] = useState({
@@ -64,10 +60,17 @@ const DNS: React.FC = () => {
     proxyServerNameserver,
     directNameserver,
     fallback,
-    fallbackGeoip: (fallbackFilter?.geoip || true) as string | true | string[],
-    fallbackGeoipCode: fallbackFilter?.['geoip-code'] || 'CN',
-    fallbackIpcidr: fallbackFilter?.ipcidr || ['240.0.0.0/4', '0.0.0.0/32'],
-    fallbackDomain: fallbackFilter?.domain || ['+.google.com', '+.facebook.com', '+.youtube.com'],
+    fallbackGeoip: (fallbackFilter?.geoip ||
+      DEFAULT_MIHOMO_DNS_CONFIG['fallback-filter']?.geoip ||
+      true) as string | true | string[],
+    fallbackGeoipCode:
+      fallbackFilter?.['geoip-code'] ||
+      DEFAULT_MIHOMO_DNS_CONFIG['fallback-filter']?.['geoip-code'] ||
+      'CN',
+    fallbackIpcidr:
+      fallbackFilter?.ipcidr || DEFAULT_MIHOMO_DNS_CONFIG['fallback-filter']?.ipcidr || [],
+    fallbackDomain:
+      fallbackFilter?.domain || DEFAULT_MIHOMO_DNS_CONFIG['fallback-filter']?.domain || [],
     useNameserverPolicy,
     nameserverPolicy: Object.entries(nameserverPolicy || {}).map(([domain, value]) => ({
       domain,

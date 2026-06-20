@@ -23,6 +23,8 @@ import {
 import { parse, stringify } from '../utils/yaml'
 import { deepMerge } from '../utils/merge'
 import { createLogger } from '../utils/logger'
+import { decryptAgeContent } from '../utils/age'
+import { DEFAULT_CONTROL_DNS, DEFAULT_CONTROL_SNIFF } from '../../shared/appConfig'
 
 const factoryLogger = createLogger('Factory')
 const SMART_OVERRIDE_ID = 'smart-core-override'
@@ -67,7 +69,7 @@ function processRulesWithOffset(ruleStrings: string[], currentRules: string[], i
  *
  * @param profile 当前的 Mihomo 配置对象
  * @param enabled 是否需要执行排除逻辑（通常为是否启用了 Smart 核心覆写）
- * @returns 此次新添加到排除列表中的网段/IP数组
+ * @returns 此次新添加到排除列表中的网段/IP 数组
  */
 function ensureSmartProxyServerTunExclude(profile: IMihomoConfig, enabled: boolean): string[] {
   if (!enabled || profile.tun?.enable !== true || !Array.isArray(profile.proxies)) return []
@@ -109,15 +111,25 @@ export async function generateProfile(): Promise<string | undefined> {
   const { current } = await getProfileConfig(true)
   const {
     diffWorkDir = false,
-    controlDns = true,
-    controlSniff = true,
+    controlDns = DEFAULT_CONTROL_DNS,
+    controlSniff = DEFAULT_CONTROL_SNIFF,
     useNameserverPolicy
   } = await getAppConfig()
+  const currentProfileItem = await getProfileItem(current)
+  const ageSecretKey = currentProfileItem?.ageSecretKey || ''
   const baseProfile = await getProfile(current)
   const overrideIds = await getOrderedOverrideIds(current)
-  const profileWithNormalOverride = await applyOverrides(baseProfile, overrideIds.normal)
+  const profileWithNormalOverride = await applyOverrides(
+    baseProfile,
+    overrideIds.normal,
+    ageSecretKey
+  )
   const profileWithRuleOverride = await applyRuleOverride(current, profileWithNormalOverride)
-  const currentProfile = await applyOverrides(profileWithRuleOverride, overrideIds.smart)
+  const currentProfile = await applyOverrides(
+    profileWithRuleOverride,
+    overrideIds.smart,
+    ageSecretKey
+  )
   let controledMihomoConfig = await getControledMihomoConfig()
 
   // 根据开关状态过滤控制配置
@@ -125,10 +137,6 @@ export async function generateProfile(): Promise<string | undefined> {
   if (!controlDns) {
     delete controledMihomoConfig.dns
     delete controledMihomoConfig.hosts
-    // 同时清空 TUN 的 DNS 劫持，避免 DNS 请求被拦截但无法处理
-    if (controledMihomoConfig.tun) {
-      controledMihomoConfig.tun = { ...controledMihomoConfig.tun, 'dns-hijack': [] }
-    }
   }
   if (!controlSniff) {
     delete controledMihomoConfig.sniffer
@@ -138,6 +146,10 @@ export async function generateProfile(): Promise<string | undefined> {
   }
 
   const profile = deepMerge(currentProfile, controledMihomoConfig)
+  // 关闭 DNS 覆写时，如果最终配置没有启用的 DNS 配置，清空 dns-hijack 避免请求被劫持但无法处理
+  if (!controlDns && profile.tun && !profile.dns?.enable) {
+    profile.tun = { ...profile.tun, 'dns-hijack': [] }
+  }
   // Smart Override JS 早于受控 TUN 配置合并执行；最终配置写出前再排除代理服务器 IP。
   const addedProxyServerRouteExcludes = ensureSmartProxyServerTunExclude(
     profile,
@@ -279,7 +291,8 @@ async function getOrderedOverrideIds(current: string | undefined): Promise<{
 
 async function applyOverrides(
   profile: IMihomoConfig,
-  overrideIds: string[]
+  overrideIds: string[],
+  ageSecretKey: string
 ): Promise<IMihomoConfig> {
   for (const ov of overrideIds) {
     const item = await getOverrideItem(ov)
@@ -289,7 +302,8 @@ async function applyOverrides(
         profile = runOverrideScript(profile, content, item)
         break
       case 'yaml': {
-        let patch = parse(content) || {}
+        const decryptedContent = await decryptAgeContent(content, ageSecretKey, `override "${ov}"`)
+        let patch = parse(decryptedContent) || {}
         if (typeof patch !== 'object') patch = {}
         profile = deepMerge(profile, patch, true)
         break

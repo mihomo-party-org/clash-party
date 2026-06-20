@@ -13,12 +13,13 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import debounce from '@renderer/utils/debounce'
 import { isValidCron } from 'cron-validator'
 import { useTranslation } from 'react-i18next'
+import { DEFAULT_USE_SUB_STORE } from '../../../../shared/appConfig'
 
 const SubStoreConfig: React.FC = () => {
   const { t } = useTranslation()
   const { appConfig, patchAppConfig } = useAppConfig()
   const {
-    useSubStore = true,
+    useSubStore = DEFAULT_USE_SUB_STORE,
     useCustomSubStore = false,
     useProxyInSubStore = false,
     subStoreHost = '127.0.0.1',

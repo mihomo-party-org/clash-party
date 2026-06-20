@@ -13,6 +13,7 @@ import {
 import BasePage from '@renderer/components/base/base-page'
 import { toast } from '@renderer/components/base/toast'
 import ProfileItem from '@renderer/components/profiles/profile-item'
+import EditInfoModal from '@renderer/components/profiles/edit-info-modal'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { getFilePath, readTextFile, subStoreCollections, subStoreSubs } from '@renderer/utils/ipc'
@@ -34,6 +35,7 @@ import SubStoreIcon from '@renderer/components/base/substore-icon'
 import useSWR from 'swr'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { DEFAULT_USE_SUB_STORE } from '../../../shared/appConfig'
 
 const Profiles: React.FC = () => {
   const { t } = useTranslation()
@@ -47,14 +49,20 @@ const Profiles: React.FC = () => {
     mutateProfileConfig
   } = useProfileConfig()
   const { appConfig } = useAppConfig()
-  const { useSubStore = true, useCustomSubStore = false, customSubStoreUrl = '' } = appConfig || {}
+  const {
+    useSubStore = DEFAULT_USE_SUB_STORE,
+    useCustomSubStore = false,
+    customSubStoreUrl = ''
+  } = appConfig || {}
   const { current, items = [] } = profileConfig || {}
   const navigate = useNavigate()
   const [sortedItems, setSortedItems] = useState(items)
   const [useProxy, setUseProxy] = useState(false)
   const [authToken, setAuthToken] = useState('')
   const [userAgent, setUserAgent] = useState('')
+  const [ageSecretKey, setAgeSecretKey] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [openInfoImport, setOpenInfoImport] = useState(false)
   const [subStoreImporting, setSubStoreImporting] = useState(false)
   const [importing, setImporting] = useState(false)
   const [updating, setUpdating] = useState(false)
@@ -137,11 +145,13 @@ const Profiles: React.FC = () => {
       url,
       useProxy,
       authToken: authToken || undefined,
-      userAgent: userAgent || undefined
+      userAgent: userAgent || undefined,
+      ageSecretKey: ageSecretKey || undefined
     })
     setUrl('')
     setAuthToken('')
     setUserAgent('')
+    setAgeSecretKey('')
     setImporting(false)
   }
   const pageRef = useRef<HTMLDivElement>(null)
@@ -260,6 +270,21 @@ const Profiles: React.FC = () => {
         </Button>
       }
     >
+      {openInfoImport && (
+        <EditInfoModal
+          mode="import"
+          item={{
+            id: '',
+            name: '',
+            type: 'remote',
+            url: '',
+            override: [],
+            useProxy
+          }}
+          addProfileItem={addProfileItem}
+          onClose={() => setOpenInfoImport(false)}
+        />
+      )}
       <div className="sticky profiles-sticky top-0 z-40 bg-background">
         <div className="flex flex-col gap-2 p-2">
           <div className="flex gap-2">
@@ -424,9 +449,12 @@ const Profiles: React.FC = () => {
                       type: 'local',
                       file: 'proxies: []\nproxy-groups: []\nrules: []'
                     })
+                  } else if (key === 'import') {
+                    setOpenInfoImport(true)
                   }
                 }}
               >
+                <DropdownItem key="import">{t('profiles.import')}</DropdownItem>
                 <DropdownItem key="open">{t('profiles.open')}</DropdownItem>
                 <DropdownItem key="new">{t('profiles.new')}</DropdownItem>
               </DropdownMenu>
@@ -448,6 +476,15 @@ const Profiles: React.FC = () => {
                 placeholder={t('profiles.editInfo.userAgentPlaceholder')}
                 value={userAgent}
                 onValueChange={setUserAgent}
+                onKeyUp={handleInputKeyUp}
+                className="flex-1"
+              />
+              <Input
+                size="sm"
+                type="password"
+                placeholder={t('profiles.editInfo.ageSecretKeyPlaceholder')}
+                value={ageSecretKey}
+                onValueChange={setAgeSecretKey}
                 onKeyUp={handleInputKeyUp}
                 className="flex-1"
               />
