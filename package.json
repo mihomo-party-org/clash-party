@@ -22,6 +22,7 @@
     "checksum": "node scripts/checksum.mjs",
     "copy-legacy": "node scripts/copy-legacy-artifacts.mjs",
     "test-copy-legacy": "node scripts/test-copy-legacy.mjs",
+    "test:core-log-encoding": "pnpm exec tsx scripts/test-core-log-encoding.ts",
     "telegram": "node scripts/telegram.mjs release",
     "telegram:dev": "node scripts/telegram.mjs dev",
     "artifact": "node scripts/artifact.mjs",

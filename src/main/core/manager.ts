@@ -4,6 +4,7 @@ import { promisify } from 'util'
 import path from 'path'
 import os from 'os'
 import { existsSync } from 'fs'
+import iconv from 'iconv-lite'
 import chokidar, { FSWatcher } from 'chokidar'
 import { app, ipcMain } from 'electron'
 import { mainWindow } from '../window'
@@ -30,7 +31,10 @@ import { ensureRuntimeFiles, safeShowErrorBox } from '../utils/init'
 import { parseAgeSecretKeys } from '../utils/age'
 import i18next from '../../shared/i18n'
 import { managerLogger } from '../utils/logger'
-import { createCappedLogWritableStream } from '../utils/logFile'
+import {
+  createCappedLogWritableStream,
+  createDecodedCappedLogWritableStream
+} from '../utils/logFile'
 import {
   startMihomoTraffic,
   startMihomoConnections,
@@ -77,6 +81,7 @@ export { getDefaultDevice } from './dns'
 
 const execFilePromise = promisify(execFile)
 const ctlParam = process.platform === 'win32' ? '-ext-ctl-pipe' : '-ext-ctl-unix'
+const WINDOWS_CORE_LOG_ENCODING = 'gbk'
 
 // 核心进程状态
 let child: ChildProcess | null = null
@@ -272,8 +277,14 @@ function spawnCoreProcess(config: CoreConfig): ChildProcess {
   }
 
   if (!detached) {
-    const stdout = createCappedLogWritableStream(coreLogPath)
-    const stderr = createCappedLogWritableStream(coreLogPath)
+    const stdout =
+      process.platform === 'win32'
+        ? createDecodedCappedLogWritableStream(coreLogPath, WINDOWS_CORE_LOG_ENCODING)
+        : createCappedLogWritableStream(coreLogPath)
+    const stderr =
+      process.platform === 'win32'
+        ? createDecodedCappedLogWritableStream(coreLogPath, WINDOWS_CORE_LOG_ENCODING)
+        : createCappedLogWritableStream(coreLogPath)
     proc.stdout?.pipe(stdout)
     proc.stderr?.pipe(stderr)
   }
@@ -288,6 +299,19 @@ function setupCoreListeners(
   resolve: (value: Promise<void>[]) => void,
   reject: (reason: unknown) => void
 ): void {
+  const stdoutDecoder =
+    process.platform === 'win32' ? iconv.getDecoder(WINDOWS_CORE_LOG_ENCODING) : null
+  let stdoutTail = ''
+  let tunPermissionHandled = false
+  let controllerErrorHandled = false
+  let apiReadyHandled = false
+  let providerReadyHandled = false
+  let startResolved = false
+  let resolveProviderReady!: () => void
+  const providerReadyPromise = new Promise<void>((innerResolve) => {
+    resolveProviderReady = innerResolve
+  })
+
   proc.on('close', async (code, signal) => {
     managerLogger.info(`Core closed, code: ${code}, signal: ${signal}`)
 
@@ -310,10 +334,13 @@ function setupCoreListeners(
   })
 
   proc.stdout?.on('data', async (data) => {
-    const str = data.toString()
+    const text = stdoutDecoder ? stdoutDecoder.write(data) : data.toString()
+    const str = stdoutTail + text
+    stdoutTail = str.slice(-512)
 
     // TUN 权限错误
-    if (str.includes('configure tun interface: operation not permitted')) {
+    if (!tunPermissionHandled && str.includes('configure tun interface: operation not permitted')) {
+      tunPermissionHandled = true
       patchControledMihomoConfig({ tun: { enable: false } })
       mainWindow?.webContents.send('controledMihomoConfigUpdated')
       ipcMain.emit('updateTrayMenu')
@@ -326,7 +353,8 @@ function setupCoreListeners(
       (process.platform !== 'win32' && str.includes('External controller unix listen error')) ||
       (process.platform === 'win32' && str.includes('External controller pipe listen error'))
 
-    if (isControllerError) {
+    if (!controllerErrorHandled && isControllerError) {
+      controllerErrorHandled = true
       managerLogger.error('External controller listen error detected:', str)
 
       if (process.platform === 'win32') {
@@ -348,29 +376,12 @@ function setupCoreListeners(
       (process.platform !== 'win32' && str.includes('RESTful API unix listening at')) ||
       (process.platform === 'win32' && str.includes('RESTful API pipe listening at'))
 
-    if (isApiReady) {
-      resolve([
-        new Promise((innerResolve) => {
-          proc.stdout?.on('data', async (innerData) => {
-            if (
-              innerData
-                .toString()
-                .toLowerCase()
-                .includes('start initial compatible provider default')
-            ) {
-              try {
-                mainWindow?.webContents.send('groupsUpdated')
-                mainWindow?.webContents.send('rulesUpdated')
-                await uploadRuntimeConfig()
-              } catch {
-                // ignore
-              }
-              await patchMihomoConfig({ 'log-level': logLevel })
-              innerResolve()
-            }
-          })
-        })
-      ])
+    if (!apiReadyHandled && isApiReady) {
+      apiReadyHandled = true
+      if (!startResolved) {
+        startResolved = true
+        resolve([providerReadyPromise])
+      }
 
       await waitForCoreReady()
       await getAxios(true)
@@ -381,6 +392,23 @@ function setupCoreListeners(
         startMihomoMemory()
       ])
       retry = 10
+    }
+
+    if (
+      apiReadyHandled &&
+      !providerReadyHandled &&
+      str.toLowerCase().includes('start initial compatible provider default')
+    ) {
+      providerReadyHandled = true
+      try {
+        mainWindow?.webContents.send('groupsUpdated')
+        mainWindow?.webContents.send('rulesUpdated')
+        await uploadRuntimeConfig()
+      } catch {
+        // ignore
+      }
+      await patchMihomoConfig({ 'log-level': logLevel })
+      resolveProviderReady()
     }
   })
 }

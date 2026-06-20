@@ -1,5 +1,6 @@
 import { appendFile, open, stat, writeFile } from 'fs/promises'
 import { Writable } from 'stream'
+import iconv from 'iconv-lite'
 
 const MB = 1024 * 1024
 const DEFAULT_MAX_LOG_FILE_SIZE_MB = 10
@@ -171,9 +172,59 @@ class CappedLogWritable extends Writable {
   }
 }
 
+export interface DecodedCappedLogWritable extends Writable {
+  on(event: 'text', listener: (text: string) => void): this
+}
+
+class DecodedCappedLogWritableStream extends Writable implements DecodedCappedLogWritable {
+  private readonly resolvePath: () => string
+  private readonly maxBytes: number
+  private readonly decoder: iconv.DecoderStream
+
+  constructor(filePath: LogFilePath, sourceEncoding: string, maxBytes: number) {
+    super()
+    this.resolvePath = typeof filePath === 'function' ? filePath : (): string => filePath
+    this.maxBytes = maxBytes
+    this.decoder = iconv.getDecoder(sourceEncoding)
+  }
+
+  _write(
+    chunk: Buffer | string,
+    encoding: BufferEncoding,
+    callback: (error?: Error | null) => void
+  ): void {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, encoding)
+    this.writeDecodedText(this.decoder.write(buffer)).then(
+      () => callback(),
+      (error) => callback(error as Error)
+    )
+  }
+
+  _final(callback: (error?: Error | null) => void): void {
+    this.writeDecodedText(this.decoder.end() ?? '').then(
+      () => callback(),
+      (error) => callback(error as Error)
+    )
+  }
+
+  private async writeDecodedText(text: string): Promise<void> {
+    if (!text) return
+    this.emit('text', text)
+    await appendToFileWithLimit(this.resolvePath(), text, this.maxBytes)
+  }
+}
+
 export function createCappedLogWritableStream(
   filePath: LogFilePath,
   maxBytes = getGlobalMaxLogFileSizeBytes()
 ): Writable {
   return new CappedLogWritable(filePath, maxBytes)
+}
+
+export function createDecodedCappedLogWritableStream(
+  filePath: LogFilePath,
+  sourceEncoding: string,
+  maxBytes = getGlobalMaxLogFileSizeBytes()
+): DecodedCappedLogWritable {
+  return new DecodedCappedLogWritableStream(filePath, sourceEncoding, maxBytes)
 }
