@@ -325,7 +325,7 @@ const Proxies: React.FC = () => {
           >
             <CardBody className="w-full h-14">
               <div className="flex justify-between h-full gap-3">
-                <div className="flex min-w-0 h-full text-ellipsis overflow-hidden whitespace-nowrap">
+                <div className="flex min-w-0 flex-1 items-center overflow-hidden whitespace-nowrap">
                   {groups[index].icon ? (
                     <Avatar
                       className="bg-transparent mr-2 shrink-0"
@@ -338,21 +338,26 @@ const Proxies: React.FC = () => {
                       }
                     />
                   ) : null}
-                  <div className="flex min-w-0 flex-col h-full">
-                    <div className="text-ellipsis overflow-hidden whitespace-nowrap leading-tight text-md flex-5 flex items-center">
-                      <span title={groups[index].name} className="flag-emoji inline-block truncate">
-                        {groups[index].name}
+                  <div className="flex min-w-0 items-center overflow-hidden whitespace-nowrap">
+                    <span title={groups[index].name} className="flag-emoji text-md truncate">
+                      {groups[index].name}
+                    </span>
+                    {proxyDisplayMode === 'full' && (
+                      <span
+                        title={groups[index].type}
+                        className="ml-2 shrink-0 text-sm text-foreground-500"
+                      >
+                        {groups[index].type}
                       </span>
-                    </div>
-                    <div className="text-ellipsis overflow-hidden whitespace-nowrap text-[10px] text-foreground-500 leading-tight flex-3 flex items-center">
-                      <span>{groups[index].type}</span>
+                    )}
+                    {groups[index].now && (
                       <span
                         title={groups[index].now}
-                        className="flag-emoji ml-1 inline-block truncate"
+                        className="flag-emoji ml-2 min-w-0 truncate text-sm text-foreground-500"
                       >
                         {groups[index].now}
                       </span>
-                    </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center">
