@@ -47,19 +47,21 @@ function saveWindowState(window: BrowserWindow): void {
 
 function ensureVisibleOnScreen(state: WindowState): WindowState {
   const { width, height } = normalizeWindowSize(state)
+  const x = Number.isFinite(state.x) ? state.x : undefined
+  const y = Number.isFinite(state.y) ? state.y : undefined
   const displays = screen.getAllDisplays()
   const visible = displays.some((d) => {
     const b = d.bounds
     return (
-      state.x !== undefined &&
-      state.y !== undefined &&
-      state.x < b.x + b.width &&
-      state.x + width > b.x &&
-      state.y < b.y + b.height &&
-      state.y + height > b.y
+      x !== undefined &&
+      y !== undefined &&
+      x < b.x + b.width &&
+      x + width > b.x &&
+      y < b.y + b.height &&
+      y + height > b.y
     )
   })
-  const safeState = { ...state, width, height }
+  const safeState = { ...state, width, height, x, y }
   return visible ? safeState : { width, height }
 }
 
