@@ -20,6 +20,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { openFile } from '@renderer/utils/ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useTranslation } from 'react-i18next'
+import { getProfileUpdateStatusView } from '@renderer/utils/profile-update-status'
 import BaseConfirmModal from '../base/base-confirm-modal'
 import EditRulesModal from './edit-rules-modal'
 import EditTunnelsModal from './edit-tunnels-modal'
@@ -60,6 +61,7 @@ const ProfileItem: React.FC<Props> = (props) => {
   const total = extra?.total ?? 0
   const { appConfig, patchAppConfig } = useAppConfig()
   const { profileDisplayDate = 'expire' } = appConfig || {}
+  const updateStatus = getProfileUpdateStatusView(info, t)
   const [updating, setUpdating] = useState(false)
   const [openInfoEditor, setOpenInfoEditor] = useState(false)
   const [openFileEditor, setOpenFileEditor] = useState(false)
@@ -343,36 +345,50 @@ const ProfileItem: React.FC<Props> = (props) => {
               </div>
             </div>
             {info.type === 'remote' && extra && (
-              <div
-                className={`mt-2 flex justify-between ${isCurrent ? 'text-primary-foreground' : 'text-foreground'}`}
-              >
-                <small>{`${calcTraffic(usage)}/${calcTraffic(total)}`}</small>
-                {profileDisplayDate === 'expire' ? (
-                  <Button
-                    size="sm"
-                    variant="light"
-                    className={`h-5 p-1 m-0 ${isCurrent ? 'text-primary-foreground' : 'text-foreground'}`}
-                    onPress={async () => {
-                      await patchAppConfig({ profileDisplayDate: 'update' })
-                    }}
-                  >
-                    {extra.expire
-                      ? dayjs.unix(extra.expire).format('YYYY-MM-DD')
-                      : t('profiles.neverExpire')}
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="light"
-                    className={`h-5 p-1 m-0 ${isCurrent ? 'text-primary-foreground' : 'text-foreground'}`}
-                    onPress={async () => {
-                      await patchAppConfig({ profileDisplayDate: 'expire' })
-                    }}
-                  >
-                    {dayjs(info.updated).fromNow()}
-                  </Button>
+              <>
+                <div
+                  className={`mt-2 flex justify-between ${isCurrent ? 'text-primary-foreground' : 'text-foreground'}`}
+                >
+                  <small>{`${calcTraffic(usage)}/${calcTraffic(total)}`}</small>
+                  {profileDisplayDate === 'expire' ? (
+                    <Button
+                      size="sm"
+                      variant="light"
+                      className={`h-5 p-1 m-0 ${isCurrent ? 'text-primary-foreground' : 'text-foreground'}`}
+                      onPress={async () => {
+                        await patchAppConfig({ profileDisplayDate: 'update' })
+                      }}
+                    >
+                      {extra.expire
+                        ? dayjs.unix(extra.expire).format('YYYY-MM-DD')
+                        : t('profiles.neverExpire')}
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="light"
+                      className={`h-5 p-1 m-0 ${isCurrent ? 'text-primary-foreground' : 'text-foreground'}`}
+                      onPress={async () => {
+                        await patchAppConfig({ profileDisplayDate: 'expire' })
+                      }}
+                    >
+                      {dayjs(info.updated).fromNow()}
+                    </Button>
+                  )}
+                </div>
+                {updateStatus && (
+                  <Tooltip placement="left" content={updateStatus.tooltip}>
+                    <Chip
+                      size="sm"
+                      color={updateStatus.color}
+                      variant="flat"
+                      className="mt-2 max-w-full"
+                    >
+                      {updateStatus.label}
+                    </Chip>
+                  </Tooltip>
                 )}
-              </div>
+              </>
             )}
           </CardBody>
           <CardFooter className="pt-0">
@@ -389,6 +405,18 @@ const ProfileItem: React.FC<Props> = (props) => {
                 </Chip>
                 <small>{dayjs(info.updated).fromNow()}</small>
               </div>
+            )}
+            {info.type === 'remote' && !extra && updateStatus && (
+              <Tooltip placement="left" content={updateStatus.tooltip}>
+                <Chip
+                  size="sm"
+                  color={updateStatus.color}
+                  variant="flat"
+                  className="mt-2 max-w-full"
+                >
+                  {updateStatus.label}
+                </Chip>
+              </Tooltip>
             )}
             {info.type === 'local' && (
               <div

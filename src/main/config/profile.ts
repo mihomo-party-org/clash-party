@@ -183,8 +183,39 @@ export async function updateProfileItem(item: IProfileItem): Promise<void> {
   })
 }
 
+function formatProfileUpdateError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error)
+  return message.slice(0, 500)
+}
+
+async function markProfileUpdateFailed(item: Partial<IProfileItem>, error: unknown): Promise<void> {
+  if (!item.id || item.type !== 'remote') return
+
+  const lastUpdateAt = Date.now()
+  const lastUpdateError = formatProfileUpdateError(error)
+  await updateProfileConfig((config) => {
+    const existingIndex = config.items.findIndex((i) => i.id === item.id)
+    if (existingIndex === -1 || config.items[existingIndex].type !== 'remote') {
+      return config
+    }
+    config.items[existingIndex] = {
+      ...config.items[existingIndex],
+      lastUpdateAt,
+      lastUpdateStatus: 'failed',
+      lastUpdateError
+    }
+    return config
+  })
+}
+
 export async function addProfileItem(item: Partial<IProfileItem>): Promise<void> {
-  const newItem = await createProfile(item)
+  let newItem: IProfileItem
+  try {
+    newItem = await createProfile(item)
+  } catch (error) {
+    await markProfileUpdateFailed(item, error)
+    throw error
+  }
   let shouldChangeCurrent = false
   let newProfileIsCurrentAfterUpdate = false
   await updateProfileConfig((config) => {
@@ -425,6 +456,9 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
     userAgent: item.userAgent,
     ageSecretKey: item.ageSecretKey,
     updated: new Date().getTime(),
+    lastUpdateAt: item.lastUpdateAt,
+    lastUpdateStatus: item.lastUpdateStatus,
+    lastUpdateError: item.lastUpdateError,
     updateTimeout: item.updateTimeout
   }
 
@@ -514,6 +548,9 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
     }
 
     await setProfileStr(id, data)
+    newItem.lastUpdateAt = newItem.updated
+    newItem.lastUpdateStatus = 'success'
+    delete newItem.lastUpdateError
     await profileLogger.info(
       `Remote profile saved id=${id} name=${newItem.name} path=${profilePath(
         id
