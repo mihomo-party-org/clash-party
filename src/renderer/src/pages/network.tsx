@@ -1,6 +1,6 @@
 import BasePage from '@renderer/components/base/base-page'
 import NetworkTopologyCard from '@renderer/components/network/network-topology'
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Button, Select, SelectItem, Chip, Tooltip, Input } from '@heroui/react'
 import {
   DndContext,
@@ -273,6 +273,7 @@ const IPPage: React.FC = () => {
   const [provider, setProvider] = useState<IPProvider>(
     (appConfig?.networkIPProvider as IPProvider) ?? 'ip.sb'
   )
+  const fetchIdRef = useRef(0)
   const [ipInfo, setIpInfo] = useState<IPInfo | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -458,23 +459,24 @@ const IPPage: React.FC = () => {
   const fetchIP = useCallback(
     async (p?: IPProvider) => {
       const target = p ?? provider
+      const currentFetchId = ++fetchIdRef.current
       setLoading(true)
       setError(null)
       try {
         const data = await fetchIPInfo(IP_ENDPOINTS[target])
+        if (currentFetchId !== fetchIdRef.current) return
         setIpInfo(parseProvider(target, data as Record<string, unknown>))
-        if (p) {
-          setProvider(p)
-          patchAppConfig({ networkIPProvider: p })
-        }
       } catch (e) {
+        if (currentFetchId !== fetchIdRef.current) return
         setError(e instanceof Error ? e.message : t('network.fetchFailed'))
         setIpInfo(null)
       } finally {
-        setLoading(false)
+        if (currentFetchId === fetchIdRef.current) {
+          setLoading(false)
+        }
       }
     },
-    [patchAppConfig, provider, t]
+    [provider, t]
   )
 
   useEffect(() => {
@@ -517,7 +519,11 @@ const IPPage: React.FC = () => {
                         selectedKeys={[provider]}
                         onSelectionChange={(keys) => {
                           const val = Array.from(keys)[0] as IPProvider
-                          if (val) fetchIP(val)
+                          if (val) {
+                            setProvider(val)
+                            patchAppConfig({ networkIPProvider: val })
+                            fetchIP(val)
+                          }
                         }}
                       >
                         {providers.map((p) => (
