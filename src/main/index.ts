@@ -29,7 +29,7 @@ import {
   triggerMainWindow,
   closeMainWindow
 } from './window'
-import { handleDeepLink } from './deeplink'
+import { handleDeepLink, shouldShowWindowForDeepLink } from './deeplink'
 import {
   fixUserDataPermissions,
   setupPlatformSpecifics,
@@ -120,15 +120,21 @@ initHardwareAcceleration()
 setupAppLifecycle()
 
 app.on('second-instance', async (_event, commandline) => {
-  showMainWindow()
   const url = commandline.pop()
   if (url) {
+    if (shouldShowWindowForDeepLink(url)) {
+      showMainWindow()
+    }
     await handleDeepLink(url)
+  } else {
+    showMainWindow()
   }
 })
 
 app.on('open-url', async (_event, url) => {
-  showMainWindow()
+  if (shouldShowWindowForDeepLink(url)) {
+    showMainWindow()
+  }
   await handleDeepLink(url)
 })
 
