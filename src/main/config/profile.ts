@@ -5,7 +5,7 @@ import { isAbsolute, join, relative, resolve } from 'path'
 import { promisify } from 'util'
 import { randomBytes } from 'crypto'
 import { tmpdir } from 'os'
-import { app } from 'electron'
+import { app, BrowserWindow } from 'electron'
 import i18next from 'i18next'
 import axios, { AxiosResponse } from 'axios'
 import { parse, stringify } from '../utils/yaml'
@@ -36,6 +36,12 @@ let profileConfigWriteQueue: Promise<void> = Promise.resolve()
 let changeProfileQueue: Promise<void> = Promise.resolve()
 // 并发去重
 const inflightRemoteFetches = new Map<string, Promise<IProfileItem>>()
+
+function notifyProfileConfigUpdated(): void {
+  for (const window of BrowserWindow.getAllWindows()) {
+    window.webContents.send('profileConfigUpdated')
+  }
+}
 
 function isPermissionError(error: unknown): boolean {
   const code = (error as NodeJS.ErrnoException)?.code
@@ -101,6 +107,7 @@ export async function setProfileConfig(config: IProfileConfig): Promise<void> {
   profileConfigWriteQueue = profileConfigWriteQueue.then(async () => {
     profileConfig = config
     await writeFile(profileConfigPath(), stringify(config), 'utf-8')
+    notifyProfileConfigUpdated()
   })
   await profileConfigWriteQueue
 }
@@ -117,6 +124,7 @@ export async function updateProfileConfig(
     profileConfig = await updater(JSON.parse(JSON.stringify(profileConfig)))
     result = profileConfig
     await writeFile(profileConfigPath(), stringify(profileConfig), 'utf-8')
+    notifyProfileConfigUpdated()
   })
   await profileConfigWriteQueue
   return JSON.parse(JSON.stringify(result ?? profileConfig))
