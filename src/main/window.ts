@@ -17,12 +17,23 @@ interface WindowState {
   isMaximized?: boolean
 }
 
+const defaultWindowState: WindowState = { width: 800, height: 600 }
+
+function normalizeWindowSize(state: WindowState): Pick<WindowState, 'width' | 'height'> {
+  const width = Number.isFinite(state.width) ? state.width : defaultWindowState.width
+  const height = Number.isFinite(state.height) ? state.height : defaultWindowState.height
+  return {
+    width: Math.max(width, defaultWindowState.width),
+    height: Math.max(height, defaultWindowState.height)
+  }
+}
+
 function loadWindowState(): WindowState {
   try {
     const raw = readFileSync(join(dataDir(), 'window-state.json'), 'utf-8')
     return JSON.parse(raw)
   } catch {
-    return { width: 800, height: 600 }
+    return defaultWindowState
   }
 }
 
@@ -35,19 +46,21 @@ function saveWindowState(window: BrowserWindow): void {
 }
 
 function ensureVisibleOnScreen(state: WindowState): WindowState {
+  const { width, height } = normalizeWindowSize(state)
   const displays = screen.getAllDisplays()
   const visible = displays.some((d) => {
     const b = d.bounds
     return (
       state.x !== undefined &&
       state.y !== undefined &&
-      state.x >= b.x &&
-      state.y >= b.y &&
       state.x < b.x + b.width &&
-      state.y < b.y + b.height
+      state.x + width > b.x &&
+      state.y < b.y + b.height &&
+      state.y + height > b.y
     )
   })
-  return visible ? state : { width: state.width, height: state.height }
+  const safeState = { ...state, width, height }
+  return visible ? safeState : { width, height }
 }
 
 export let mainWindow: BrowserWindow | null = null
