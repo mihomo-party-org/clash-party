@@ -8,6 +8,7 @@ import * as chromeRequest from '../utils/chromeRequest'
 import { getControledMihomoConfig } from '../config'
 import { DEFAULT_MIHOMO_PORTS } from '../../shared/appConfig'
 import { mainWindow } from '../window'
+import { assertSafeCssFilename } from '../utils/security'
 import { floatingWindow } from './floatingWindow'
 
 let insertedCSSKeyMain: string | undefined = undefined
@@ -61,15 +62,18 @@ export async function importThemes(files: string[]): Promise<void> {
 }
 
 export async function readTheme(theme: string): Promise<string> {
+  assertSafeCssFilename(theme)
   if (!existsSync(path.join(themesDir(), theme))) return ''
   return await readFile(path.join(themesDir(), theme), 'utf-8')
 }
 
 export async function writeTheme(theme: string, css: string): Promise<void> {
+  assertSafeCssFilename(theme)
   await writeFile(path.join(themesDir(), theme), css)
 }
 
 export async function applyTheme(theme: string): Promise<void> {
+  assertSafeCssFilename(theme)
   const css = await readTheme(theme)
   await mainWindow?.webContents.removeInsertedCSS(insertedCSSKeyMain || '')
   insertedCSSKeyMain = await mainWindow?.webContents.insertCSS(css)

@@ -1,6 +1,6 @@
 import { access, readFile, rm, unlink, writeFile } from 'fs/promises'
 import { constants, existsSync } from 'fs'
-import { exec, execFile } from 'child_process'
+import { execFile } from 'child_process'
 import { isAbsolute, join, relative, resolve } from 'path'
 import { promisify } from 'util'
 import { randomBytes } from 'crypto'
@@ -25,11 +25,13 @@ import {
   profilePath
 } from '../utils/dirs'
 import { createLogger } from '../utils/logger'
+import { assertSafeId, resolveInside } from '../utils/security'
 import { getAppConfig } from './app'
 import { getControledMihomoConfig } from './controledMihomo'
 
 const profileLogger = createLogger('Profile')
 const execFilePromise = promisify(execFile)
+const RULESET_BEHAVIORS = new Set(['domain', 'ipcidr', 'classical'])
 
 let profileConfig: IProfileConfig
 let profileConfigWriteQueue: Promise<void> = Promise.resolve()
@@ -123,6 +125,7 @@ export async function updateProfileConfig(
 }
 
 export async function getProfileItem(id: string | undefined): Promise<IProfileItem | undefined> {
+  if (id && id !== 'default') assertSafeId(id, 'profile id')
   const { items } = await getProfileConfig()
   if (!id || id === 'default')
     return { id: 'default', type: 'local', name: i18next.t('profiles.emptyProfile') }
@@ -130,6 +133,7 @@ export async function getProfileItem(id: string | undefined): Promise<IProfileIt
 }
 
 export async function changeCurrentProfile(id: string): Promise<void> {
+  assertSafeId(id, 'profile id')
   // 使用队列确保 profile 切换串行执行，避免竞态条件
   let taskError: unknown = null
   changeProfileQueue = changeProfileQueue
@@ -173,6 +177,7 @@ export async function changeCurrentProfile(id: string): Promise<void> {
 }
 
 export async function updateProfileItem(item: IProfileItem): Promise<void> {
+  assertSafeId(item.id, 'profile id')
   await updateProfileConfig((config) => {
     const index = config.items.findIndex((i) => i.id === item.id)
     if (index === -1) {
@@ -184,6 +189,7 @@ export async function updateProfileItem(item: IProfileItem): Promise<void> {
 }
 
 export async function addProfileItem(item: Partial<IProfileItem>): Promise<void> {
+  if (item.id) assertSafeId(item.id, 'profile id')
   const newItem = await createProfile(item)
   let shouldChangeCurrent = false
   let newProfileIsCurrentAfterUpdate = false
@@ -221,6 +227,7 @@ export async function addProfileItem(item: Partial<IProfileItem>): Promise<void>
 }
 
 export async function removeProfileItem(id: string): Promise<void> {
+  assertSafeId(id, 'profile id')
   await removeProfileUpdater(id)
 
   let shouldRestart = false
@@ -409,6 +416,7 @@ async function fetchAndValidateSubscription(options: FetchOptions): Promise<Fetc
 }
 
 export async function createProfile(item: Partial<IProfileItem>): Promise<IProfileItem> {
+  if (item.id) assertSafeId(item.id, 'profile id')
   const id = item.id || new Date().getTime().toString(16)
   const newItem: IProfileItem = {
     id,
@@ -531,6 +539,7 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
 }
 
 export async function getProfileStr(id: string | undefined): Promise<string> {
+  if (id && id !== 'default') assertSafeId(id, 'profile id')
   if (existsSync(profilePath(id || 'default'))) {
     return await readFile(profilePath(id || 'default'), 'utf-8')
   } else {
@@ -539,6 +548,7 @@ export async function getProfileStr(id: string | undefined): Promise<string> {
 }
 
 export async function setProfileStr(id: string, content: string): Promise<void> {
+  assertSafeId(id, 'profile id')
   // 读取最新的配置
   const { current } = await getProfileConfig(true)
   await writeFile(profilePath(id), content, 'utf-8')
@@ -617,50 +627,39 @@ function parseSubinfo(str: string): ISubscriptionUserInfo {
   return obj
 }
 
-function isAbsolutePath(path: string): boolean {
-  return path.startsWith('/') || /^[a-zA-Z]:\\/.test(path)
-}
-
-export async function getFileStr(path: string): Promise<string> {
-  const { diffWorkDir = false } = await getAppConfig()
-  const { current } = await getProfileConfig()
-  if (isAbsolutePath(path)) {
-    return await readFile(path, 'utf-8')
-  } else {
-    return await readFile(
-      join(diffWorkDir ? mihomoProfileWorkDir(current) : mihomoWorkDir(), path),
-      'utf-8'
-    )
+function workFilePath(filePath: string, diffWorkDir: boolean, current: string | undefined): string {
+  if (isAbsolute(filePath)) {
+    throw new Error('Absolute paths are not allowed')
   }
+  return resolveInside(diffWorkDir ? mihomoProfileWorkDir(current) : mihomoWorkDir(), filePath)
 }
 
-export async function setFileStr(path: string, content: string): Promise<void> {
+export async function getFileStr(filePath: string): Promise<string> {
   const { diffWorkDir = false } = await getAppConfig()
   const { current } = await getProfileConfig()
-  if (isAbsolutePath(path)) {
-    await writeFile(path, content, 'utf-8')
-  } else {
-    await writeFile(
-      join(diffWorkDir ? mihomoProfileWorkDir(current) : mihomoWorkDir(), path),
-      content,
-      'utf-8'
-    )
+  return await readFile(workFilePath(filePath, diffWorkDir, current), 'utf-8')
+}
+
+export async function setFileStr(filePath: string, content: string): Promise<void> {
+  const { diffWorkDir = false } = await getAppConfig()
+  const { current } = await getProfileConfig()
+  await writeFile(workFilePath(filePath, diffWorkDir, current), content, 'utf-8')
+}
+
+function assertRulesetBehavior(behavior: string): void {
+  if (!RULESET_BEHAVIORS.has(behavior)) {
+    throw new Error(`Invalid ruleset behavior: ${behavior}`)
   }
 }
 
 export async function convertMrsRuleset(filePath: string, behavior: string): Promise<string> {
-  const execAsync = promisify(exec)
+  assertRulesetBehavior(behavior)
 
   const { core = 'mihomo' } = await getAppConfig()
   const corePath = mihomoCorePath(core)
   const { diffWorkDir = false } = await getAppConfig()
   const { current } = await getProfileConfig()
-  let fullPath: string
-  if (isAbsolutePath(filePath)) {
-    fullPath = filePath
-  } else {
-    fullPath = join(diffWorkDir ? mihomoProfileWorkDir(current) : mihomoWorkDir(), filePath)
-  }
+  const fullPath = workFilePath(filePath, diffWorkDir, current)
 
   const tempFileName = `mrs-convert-${randomBytes(8).toString('hex')}.txt`
   const tempFilePath = join(tmpdir(), tempFileName)
@@ -668,7 +667,7 @@ export async function convertMrsRuleset(filePath: string, behavior: string): Pro
   try {
     // 使用 mihomo convert-ruleset 命令转换 MRS 文件为 text 格式
     // 命令格式：mihomo convert-ruleset <behavior> <format> <source>
-    await execAsync(`"${corePath}" convert-ruleset ${behavior} mrs "${fullPath}" "${tempFilePath}"`)
+    await execFilePromise(corePath, ['convert-ruleset', behavior, 'mrs', fullPath, tempFilePath])
     const content = await readFile(tempFilePath, 'utf-8')
     await unlink(tempFilePath)
 

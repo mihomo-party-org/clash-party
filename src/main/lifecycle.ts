@@ -9,16 +9,22 @@ import { triggerSysProxy, disableSysProxySync } from './sys/sysproxy'
 import { exePath } from './utils/dirs'
 
 export function customRelaunch(): void {
-  const script = `while kill -0 ${process.pid} 2>/dev/null; do
+  const script = `pid="$1"
+shift
+while kill -0 "$pid" 2>/dev/null; do
   sleep 0.1
 done
-${process.argv.join(' ')} & disown
+"$@" & disown
 exit
 `
-  spawn('sh', ['-c', script], {
-    detached: true,
-    stdio: 'ignore'
-  })
+  spawn(
+    'sh',
+    ['-c', script, 'relaunch', process.pid.toString(), process.execPath, ...process.argv.slice(1)],
+    {
+      detached: true,
+      stdio: 'ignore'
+    }
+  )
 }
 
 export async function fixUserDataPermissions(): Promise<void> {

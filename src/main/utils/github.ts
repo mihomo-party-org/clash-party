@@ -6,20 +6,12 @@ import { join } from 'path'
 import { createGunzip } from 'zlib'
 import AdmZip from 'adm-zip'
 import { stopCore } from '../core/manager'
-import { getAppConfig } from '../config'
 import { mihomoCoreDir } from './dirs'
 import * as chromeRequest from './chromeRequest'
 import { createLogger } from './logger'
+import { downloadVerifiedGitHubAsset } from './githubAsset'
 
 const log = createLogger('GitHub')
-
-const GITHUB_PROXIES = ['https://gh-proxy.org', 'https://ghfast.top', 'https://down.clashparty.org']
-
-function buildDownloadUrls(githubUrl: string, proxyPref = ''): string[] {
-  if (proxyPref === 'direct') return [githubUrl]
-  if (proxyPref && proxyPref !== 'auto') return [`${proxyPref}/${githubUrl}`]
-  return [...GITHUB_PROXIES.map((p) => `${p}/${githubUrl}`), githubUrl]
-}
 
 export interface GitHubTag {
   name: string
@@ -123,29 +115,18 @@ export function clearVersionCache(owner: string, repo: string): void {
  * @param url 下载 URL
  * @param outputPath 输出路径
  */
-async function downloadGitHubAsset(url: string, outputPath: string): Promise<void> {
-  const { githubProxy = '' } = await getAppConfig()
-  const urls = buildDownloadUrls(url, githubProxy)
-  let lastError: unknown
-  for (const candidate of urls) {
-    try {
-      log.debug(`Downloading asset from ${candidate}`)
-      const response = await chromeRequest.get(candidate, {
-        responseType: 'arraybuffer',
-        timeout: 30000
-      })
-      await writeFile(outputPath, Buffer.from(response.data as Buffer))
-      log.debug(`Successfully downloaded asset to ${outputPath}`)
-      return
-    } catch (error) {
-      log.warn(`Download failed from ${candidate}, trying next`, error)
-      lastError = error
-    }
-  }
-  log.error(`Failed to download asset from all sources`, lastError)
-  throw lastError instanceof Error
-    ? new Error(`Download error: ${lastError.message}`)
-    : new Error('Failed to download core file')
+async function downloadGitHubAsset(
+  owner: string,
+  repo: string,
+  tag: string,
+  assetName: string,
+  outputPath: string
+): Promise<void> {
+  const data = await downloadVerifiedGitHubAsset(owner, repo, tag, assetName, {
+    timeout: 30000
+  })
+  await writeFile(outputPath, data)
+  log.debug(`Successfully downloaded verified asset to ${outputPath}`)
 }
 
 /**
@@ -169,7 +150,7 @@ export async function installMihomoCore(version: string): Promise<void> {
 
     const isWin = plat === 'win32'
     const urlExt = isWin ? 'zip' : 'gz'
-    const downloadURL = `https://github.com/MetaCubeX/mihomo/releases/download/${version}/${name}-${version}.${urlExt}`
+    const assetName = `${name}-${version}.${urlExt}`
 
     const coreDir = mihomoCoreDir()
     const tempZip = join(coreDir, `temp-core.${urlExt}`)
@@ -185,7 +166,7 @@ export async function installMihomoCore(version: string): Promise<void> {
     }
 
     // 下载文件
-    await downloadGitHubAsset(downloadURL, tempZip)
+    await downloadGitHubAsset('MetaCubeX', 'mihomo', version, assetName, tempZip)
 
     // 解压文件
     if (urlExt === 'zip') {

@@ -4,6 +4,7 @@ import { overrideConfigPath, overridePath } from '../utils/dirs'
 import * as chromeRequest from '../utils/chromeRequest'
 import { parse, stringify } from '../utils/yaml'
 import { DEFAULT_MIHOMO_PORTS } from '../../shared/appConfig'
+import { assertSafeId } from '../utils/security'
 import { getControledMihomoConfig } from './controledMihomo'
 
 let overrideConfig: IOverrideConfig // override.yaml
@@ -28,11 +29,13 @@ export async function setOverrideConfig(config: IOverrideConfig): Promise<void> 
 }
 
 export async function getOverrideItem(id: string | undefined): Promise<IOverrideItem | undefined> {
+  if (id) assertSafeId(id, 'override id')
   const { items } = await getOverrideConfig()
   return items.find((item) => item.id === id)
 }
 
 export async function updateOverrideItem(item: IOverrideItem): Promise<void> {
+  assertSafeId(item.id, 'override id')
   const config = await getOverrideConfig()
   const index = config.items.findIndex((i) => i.id === item.id)
   if (index === -1) {
@@ -43,6 +46,7 @@ export async function updateOverrideItem(item: IOverrideItem): Promise<void> {
 }
 
 export async function addOverrideItem(item: Partial<IOverrideItem>): Promise<void> {
+  if (item.id) assertSafeId(item.id, 'override id')
   const config = await getOverrideConfig()
   const newItem = await createOverride(item)
   if (await getOverrideItem(item.id)) {
@@ -54,6 +58,7 @@ export async function addOverrideItem(item: Partial<IOverrideItem>): Promise<voi
 }
 
 export async function removeOverrideItem(id: string): Promise<void> {
+  assertSafeId(id, 'override id')
   const config = await getOverrideConfig()
   const item = await getOverrideItem(id)
   if (!item) return
@@ -65,6 +70,7 @@ export async function removeOverrideItem(id: string): Promise<void> {
 }
 
 export async function createOverride(item: Partial<IOverrideItem>): Promise<IOverrideItem> {
+  if (item.id) assertSafeId(item.id, 'override id')
   const id = item.id || new Date().getTime().toString(16)
   const newItem = {
     id,
@@ -103,6 +109,7 @@ export async function createOverride(item: Partial<IOverrideItem>): Promise<IOve
 }
 
 export async function getOverride(id: string, ext: 'js' | 'yaml' | 'log'): Promise<string> {
+  assertSafeId(id, 'override id')
   if (!existsSync(overridePath(id, ext))) {
     return ''
   }
@@ -110,5 +117,6 @@ export async function getOverride(id: string, ext: 'js' | 'yaml' | 'log'): Promi
 }
 
 export async function setOverride(id: string, ext: 'js' | 'yaml', content: string): Promise<void> {
+  assertSafeId(id, 'override id')
   await writeFile(overridePath(id, ext), content, 'utf-8')
 }
