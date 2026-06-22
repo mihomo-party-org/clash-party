@@ -9,13 +9,14 @@ import { mihomoCorePath, mihomoCoreDir } from '../utils/dirs'
 import { managerLogger } from '../utils/logger'
 import { checkAutoRun, enableAutoRun } from '../sys/autoRun'
 import i18next from '../../shared/i18n'
+import { ALLOWED_CORE_NAMES, isAllowedCoreName } from '../utils/security'
 import { checkAdminPrivileges } from './admin'
 
 const execPromise = promisify(exec)
 const execFilePromise = promisify(execFile)
 
 // 内核名称白名单
-const ALLOWED_CORES = ['mihomo', 'mihomo-alpha', 'mihomo-smart'] as const
+const ALLOWED_CORES = ALLOWED_CORE_NAMES
 type AllowedCore = (typeof ALLOWED_CORES)[number]
 type StopCoreBeforeAdminRestart = (force?: boolean) => Promise<void>
 
@@ -26,7 +27,7 @@ export function setStopCoreBeforeAdminRestart(stopCore: StopCoreBeforeAdminResta
 }
 
 export function isValidCoreName(core: string): core is AllowedCore {
-  return ALLOWED_CORES.includes(core as AllowedCore)
+  return isAllowedCoreName(core)
 }
 
 export function validateCorePath(corePath: string): void {

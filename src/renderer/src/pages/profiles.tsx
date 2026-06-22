@@ -208,8 +208,7 @@ const Profiles: React.FC = () => {
         const file = event.dataTransfer.files[0]
         if (file.name.endsWith('.yml') || file.name.endsWith('.yaml')) {
           try {
-            const path = window.api.webUtils.getPathForFile(file)
-            const content = await readTextFile(path)
+            const content = await file.text()
             await addProfileItemRef.current({ name: file.name, type: 'local', file: content })
           } catch (e) {
             toast.error(String(e))

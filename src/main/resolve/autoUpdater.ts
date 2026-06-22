@@ -4,48 +4,30 @@ import { existsSync } from 'fs'
 import os from 'os'
 import { exec, execSync, spawn } from 'child_process'
 import { promisify } from 'util'
-import { createHash } from 'crypto'
 import { app, shell } from 'electron'
 import i18next from 'i18next'
 import { mainWindow } from '../window'
 import { appLogger } from '../utils/logger'
 import { dataDir, exeDir, exePath, isPortable, resourcesFilesDir } from '../utils/dirs'
-import { getAppConfig, getControledMihomoConfig } from '../config'
+import { getControledMihomoConfig } from '../config'
 import { DEFAULT_MIHOMO_PORTS } from '../../shared/appConfig'
 import { checkAdminPrivileges } from '../core/manager'
 import { parse } from '../utils/yaml'
 import * as chromeRequest from '../utils/chromeRequest'
-
-const GITHUB_PROXIES = ['https://gh-proxy.org', 'https://ghfast.top', 'https://down.clashparty.org']
-
-function buildDownloadUrls(githubUrl: string, proxyPref = ''): string[] {
-  if (proxyPref === 'direct') return [githubUrl]
-  if (proxyPref && proxyPref !== 'auto') return [`${proxyPref}/${githubUrl}`]
-  // auto: try each proxy then fall back to direct
-  return [...GITHUB_PROXIES.map((p) => `${p}/${githubUrl}`), githubUrl]
-}
+import { downloadVerifiedGitHubAsset } from '../utils/githubAsset'
 
 async function tryDownload(
-  urls: string[],
+  url: string,
   options: Parameters<typeof chromeRequest.get>[1]
 ): Promise<Awaited<ReturnType<typeof chromeRequest.get>>> {
-  let lastError: unknown
-  for (const url of urls) {
-    try {
-      return await chromeRequest.get(url, options)
-    } catch (e) {
-      lastError = e
-    }
-  }
-  throw lastError
+  return await chromeRequest.get(url, options)
 }
 
 export async function checkUpdate(): Promise<IAppVersion | undefined> {
-  const [{ 'mixed-port': mixedPort = DEFAULT_MIHOMO_PORTS.mixed }, { githubProxy = '' }] =
-    await Promise.all([getControledMihomoConfig(), getAppConfig()])
+  const { 'mixed-port': mixedPort = DEFAULT_MIHOMO_PORTS.mixed } = await getControledMihomoConfig()
   const githubUrl =
     'https://github.com/mihomo-party-org/mihomo-party/releases/latest/download/latest.yml'
-  const res = await tryDownload(buildDownloadUrls(githubUrl, githubProxy), {
+  const res = await tryDownload(githubUrl, {
     headers: { 'Content-Type': 'application/octet-stream' },
     proxy: { protocol: 'http', host: '127.0.0.1', port: mixedPort },
     responseType: 'text'
@@ -78,9 +60,7 @@ function compareVersions(a: string, b: string): number {
 }
 
 export async function downloadAndInstallUpdate(version: string): Promise<void> {
-  const [{ 'mixed-port': mixedPort = DEFAULT_MIHOMO_PORTS.mixed }, { githubProxy = '' }] =
-    await Promise.all([getControledMihomoConfig(), getAppConfig()])
-  const githubBase = `https://github.com/mihomo-party-org/mihomo-party/releases/download/v${version}/`
+  const { 'mixed-port': mixedPort = DEFAULT_MIHOMO_PORTS.mixed } = await getControledMihomoConfig()
   const fileMap = {
     'win32-x64': `clash-party-windows-${version}-x64-setup.exe`,
     'win32-ia32': `clash-party-windows-${version}-ia32-setup.exe`,
@@ -109,29 +89,23 @@ export async function downloadAndInstallUpdate(version: string): Promise<void> {
   const proxy = { protocol: 'http' as const, host: '127.0.0.1', port: mixedPort }
   try {
     if (!existsSync(path.join(dataDir(), file))) {
-      const sha256Res = await tryDownload(
-        buildDownloadUrls(`${githubBase}${file}.sha256`, githubProxy),
-        { proxy, responseType: 'text' }
-      )
-      const expectedHash = (sha256Res.data as string).trim().split(/\s+/)[0]
-      const res = await tryDownload(buildDownloadUrls(`${githubBase}${file}`, githubProxy), {
-        responseType: 'arraybuffer',
-        timeout: 0,
-        proxy,
-        headers: { 'Content-Type': 'application/octet-stream' },
-        onProgress: (loaded: number, total: number) => {
-          mainWindow?.webContents.send('updateDownloadProgress', {
-            status: 'downloading',
-            percent: Math.round((loaded / total) * 100)
-          })
+      const fileBuffer = await downloadVerifiedGitHubAsset(
+        'mihomo-party-org',
+        'mihomo-party',
+        `v${version}`,
+        file,
+        {
+          timeout: 0,
+          proxy,
+          onProgress: (loaded: number, total: number) => {
+            mainWindow?.webContents.send('updateDownloadProgress', {
+              status: 'downloading',
+              percent: Math.round((loaded / total) * 100)
+            })
+          }
         }
-      })
+      )
       mainWindow?.webContents.send('updateDownloadProgress', { status: 'verifying' })
-      const fileBuffer = Buffer.from(res.data as ArrayBuffer)
-      const actualHash = createHash('sha256').update(fileBuffer).digest('hex')
-      if (actualHash.toLowerCase() !== expectedHash.toLowerCase()) {
-        throw new Error(`File integrity check failed: expected ${expectedHash}, got ${actualHash}`)
-      }
       await writeFile(path.join(dataDir(), file), fileBuffer)
     }
     if (file.endsWith('.exe')) {

@@ -1,6 +1,8 @@
 import https from 'https'
 import os from 'os'
 import { existsSync } from 'fs'
+import { mkdir, writeFile } from 'fs/promises'
+import path from 'path'
 import dayjs from 'dayjs'
 import AdmZip from 'adm-zip'
 import { Cron } from 'croner'
@@ -20,6 +22,7 @@ import {
   themesDir
 } from '../utils/dirs'
 import { getAppConfig } from '../config'
+import { assertSafeFilename, resolveInside } from '../utils/security'
 
 let backupCronJob: Cron | null = null
 
@@ -109,6 +112,42 @@ function createBackupZip(): AdmZip {
   return zip
 }
 
+const ALLOWED_BACKUP_FILES = new Set([
+  'config.yaml',
+  'mihomo.yaml',
+  'profile.yaml',
+  'override.yaml'
+])
+
+const ALLOWED_BACKUP_DIRS = ['themes', 'profiles', 'override', 'rules', 'substore']
+
+function isAllowedBackupEntry(entryName: string): boolean {
+  const normalized = entryName.replace(/\\/g, '/').replace(/^\/+/, '')
+  if (!normalized || normalized.includes('\0')) return false
+  if (normalized.split('/').some((part) => part === '..')) return false
+  if (ALLOWED_BACKUP_FILES.has(normalized)) return true
+  return ALLOWED_BACKUP_DIRS.some((dir) => normalized === dir || normalized.startsWith(`${dir}/`))
+}
+
+async function extractBackupZip(zip: AdmZip): Promise<void> {
+  for (const entry of zip.getEntries()) {
+    const entryName = entry.entryName.replace(/\\/g, '/').replace(/^\/+/, '')
+    if (!isAllowedBackupEntry(entryName)) {
+      await systemLogger.warn(`Skipped unsafe backup entry: ${entry.entryName}`)
+      continue
+    }
+
+    const targetPath = resolveInside(dataDir(), entryName)
+    if (entry.isDirectory) {
+      await mkdir(targetPath, { recursive: true })
+      continue
+    }
+
+    await mkdir(path.dirname(targetPath), { recursive: true })
+    await writeFile(targetPath, entry.getData())
+  }
+}
+
 export async function webdavBackup(): Promise<boolean> {
   const { client, webdavDir, webdavMaxBackups } = await getWebDAVClient()
   const zip = createBackupZip()
@@ -159,10 +198,12 @@ export async function webdavBackup(): Promise<boolean> {
 }
 
 export async function webdavRestore(filename: string): Promise<void> {
+  assertSafeFilename(filename, 'backup filename')
+  if (!filename.endsWith('.zip')) throw new Error('Invalid backup filename')
   const { client, webdavDir } = await getWebDAVClient()
   const zipData = await client.getFileContents(`${webdavDir}/${filename}`)
   const zip = new AdmZip(zipData as Buffer)
-  zip.extractAllTo(dataDir(), true)
+  await extractBackupZip(zip)
 }
 
 export async function listWebdavBackups(): Promise<string[]> {
@@ -172,6 +213,8 @@ export async function listWebdavBackups(): Promise<string[]> {
 }
 
 export async function webdavDelete(filename: string): Promise<void> {
+  assertSafeFilename(filename, 'backup filename')
+  if (!filename.endsWith('.zip')) throw new Error('Invalid backup filename')
   const { client, webdavDir } = await getWebDAVClient()
   await client.deleteFile(`${webdavDir}/${filename}`)
 }
@@ -273,7 +316,7 @@ export async function importLocalBackup(): Promise<boolean> {
   if (!result.canceled && result.filePaths.length > 0) {
     const filePath = result.filePaths[0]
     const zip = new AdmZip(filePath)
-    zip.extractAllTo(dataDir(), true)
+    await extractBackupZip(zip)
     await systemLogger.info(`Local backup imported from: ${filePath}`)
     return true
   }
