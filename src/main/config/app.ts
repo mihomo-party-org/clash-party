@@ -5,6 +5,7 @@ import { deepMerge } from '../utils/merge'
 import { defaultConfig } from '../utils/template'
 import { normalizeMaxLogFileSizeMB, setGlobalMaxLogFileSizeMB } from '../utils/logFile'
 import { setAppLogDisabled } from '../utils/logger'
+import { assertAllowedCoreName, assertSafeCssFilename } from '../utils/security'
 
 let appConfig: IAppConfig // config.yaml
 let appConfigWriteQueue: Promise<void> = Promise.resolve()
@@ -34,6 +35,13 @@ export async function getAppConfig(force = false): Promise<IAppConfig> {
 }
 
 export async function patchAppConfig(patch: Partial<IAppConfig>): Promise<void> {
+  if (patch.core !== undefined) {
+    assertAllowedCoreName(patch.core)
+  }
+  if (patch.customTheme !== undefined && patch.customTheme !== '') {
+    assertSafeCssFilename(patch.customTheme)
+  }
+
   appConfigWriteQueue = appConfigWriteQueue.then(async () => {
     const replaceNameserverPolicy = Object.prototype.hasOwnProperty.call(patch, 'nameserverPolicy')
     appConfig = deepMerge(appConfig, patch)

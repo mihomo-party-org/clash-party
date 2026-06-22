@@ -129,6 +129,7 @@ import { getIconDataURL } from './icon'
 import { getAppName } from './appName'
 import { logDir, rulePath } from './dirs'
 import { installMihomoCore, getGitHubTags, clearVersionCache } from './github'
+import { assertSafeId } from './security'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AsyncFn = (...args: any[]) => Promise<any>
@@ -176,10 +177,12 @@ async function clearMihomoVersionCache(): Promise<void> {
 }
 
 async function getRuleStr(id: string): Promise<string> {
+  assertSafeId(id, 'rule id')
   return await readFile(rulePath(id), 'utf-8')
 }
 
 async function setRuleStr(id: string, str: string): Promise<void> {
+  assertSafeId(id, 'rule id')
   await writeFile(rulePath(id), str, 'utf-8')
 }
 

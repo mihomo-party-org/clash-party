@@ -2,6 +2,7 @@ import { existsSync, mkdirSync } from 'fs'
 import path from 'path'
 import { is } from '@electron-toolkit/utils'
 import { app } from 'electron'
+import { assertAllowedCoreName } from './security'
 
 export const homeDir = app.getPath('home')
 
@@ -77,7 +78,11 @@ export function mihomoCoreDir(): string {
 }
 
 export function mihomoCorePath(core: string): string {
+  assertAllowedCoreName(core)
   const isWin = process.platform === 'win32'
+  if (core === 'mihomo-specific') {
+    return path.join(mihomoCoreDir(), `mihomo-specific${isWin ? '.exe' : ''}`)
+  }
   // 处理 Smart 内核
   if (core === 'mihomo-smart') {
     return path.join(mihomoCoreDir(), `mihomo-smart${isWin ? '.exe' : ''}`)

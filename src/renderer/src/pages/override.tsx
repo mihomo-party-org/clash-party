@@ -106,7 +106,7 @@ const Override: React.FC = () => {
       if (event.dataTransfer?.files) {
         const file = event.dataTransfer.files[0]
         if (file.name.endsWith('.js') || file.name.endsWith('.yaml')) {
-          const content = await readTextFile((file as File & { path: string }).path)
+          const content = await file.text()
           try {
             await addOverrideItemRef.current({
               name: file.name,

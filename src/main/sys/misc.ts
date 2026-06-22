@@ -13,24 +13,42 @@ import {
   resourcesDir
 } from '../utils/dirs'
 import { checkAdminPrivileges } from '../core/admin'
+import { assertSafeFilename } from '../utils/security'
+
+const selectedFilePaths = new Set<string>()
+
+function rememberSelectedFiles(files: string[] | undefined): string[] | undefined {
+  files?.forEach((file) => selectedFilePaths.add(path.resolve(file)))
+  return files
+}
+
+function assertSelectedFile(filePath: string): void {
+  if (!selectedFilePaths.has(path.resolve(filePath))) {
+    throw new Error('File was not selected by the user')
+  }
+}
 
 export function getFilePath(
   ext: string[],
   title?: string,
   filterName?: string
 ): string[] | undefined {
-  return dialog.showOpenDialogSync({
-    title: title || i18next.t('common.dialog.selectSubscriptionFile'),
-    filters: [{ name: filterName || `${ext} file`, extensions: ext }],
-    properties: ['openFile']
-  })
+  return rememberSelectedFiles(
+    dialog.showOpenDialogSync({
+      title: title || i18next.t('common.dialog.selectSubscriptionFile'),
+      filters: [{ name: filterName || `${ext} file`, extensions: ext }],
+      properties: ['openFile']
+    })
+  )
 }
 
 export async function readTextFile(filePath: string): Promise<string> {
+  assertSelectedFile(filePath)
   return await readFile(filePath, 'utf8')
 }
 
 export async function readImageFileDataURL(filePath: string): Promise<string> {
+  assertSelectedFile(filePath)
   const ext = path.extname(filePath).toLowerCase()
   const mimeType =
     ext === '.jpg' || ext === '.jpeg'
@@ -46,6 +64,7 @@ export async function readImageFileDataURL(filePath: string): Promise<string> {
 }
 
 export function openFile(type: 'profile' | 'override', id: string, ext?: 'yaml' | 'js'): void {
+  assertSafeFilename(id, 'file id')
   if (type === 'profile') {
     shell.openPath(profilePath(id))
   }
@@ -110,18 +129,32 @@ export function resetAppConfig(): void {
       }
     ).unref()
   } else {
-    const script = `while kill -0 ${process.pid} 2>/dev/null; do
+    const script = `pid="$1"
+data_dir="$2"
+shift 2
+while kill -0 "$pid" 2>/dev/null; do
   sleep 0.1
 done
-  rm -rf '${dataDir()}'
-  ${process.argv.join(' ')} & disown
+  rm -rf -- "$data_dir"
+  "$@" & disown
 exit
 `
-    spawn('sh', ['-c', `"${script}"`], {
-      shell: true,
-      detached: true,
-      stdio: 'ignore'
-    })
+    spawn(
+      'sh',
+      [
+        '-c',
+        script,
+        'reset-app',
+        process.pid.toString(),
+        dataDir(),
+        process.execPath,
+        ...process.argv.slice(1)
+      ],
+      {
+        detached: true,
+        stdio: 'ignore'
+      }
+    )
   }
   app.quit()
 }

@@ -7,13 +7,13 @@ import path from 'path'
 import { nativeImage } from 'electron'
 import express from 'express'
 import AdmZip from 'adm-zip'
-import * as chromeRequest from '../utils/chromeRequest'
 import subStoreIcon from '../../../resources/subStoreIcon.png?asset'
 import { dataDir, mihomoWorkDir, subStoreDir, substoreLogPath } from '../utils/dirs'
 import { getAppConfig, getControledMihomoConfig } from '../config'
 import { systemLogger } from '../utils/logger'
 import { createCappedLogWritableStream } from '../utils/logFile'
 import { DEFAULT_MIHOMO_PORTS, DEFAULT_USE_SUB_STORE } from '../../shared/appConfig'
+import { downloadVerifiedGitHubAsset } from '../utils/githubAsset'
 
 export let pacPort: number
 export let subStorePort: number
@@ -161,34 +161,29 @@ export async function downloadSubStore(): Promise<void> {
 
     // 下载后端文件
     const tempBackendPath = path.join(tempDir, 'sub-store.bundle.cjs')
-    const backendRes = await chromeRequest.get(
-      'https://github.com/sub-store-org/Sub-Store/releases/latest/download/sub-store.bundle.js',
-      {
-        responseType: 'arraybuffer',
-        headers: { 'Content-Type': 'application/octet-stream' },
-        proxy: {
-          protocol: 'http',
-          host: '127.0.0.1',
-          port: mixedPort
-        }
-      }
+    const proxy = {
+      protocol: 'http' as const,
+      host: '127.0.0.1',
+      port: mixedPort
+    }
+    const backendData = await downloadVerifiedGitHubAsset(
+      'sub-store-org',
+      'Sub-Store',
+      'latest',
+      'sub-store.bundle.js',
+      { proxy }
     )
-    await writeFile(tempBackendPath, Buffer.from(backendRes.data as Buffer))
+    await writeFile(tempBackendPath, backendData)
     // 下载前端文件
-    const frontendRes = await chromeRequest.get(
-      'https://github.com/sub-store-org/Sub-Store-Front-End/releases/latest/download/dist.zip',
-      {
-        responseType: 'arraybuffer',
-        headers: { 'Content-Type': 'application/octet-stream' },
-        proxy: {
-          protocol: 'http',
-          host: '127.0.0.1',
-          port: mixedPort
-        }
-      }
+    const frontendData = await downloadVerifiedGitHubAsset(
+      'sub-store-org',
+      'Sub-Store-Front-End',
+      'latest',
+      'dist.zip',
+      { proxy }
     )
     // 先解压到临时目录
-    const zip = new AdmZip(Buffer.from(frontendRes.data as Buffer))
+    const zip = new AdmZip(frontendData)
     zip.extractAllTo(tempDir, true)
     await cp(tempBackendPath, backendPath)
     if (existsSync(frontendDir)) {
