@@ -107,6 +107,7 @@
   "settings.enableTrafficLogger": "ثبت داده‌های مصرف ترافیک",
   "settings.showDockIcon": "نمایش آیکون Dock",
   "settings.useWindowFrame": "استفاده از نوار عنوان سیستم",
+  "settings.rememberSelectedSiderCard": "به خاطر سپردن کارت انتخاب شده",
   "settings.disableHardwareAcceleration": "غیرفعال کردن شتاب سخت‌افزاری",
   "settings.disableHardwareAccelerationTooltip": "غیرفعال کردن شتاب سخت‌افزاری می‌تواند مشکلات رندرینگ یا کرش ناشی از مشکلات درایور گرافیک را حل کند، اما ممکن است عملکرد را کاهش دهد. نیاز به راه‌اندازی مجدد برنامه دارد",
   "settings.hardwareAcceleration.confirm.title": "تایید راه‌اندازی مجدد برنامه",

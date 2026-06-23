@@ -113,6 +113,7 @@
   "settings.hideConnectionCardWave": "连接卡片纯数字显示",
   "settings.showDockIcon": "显示 Dock 图标",
   "settings.useWindowFrame": "使用系统标题栏",
+  "settings.rememberSelectedSiderCard": "记住所选侧边卡片",
   "settings.triggerMainWindowBehavior": "托盘窗口触发行为",
   "settings.triggerMainWindowBehaviorShow": "总是显示",
   "settings.triggerMainWindowBehaviorToggle": "切换显示/隐藏",

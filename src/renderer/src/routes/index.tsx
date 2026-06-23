@@ -22,7 +22,8 @@ const HomeRedirect: React.FC = () => {
   const { appConfig } = useAppConfig()
 
   if (!appConfig) return null
-  return <Navigate to={getSiderCardRoute(appConfig.lastSelectedSiderCard)} replace />
+  const dest = appConfig.rememberSelectedSiderCard ? appConfig.lastSelectedSiderCard : 'proxy'
+  return <Navigate to={getSiderCardRoute(dest)} replace />
 }
 
 const routes = [

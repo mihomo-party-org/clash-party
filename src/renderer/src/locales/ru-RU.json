@@ -109,6 +109,7 @@
   "settings.enableTrafficLogger": "Записывать данные трафика",
   "settings.showDockIcon": "Показывать значок в доке",
   "settings.useWindowFrame": "Использовать системную рамку окна",
+  "settings.rememberSelectedSiderCard": "Запомнить выбранную вкладку",
   "settings.disableHardwareAcceleration": "Отключить аппаратное ускорение",
   "settings.disableHardwareAccelerationTooltip": "Отключение аппаратного ускорения может решить проблемы с рендерингом или сбоями, вызванными проблемами драйверов графики, но может снизить производительность. Требует перезапуска приложения",
   "settings.hardwareAcceleration.confirm.title": "Подтверждение перезапуска приложения",

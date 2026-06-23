@@ -332,6 +332,7 @@ interface IAppConfig {
   enableTrafficLogger?: boolean
   siderOrder: string[]
   lastSelectedSiderCard?: SiderCardKey
+  rememberSelectedSiderCard?: boolean
   siderWidth: number
   appTheme: AppTheme
   customTheme?: string

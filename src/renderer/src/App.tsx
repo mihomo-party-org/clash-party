@@ -57,7 +57,8 @@ const App: React.FC = () => {
     useWindowFrame = false,
     siderWidth = 250,
     siderOrder = DEFAULT_SIDER_ORDER,
-    lastSelectedSiderCard = 'proxy'
+    lastSelectedSiderCard = 'proxy',
+    rememberSelectedSiderCard = false
   } = appConfig || {}
   useTrafficLogger(enableTrafficLogger)
   const narrowWidth = platform === 'darwin' ? 70 : 60
@@ -93,10 +94,11 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!hasAppConfig) return
+    if (!rememberSelectedSiderCard) return
     const currentSiderCard = getSiderCardByPath(location.pathname)
     if (!currentSiderCard || currentSiderCard === lastSelectedSiderCard) return
     patchAppConfig({ lastSelectedSiderCard: currentSiderCard })
-  }, [hasAppConfig, lastSelectedSiderCard, location.pathname, patchAppConfig])
+  }, [hasAppConfig, rememberSelectedSiderCard, lastSelectedSiderCard, location.pathname, patchAppConfig])
 
   useEffect(() => {
     siderWidthValueRef.current = siderWidthValue

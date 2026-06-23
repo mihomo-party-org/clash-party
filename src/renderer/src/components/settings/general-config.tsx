@@ -67,6 +67,7 @@ const GeneralConfig: React.FC = () => {
     floatingWindowCompatMode = true,
     disableHardwareAcceleration = false,
     useWindowFrame = false,
+    rememberSelectedSiderCard = false,
     autoQuitWithoutCore = false,
     autoQuitWithoutCoreDelay = 60,
     autoQuitWithoutCoreMode = 'core',
@@ -556,6 +557,15 @@ const GeneralConfig: React.FC = () => {
                 setIsRelaunching(false)
               }
             }, 1000)}
+          />
+        </SettingItem>
+        <SettingItem title={t('settings.rememberSelectedSiderCard')} divider>
+          <Switch
+            size="sm"
+            isSelected={rememberSelectedSiderCard}
+            onValueChange={async (v) => {
+              await patchAppConfig({ rememberSelectedSiderCard: v })
+            }}
           />
         </SettingItem>
         <SettingItem title={t('settings.disableAnimations')} divider>

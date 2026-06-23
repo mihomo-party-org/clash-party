@@ -113,6 +113,7 @@
   "settings.hideConnectionCardWave": "Connection Card Pure Number Display",
   "settings.showDockIcon": "Show Dock Icon",
   "settings.useWindowFrame": "Use System Title Bar",
+  "settings.rememberSelectedSiderCard": "Remember Selected Sidebar Card",
   "settings.triggerMainWindowBehavior": "Tray Window Trigger Behavior",
   "settings.triggerMainWindowBehaviorShow": "Always Show",
   "settings.triggerMainWindowBehaviorToggle": "Toggle Show/Hide",
