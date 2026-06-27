@@ -13,7 +13,12 @@ import { createLogger } from './logger'
 
 const log = createLogger('GitHub')
 
-const GITHUB_PROXIES = ['https://gh-proxy.org', 'https://ghfast.top', 'https://down.clashparty.org']
+const GITHUB_PROXIES = [
+  'https://gh-proxy.org',
+  'https://ghfast.top',
+  'https://down.clashparty.org',
+  'https://download.mihomo.party'
+]
 
 function buildDownloadUrls(githubUrl: string, proxyPref = ''): string[] {
   if (proxyPref === 'direct') return [githubUrl]
