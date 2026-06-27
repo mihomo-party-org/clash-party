@@ -357,7 +357,7 @@ function setupCoreListeners(
     if (startupResolved) return
     startupResolved = true
 
-    resolve([])
+    resolve([Promise.resolve()])
 
     try {
       mainWindow?.webContents.send('groupsUpdated')
