@@ -5,7 +5,7 @@ import { isAbsolute, join, relative, resolve } from 'path'
 import { promisify } from 'util'
 import { randomBytes } from 'crypto'
 import { tmpdir } from 'os'
-import { app } from 'electron'
+import { app, BrowserWindow } from 'electron'
 import i18next from 'i18next'
 import axios, { AxiosResponse } from 'axios'
 import { parse, stringify } from '../utils/yaml'
@@ -36,6 +36,12 @@ let profileConfigWriteQueue: Promise<void> = Promise.resolve()
 let changeProfileQueue: Promise<void> = Promise.resolve()
 // 并发去重
 const inflightRemoteFetches = new Map<string, Promise<IProfileItem>>()
+
+function notifyProfileConfigUpdated(): void {
+  for (const window of BrowserWindow.getAllWindows()) {
+    window.webContents.send('profileConfigUpdated')
+  }
+}
 
 function isPermissionError(error: unknown): boolean {
   const code = (error as NodeJS.ErrnoException)?.code
@@ -101,6 +107,7 @@ export async function setProfileConfig(config: IProfileConfig): Promise<void> {
   profileConfigWriteQueue = profileConfigWriteQueue.then(async () => {
     profileConfig = config
     await writeFile(profileConfigPath(), stringify(config), 'utf-8')
+    notifyProfileConfigUpdated()
   })
   await profileConfigWriteQueue
 }
@@ -117,6 +124,7 @@ export async function updateProfileConfig(
     profileConfig = await updater(JSON.parse(JSON.stringify(profileConfig)))
     result = profileConfig
     await writeFile(profileConfigPath(), stringify(profileConfig), 'utf-8')
+    notifyProfileConfigUpdated()
   })
   await profileConfigWriteQueue
   return JSON.parse(JSON.stringify(result ?? profileConfig))
@@ -183,8 +191,39 @@ export async function updateProfileItem(item: IProfileItem): Promise<void> {
   })
 }
 
+function formatProfileUpdateError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error)
+  return message.slice(0, 500)
+}
+
+async function markProfileUpdateFailed(item: Partial<IProfileItem>, error: unknown): Promise<void> {
+  if (!item.id || item.type !== 'remote') return
+
+  const lastUpdateAt = Date.now()
+  const lastUpdateError = formatProfileUpdateError(error)
+  await updateProfileConfig((config) => {
+    const existingIndex = config.items.findIndex((i) => i.id === item.id)
+    if (existingIndex === -1 || config.items[existingIndex].type !== 'remote') {
+      return config
+    }
+    config.items[existingIndex] = {
+      ...config.items[existingIndex],
+      lastUpdateAt,
+      lastUpdateStatus: 'failed',
+      lastUpdateError
+    }
+    return config
+  })
+}
+
 export async function addProfileItem(item: Partial<IProfileItem>): Promise<void> {
-  const newItem = await createProfile(item)
+  let newItem: IProfileItem
+  try {
+    newItem = await createProfile(item)
+  } catch (error) {
+    await markProfileUpdateFailed(item, error)
+    throw error
+  }
   let shouldChangeCurrent = false
   let newProfileIsCurrentAfterUpdate = false
   await updateProfileConfig((config) => {
@@ -425,6 +464,9 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
     userAgent: item.userAgent,
     ageSecretKey: item.ageSecretKey,
     updated: new Date().getTime(),
+    lastUpdateAt: item.lastUpdateAt,
+    lastUpdateStatus: item.lastUpdateStatus,
+    lastUpdateError: item.lastUpdateError,
     updateTimeout: item.updateTimeout
   }
 
@@ -514,6 +556,9 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
     }
 
     await setProfileStr(id, data)
+    newItem.lastUpdateAt = newItem.updated
+    newItem.lastUpdateStatus = 'success'
+    delete newItem.lastUpdateError
     await profileLogger.info(
       `Remote profile saved id=${id} name=${newItem.name} path=${profilePath(
         id

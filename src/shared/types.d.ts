@@ -556,6 +556,9 @@ interface IProfileItem {
   interval?: number | string
   home?: string
   updated?: number
+  lastUpdateAt?: number
+  lastUpdateStatus?: 'success' | 'failed'
+  lastUpdateError?: string
   override?: string[]
   useProxy?: boolean
   extra?: ISubscriptionUserInfo

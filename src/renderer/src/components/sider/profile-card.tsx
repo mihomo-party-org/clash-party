@@ -13,6 +13,7 @@ import React, { useState } from 'react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { TiFolder } from 'react-icons/ti'
 import { useTranslation } from 'react-i18next'
+import { getProfileUpdateStatusView } from '@renderer/utils/profile-update-status'
 import ConfigViewer from './config-viewer'
 
 dayjs.extend(relativeTime)
@@ -58,6 +59,7 @@ const ProfileCard: React.FC<Props> = (props) => {
   const extra = info?.extra
   const usage = (extra?.upload ?? 0) + (extra?.download ?? 0)
   const total = extra?.total ?? 0
+  const updateStatus = getProfileUpdateStatusView(info as IProfileItem, t)
 
   if (iconOnly) {
     return (
@@ -149,36 +151,50 @@ const ProfileCard: React.FC<Props> = (props) => {
               </div>
             </div>
             {info.type === 'remote' && extra && (
-              <div
-                className={`mt-2 flex justify-between ${match ? 'text-primary-foreground' : 'text-foreground'} `}
-              >
-                <small>{`${calcTraffic(usage)}/${calcTraffic(total)}`}</small>
-                {profileDisplayDate === 'expire' ? (
-                  <Button
-                    size="sm"
-                    variant="light"
-                    className={`h-[20px] p-1 m-0 ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-                    onPress={async () => {
-                      await patchAppConfig({ profileDisplayDate: 'update' })
-                    }}
-                  >
-                    {extra.expire
-                      ? dayjs.unix(extra.expire).format('YYYY-MM-DD')
-                      : t('sider.cards.neverExpire')}
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="light"
-                    className={`h-[20px] p-1 m-0 ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-                    onPress={async () => {
-                      await patchAppConfig({ profileDisplayDate: 'expire' })
-                    }}
-                  >
-                    {dayjs(info.updated).fromNow()}
-                  </Button>
+              <>
+                <div
+                  className={`mt-2 flex justify-between ${match ? 'text-primary-foreground' : 'text-foreground'} `}
+                >
+                  <small>{`${calcTraffic(usage)}/${calcTraffic(total)}`}</small>
+                  {profileDisplayDate === 'expire' ? (
+                    <Button
+                      size="sm"
+                      variant="light"
+                      className={`h-[20px] p-1 m-0 ${match ? 'text-primary-foreground' : 'text-foreground'}`}
+                      onPress={async () => {
+                        await patchAppConfig({ profileDisplayDate: 'update' })
+                      }}
+                    >
+                      {extra.expire
+                        ? dayjs.unix(extra.expire).format('YYYY-MM-DD')
+                        : t('sider.cards.neverExpire')}
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="light"
+                      className={`h-[20px] p-1 m-0 ${match ? 'text-primary-foreground' : 'text-foreground'}`}
+                      onPress={async () => {
+                        await patchAppConfig({ profileDisplayDate: 'expire' })
+                      }}
+                    >
+                      {dayjs(info.updated).fromNow()}
+                    </Button>
+                  )}
+                </div>
+                {updateStatus && (
+                  <Tooltip placement="left" content={updateStatus.tooltip}>
+                    <Chip
+                      size="sm"
+                      color={updateStatus.color}
+                      variant="flat"
+                      className="mt-2 max-w-full"
+                    >
+                      {updateStatus.label}
+                    </Chip>
+                  </Tooltip>
                 )}
-              </div>
+              </>
             )}
           </CardBody>
           <CardFooter className="pt-0">
@@ -195,6 +211,18 @@ const ProfileCard: React.FC<Props> = (props) => {
                 </Chip>
                 <small>{dayjs(info.updated).fromNow()}</small>
               </div>
+            )}
+            {info.type === 'remote' && !extra && updateStatus && (
+              <Tooltip placement="left" content={updateStatus.tooltip}>
+                <Chip
+                  size="sm"
+                  color={updateStatus.color}
+                  variant="flat"
+                  className="mt-2 max-w-full"
+                >
+                  {updateStatus.label}
+                </Chip>
+              </Tooltip>
             )}
             {info.type === 'local' && (
               <div
