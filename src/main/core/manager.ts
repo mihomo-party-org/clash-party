@@ -288,6 +288,8 @@ function setupCoreListeners(
   resolve: (value: Promise<void>[]) => void,
   reject: (reason: unknown) => void
 ): void {
+  let startupResolved = false
+
   proc.on('close', async (code, signal) => {
     managerLogger.info(`Core closed, code: ${code}, signal: ${signal}`)
 
@@ -312,77 +314,69 @@ function setupCoreListeners(
   proc.stdout?.on('data', async (data) => {
     const str = data.toString()
 
-    // TUN 权限错误
+    // TUN 权限错误（error 级别，不受 log-level 过滤）
     if (str.includes('configure tun interface: operation not permitted')) {
-      patchControledMihomoConfig({ tun: { enable: false } })
-      mainWindow?.webContents.send('controledMihomoConfigUpdated')
-      ipcMain.emit('updateTrayMenu')
-      reject(i18next.t('tun.error.tunPermissionDenied'))
+      if (!startupResolved) {
+        patchControledMihomoConfig({ tun: { enable: false } })
+        mainWindow?.webContents.send('controledMihomoConfigUpdated')
+        ipcMain.emit('updateTrayMenu')
+        reject(i18next.t('tun.error.tunPermissionDenied'))
+      }
       return
     }
 
-    // 控制器监听错误
+    // 控制器监听错误（error 级别，不受 log-level 过滤）
     const isControllerError =
       (process.platform !== 'win32' && str.includes('External controller unix listen error')) ||
       (process.platform === 'win32' && str.includes('External controller pipe listen error'))
 
     if (isControllerError) {
-      managerLogger.error('External controller listen error detected:', str)
+      if (!startupResolved) {
+        managerLogger.error('External controller listen error detected:', str)
 
-      if (process.platform === 'win32') {
-        managerLogger.info('Attempting Windows pipe cleanup and retry...')
-        try {
-          await cleanupWindowsNamedPipes(true)
-          await new Promise((r) => setTimeout(r, 2000))
-        } catch (cleanupError) {
-          managerLogger.error('Pipe cleanup failed:', cleanupError)
+        if (process.platform === 'win32') {
+          managerLogger.info('Attempting Windows pipe cleanup and retry...')
+          try {
+            await cleanupWindowsNamedPipes(true)
+            await new Promise((r) => setTimeout(r, 2000))
+          } catch (cleanupError) {
+            managerLogger.error('Pipe cleanup failed:', cleanupError)
+          }
         }
-      }
 
-      reject(i18next.t('mihomo.error.externalControllerListenError'))
+        reject(i18next.t('mihomo.error.externalControllerListenError'))
+      }
       return
     }
-
-    // API 就绪
-    const isApiReady =
-      (process.platform !== 'win32' && str.includes('RESTful API unix listening at')) ||
-      (process.platform === 'win32' && str.includes('RESTful API pipe listening at'))
-
-    if (isApiReady) {
-      resolve([
-        new Promise((innerResolve) => {
-          proc.stdout?.on('data', async (innerData) => {
-            if (
-              innerData
-                .toString()
-                .toLowerCase()
-                .includes('start initial compatible provider default')
-            ) {
-              try {
-                mainWindow?.webContents.send('groupsUpdated')
-                mainWindow?.webContents.send('rulesUpdated')
-                await uploadRuntimeConfig()
-              } catch {
-                // ignore
-              }
-              await patchMihomoConfig({ 'log-level': logLevel })
-              innerResolve()
-            }
-          })
-        })
-      ])
-
-      await waitForCoreReady()
-      await getAxios(true)
-      await Promise.all([
-        startMihomoTraffic(),
-        startMihomoConnections(),
-        startMihomoLogs(),
-        startMihomoMemory()
-      ])
-      retry = 10
-    }
   })
+
+  // 通过 HTTP API 轮询检测内核就绪，替代 stdout 日志检测
+  // 这样 log-level 设为 warning/error/silent 也不会影响启动检测
+  ;(async () => {
+    await waitForCoreReady()
+    if (startupResolved) return
+    startupResolved = true
+
+    resolve([])
+
+    try {
+      mainWindow?.webContents.send('groupsUpdated')
+      mainWindow?.webContents.send('rulesUpdated')
+      await uploadRuntimeConfig()
+    } catch {
+      // ignore
+    }
+    await patchMihomoConfig({ 'log-level': logLevel }).catch(() => {})
+
+    await getAxios(true)
+    await Promise.all([
+      startMihomoTraffic(),
+      startMihomoConnections(),
+      startMihomoLogs(),
+      startMihomoMemory()
+    ])
+    retry = 10
+  })()
 }
 
 // 启动核心
