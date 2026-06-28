@@ -350,11 +350,17 @@ export async function validateTunPermissionsOnStartup(
 ): Promise<void> {
   const { tun } = await getControledMihomoConfig()
 
+  managerLogger.info(`[TUN-DEBUG] validateTunPermissionsOnStartup: tun=${JSON.stringify(tun)}`)
+
   if (!tun?.enable) {
+    managerLogger.info('[TUN-DEBUG] validateTunPermissionsOnStartup: TUN not enabled, skipping')
     return
   }
 
   const hasPermissions = await checkMihomoCorePermissions()
+  managerLogger.info(
+    `[TUN-DEBUG] validateTunPermissionsOnStartup: hasPermissions=${hasPermissions}`
+  )
 
   if (!hasPermissions) {
     // 启动时没有权限，静默禁用 TUN，不弹窗打扰用户
@@ -373,21 +379,38 @@ export async function validateTunPermissionsOnStartup(
   }
 }
 
+let adminRestartForTunCompleted = false
+
 export async function checkAdminRestartForTun(restartCore: () => Promise<void>): Promise<void> {
-  if (process.argv.includes('--admin-restart-for-tun')) {
+  if (adminRestartForTunCompleted) {
+    managerLogger.info('[TUN-DEBUG] checkAdminRestartForTun: already completed, skipping')
+    return
+  }
+
+  const hasArg = process.argv.includes('--admin-restart-for-tun')
+  managerLogger.info(
+    `[TUN-DEBUG] checkAdminRestartForTun entered: hasArg=${hasArg}, platform=${process.platform}`
+  )
+
+  if (hasArg) {
     managerLogger.info('Detected admin restart for TUN mode, auto-enabling TUN...')
 
     try {
       if (process.platform === 'win32') {
+        managerLogger.info('[TUN-DEBUG] Windows platform, checking admin privileges...')
         const hasAdminPrivileges = await checkAdminPrivileges()
+        managerLogger.info(`[TUN-DEBUG] Admin privileges: ${hasAdminPrivileges}`)
         if (hasAdminPrivileges) {
-          await patchControledMihomoConfig({ tun: { enable: true }, dns: { enable: true } })
+          managerLogger.info('[TUN-DEBUG] Patching config: tun.enable=true, dns.enable=true')
+          await patchControledMihomoConfig({ tun: { enable: true }, dns: { enable: true } }, true)
+          managerLogger.info('[TUN-DEBUG] Config patched, checking auto-run status...')
 
           const autoRunEnabled = await checkAutoRun()
           if (autoRunEnabled) {
             await enableAutoRun()
           }
 
+          managerLogger.info('[TUN-DEBUG] Calling restartCore()...')
           await restartCore()
 
           managerLogger.info('TUN mode auto-enabled after admin restart')
@@ -395,16 +418,29 @@ export async function checkAdminRestartForTun(restartCore: () => Promise<void>):
           const { mainWindow } = await import('../index')
           mainWindow?.webContents.send('controledMihomoConfigUpdated')
           ipcMain.emit('updateTrayMenu')
+          const { updateTrayIcon } = await import('../resolve/tray')
+          await updateTrayIcon()
+          managerLogger.info('[TUN-DEBUG] Admin restart TUN flow completed successfully')
         } else {
           managerLogger.warn('Admin restart detected but no admin privileges found')
         }
+      } else {
+        managerLogger.info(
+          '[TUN-DEBUG] Non-Windows platform with --admin-restart-for-tun flag - nothing to do'
+        )
       }
     } catch (error) {
       managerLogger.error('Failed to auto-enable TUN after admin restart', error)
     }
   } else {
+    managerLogger.info(
+      '[TUN-DEBUG] No --admin-restart-for-tun, calling validateTunPermissionsOnStartup'
+    )
     await validateTunPermissionsOnStartup(restartCore)
+    managerLogger.info('[TUN-DEBUG] validateTunPermissionsOnStartup completed')
   }
+
+  adminRestartForTunCompleted = true
 }
 
 export function checkTunPermissions(): Promise<boolean> {

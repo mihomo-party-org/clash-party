@@ -40,7 +40,6 @@ import {
   stopMihomoTraffic,
   stopMihomoLogs,
   stopMihomoMemory,
-  patchMihomoConfig,
   getAxios
 } from './mihomoApi'
 import { generateProfile } from './factory'
@@ -197,6 +196,10 @@ function buildCoreEnv(safePath?: string, ageSecretKey?: string): NodeJS.ProcessE
 async function prepareCore(detached: boolean, skipStop = false): Promise<CoreConfig> {
   await ensureRuntimeFiles()
 
+  managerLogger.info(
+    `[TUN-DEBUG] prepareCore: detached=${detached}, skipStop=${skipStop}, isRestarting=${isRestarting}`
+  )
+
   const [appConfig, mihomoConfig] = await Promise.all([getAppConfig(), getControledMihomoConfig()])
 
   const {
@@ -207,6 +210,9 @@ async function prepareCore(detached: boolean, skipStop = false): Promise<CoreCon
   } = appConfig
 
   const { 'log-level': logLevel = 'info' as LogLevel, tun } = mihomoConfig
+  managerLogger.info(
+    `[TUN-DEBUG] prepareCore: tun=${JSON.stringify(tun)}, logLevel=${logLevel}, autoSetDNS=${autoSetDNS}`
+  )
 
   // 清理轻量模式遗留的后台核心
   await stopPidFileCore()
@@ -258,11 +264,17 @@ async function prepareCore(detached: boolean, skipStop = false): Promise<CoreCon
 function spawnCoreProcess(config: CoreConfig): ChildProcess {
   const { corePath, workDir, safePath, ipcPath, cpuPriority, ageSecretKey, detached } = config
 
+  managerLogger.info(
+    `[TUN-DEBUG] spawnCoreProcess: corePath=${corePath}, workDir=${workDir}, tunEnabled=${config.tunEnabled}, detached=${detached}`
+  )
+
   const proc = spawn(corePath, ['-d', workDir, ctlParam, ipcPath], {
     detached,
     stdio: detached ? 'ignore' : undefined,
     env: buildCoreEnv(safePath, ageSecretKey)
   })
+
+  managerLogger.info(`[TUN-DEBUG] spawnCoreProcess: PID=${proc.pid}, isRestarting=${isRestarting}`)
 
   if (process.platform === 'win32' && proc.pid) {
     os.setPriority(
@@ -288,8 +300,16 @@ function setupCoreListeners(
   resolve: (value: Promise<void>[]) => void,
   reject: (reason: unknown) => void
 ): void {
+  let startupResolved = false
+
+  managerLogger.info(
+    `[TUN-DEBUG] setupCoreListeners entered, PID=${proc.pid}, logLevel=${logLevel}, isRestarting=${isRestarting}`
+  )
+
   proc.on('close', async (code, signal) => {
-    managerLogger.info(`Core closed, code: ${code}, signal: ${signal}`)
+    managerLogger.info(
+      `[TUN-DEBUG] Core closed event: PID=${proc.pid}, code=${code}, signal=${signal}, child===proc=${child === proc}, isRestarting=${isRestarting}`
+    )
 
     if (child === proc) {
       child = null
@@ -312,81 +332,100 @@ function setupCoreListeners(
   proc.stdout?.on('data', async (data) => {
     const str = data.toString()
 
-    // TUN 权限错误
+    // TUN 权限错误（error 级别，不受 log-level 过滤）
     if (str.includes('configure tun interface: operation not permitted')) {
-      patchControledMihomoConfig({ tun: { enable: false } })
-      mainWindow?.webContents.send('controledMihomoConfigUpdated')
-      ipcMain.emit('updateTrayMenu')
-      reject(i18next.t('tun.error.tunPermissionDenied'))
+      managerLogger.info(
+        `[TUN-DEBUG] TUN permission error detected, startupResolved=${startupResolved}, PID=${proc.pid}`
+      )
+      if (!startupResolved) {
+        managerLogger.info('[TUN-DEBUG] TUN error BEFORE startupResolved - rejecting startup')
+        patchControledMihomoConfig({ tun: { enable: false } })
+        mainWindow?.webContents.send('controledMihomoConfigUpdated')
+        ipcMain.emit('updateTrayMenu')
+        const { updateTrayIcon: updateTrayIconAfterTunError } = await import('../resolve/tray')
+        await updateTrayIconAfterTunError()
+        reject(i18next.t('tun.error.tunPermissionDenied'))
+      } else {
+        managerLogger.info('[TUN-DEBUG] TUN error AFTER startupResolved - silently ignored')
+      }
       return
     }
 
-    // 控制器监听错误
+    // 控制器监听错误（error 级别，不受 log-level 过滤）
     const isControllerError =
       (process.platform !== 'win32' && str.includes('External controller unix listen error')) ||
       (process.platform === 'win32' && str.includes('External controller pipe listen error'))
 
     if (isControllerError) {
-      managerLogger.error('External controller listen error detected:', str)
+      managerLogger.info(
+        `[TUN-DEBUG] Controller listen error detected, startupResolved=${startupResolved}, PID=${proc.pid}`
+      )
+      if (!startupResolved) {
+        managerLogger.error('External controller listen error detected:', str)
 
-      if (process.platform === 'win32') {
-        managerLogger.info('Attempting Windows pipe cleanup and retry...')
-        try {
-          await cleanupWindowsNamedPipes(true)
-          await new Promise((r) => setTimeout(r, 2000))
-        } catch (cleanupError) {
-          managerLogger.error('Pipe cleanup failed:', cleanupError)
+        if (process.platform === 'win32') {
+          managerLogger.info('Attempting Windows pipe cleanup and retry...')
+          try {
+            await cleanupWindowsNamedPipes(true)
+            await new Promise((r) => setTimeout(r, 2000))
+          } catch (cleanupError) {
+            managerLogger.error('Pipe cleanup failed:', cleanupError)
+          }
         }
-      }
 
-      reject(i18next.t('mihomo.error.externalControllerListenError'))
+        reject(i18next.t('mihomo.error.externalControllerListenError'))
+      }
       return
     }
-
-    // API 就绪
-    const isApiReady =
-      (process.platform !== 'win32' && str.includes('RESTful API unix listening at')) ||
-      (process.platform === 'win32' && str.includes('RESTful API pipe listening at'))
-
-    if (isApiReady) {
-      resolve([
-        new Promise((innerResolve) => {
-          proc.stdout?.on('data', async (innerData) => {
-            if (
-              innerData
-                .toString()
-                .toLowerCase()
-                .includes('start initial compatible provider default')
-            ) {
-              try {
-                mainWindow?.webContents.send('groupsUpdated')
-                mainWindow?.webContents.send('rulesUpdated')
-                await uploadRuntimeConfig()
-              } catch {
-                // ignore
-              }
-              await patchMihomoConfig({ 'log-level': logLevel })
-              innerResolve()
-            }
-          })
-        })
-      ])
-
-      await waitForCoreReady()
-      await getAxios(true)
-      await Promise.all([
-        startMihomoTraffic(),
-        startMihomoConnections(),
-        startMihomoLogs(),
-        startMihomoMemory()
-      ])
-      retry = 10
-    }
   })
+
+  // 通过 HTTP API 轮询检测内核就绪，替代 stdout 日志检测
+  // 这样 log-level 设为 warning/error/silent 也不会影响启动检测
+  ;(async () => {
+    managerLogger.info(`[TUN-DEBUG] HTTP polling IIFE started, PID=${proc.pid}`)
+
+    await waitForCoreReady()
+
+    managerLogger.info(
+      `[TUN-DEBUG] waitForCoreReady completed, startupResolved=${startupResolved}, PID=${proc.pid}`
+    )
+
+    if (startupResolved) {
+      managerLogger.info('[TUN-DEBUG] startupResolved already true, skipping resolve')
+      return
+    }
+    startupResolved = true
+    managerLogger.info('[TUN-DEBUG] startupResolved set to true, calling resolve')
+
+    resolve([Promise.resolve()])
+    managerLogger.info('[TUN-DEBUG] resolve called, executing post-startup tasks')
+
+    try {
+      mainWindow?.webContents.send('groupsUpdated')
+      mainWindow?.webContents.send('rulesUpdated')
+      await uploadRuntimeConfig()
+    } catch {
+      managerLogger.info('[TUN-DEBUG] uploadRuntimeConfig failed (may be due to restart)')
+    }
+    managerLogger.info('[TUN-DEBUG] Starting monitors...')
+    await getAxios(true)
+    await Promise.all([
+      startMihomoTraffic(),
+      startMihomoConnections(),
+      startMihomoLogs(),
+      startMihomoMemory()
+    ])
+    retry = 10
+    managerLogger.info('[TUN-DEBUG] Post-startup tasks complete')
+  })()
 }
 
 // 启动核心
 export async function startCore(detached = false, skipStop = false): Promise<Promise<void>[]> {
+  managerLogger.info(
+    `[TUN-DEBUG] startCore called: detached=${detached}, skipStop=${skipStop}, child=${child?.pid ?? 'null'}, isRestarting=${isRestarting}`
+  )
+
   const config = await prepareCore(detached, skipStop)
   const proc = spawnCoreProcess(config)
   child = proc
@@ -406,6 +445,10 @@ export async function startCore(detached = false, skipStop = false): Promise<Pro
 
 // 停止核心
 export async function stopCore(force = false): Promise<void> {
+  managerLogger.info(
+    `[TUN-DEBUG] stopCore called: force=${force}, child=${child?.pid ?? 'null'}, isRestarting=${isRestarting}`
+  )
+
   if (!force && process.platform === 'darwin') {
     try {
       await recoverDNS()
@@ -415,9 +458,12 @@ export async function stopCore(force = false): Promise<void> {
   }
 
   if (child) {
+    const pid = child.pid
+    managerLogger.info(`[TUN-DEBUG] stopCore: killing child PID=${pid}`)
     child.removeAllListeners()
     child.kill('SIGINT')
     child = null
+    managerLogger.info(`[TUN-DEBUG] stopCore: child killed (PID=${pid}) and set to null`)
   }
 
   stopMihomoTraffic()
@@ -439,6 +485,8 @@ setStopCoreBeforeAdminRestart(stopCore)
 
 // 重启核心
 export async function restartCore(): Promise<void> {
+  managerLogger.info(`[TUN-DEBUG] restartCore called: isRestarting=${isRestarting}`)
+
   if (isRestarting) {
     managerLogger.info('Core restart already in progress, skipping duplicate request')
     return
@@ -450,17 +498,23 @@ export async function restartCore(): Promise<void> {
 
   try {
     // 先显式停止核心，确保状态干净
+    managerLogger.info('[TUN-DEBUG] restartCore: stopping core...')
     await stopCore()
 
     // 尝试启动核心，失败时重试
     while (retryCount < maxRetries) {
       try {
         // skipStop=true 因为我们已经在上面停止了核心
+        managerLogger.info(`[TUN-DEBUG] restartCore: starting core (attempt ${retryCount + 1})...`)
         await startCore(false, true)
+        managerLogger.info('[TUN-DEBUG] restartCore: core started successfully')
         return // 成功启动，退出函数
       } catch (e) {
         retryCount++
-        managerLogger.error(`restart core failed (attempt ${retryCount}/${maxRetries})`, e)
+        managerLogger.error(
+          `[TUN-DEBUG] restart core failed (attempt ${retryCount}/${maxRetries})`,
+          e
+        )
 
         if (retryCount >= maxRetries) {
           throw e
@@ -474,6 +528,7 @@ export async function restartCore(): Promise<void> {
       }
     }
   } finally {
+    managerLogger.info('[TUN-DEBUG] restartCore: finally block, setting isRestarting=false')
     isRestarting = false
   }
 }
@@ -555,5 +610,9 @@ async function checkProfile(
 
 // 权限检查入口（从 permissions.ts 调用）
 export async function checkAdminRestartForTun(): Promise<void> {
+  managerLogger.info(
+    `[TUN-DEBUG] checkAdminRestartForTun (manager wrapper) called, argv includes --admin-restart-for-tun: ${process.argv.includes('--admin-restart-for-tun')}`
+  )
   await checkAdminRestartForTunWithRestart(restartCore)
+  managerLogger.info('[TUN-DEBUG] checkAdminRestartForTun (manager wrapper) completed')
 }
