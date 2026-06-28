@@ -98,7 +98,13 @@ const App: React.FC = () => {
     const currentSiderCard = getSiderCardByPath(location.pathname)
     if (!currentSiderCard || currentSiderCard === lastSelectedSiderCard) return
     patchAppConfig({ lastSelectedSiderCard: currentSiderCard })
-  }, [hasAppConfig, rememberSelectedSiderCard, lastSelectedSiderCard, location.pathname, patchAppConfig])
+  }, [
+    hasAppConfig,
+    rememberSelectedSiderCard,
+    lastSelectedSiderCard,
+    location.pathname,
+    patchAppConfig
+  ])
 
   useEffect(() => {
     siderWidthValueRef.current = siderWidthValue

@@ -52,7 +52,10 @@ export async function getControledMihomoConfig(force = false): Promise<Partial<I
   return controledMihomoConfig
 }
 
-export async function patchControledMihomoConfig(patch: Partial<IMihomoConfig>): Promise<void> {
+export async function patchControledMihomoConfig(
+  patch: Partial<IMihomoConfig>,
+  skipHotPatch = false
+): Promise<void> {
   controledMihomoWriteQueue = controledMihomoWriteQueue.then(async () => {
     const appConfig = await getAppConfig()
     const {
@@ -111,21 +114,23 @@ export async function patchControledMihomoConfig(patch: Partial<IMihomoConfig>):
     await writeFile(controledMihomoConfigPath(), stringify(controledMihomoConfig), 'utf-8')
 
     // 优先对运行中内核进行热更新，避免无意义重启
-    try {
-      await patchMihomoConfig(patch)
-    } catch (error) {
-      controledMihomoLogger.warn(
-        'Hot patch /configs failed, changes will apply on next restart',
-        error
-      )
-    }
-
-    // log-level 改变时重连日志 WebSocket，使新等级立刻生效
-    if (patch['log-level']) {
+    if (!skipHotPatch) {
       try {
-        await startMihomoLogs()
+        await patchMihomoConfig(patch)
       } catch (error) {
-        controledMihomoLogger.warn('Failed to restart log stream after log-level change', error)
+        controledMihomoLogger.warn(
+          'Hot patch /configs failed, changes will apply on next restart',
+          error
+        )
+      }
+
+      // log-level 改变时重连日志 WebSocket，使新等级立刻生效
+      if (patch['log-level']) {
+        try {
+          await startMihomoLogs()
+        } catch (error) {
+          controledMihomoLogger.warn('Failed to restart log stream after log-level change', error)
+        }
       }
     }
   })

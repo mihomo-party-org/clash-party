@@ -132,6 +132,10 @@ export async function generateProfile(): Promise<string | undefined> {
   )
   let controledMihomoConfig = await getControledMihomoConfig()
 
+  factoryLogger.info(
+    `[TUN-DEBUG] generateProfile: controled config tun=${JSON.stringify(controledMihomoConfig.tun)}, log-level=${controledMihomoConfig['log-level']}`
+  )
+
   // 根据开关状态过滤控制配置
   controledMihomoConfig = { ...controledMihomoConfig }
   if (!controlDns) {
@@ -164,6 +168,9 @@ export async function generateProfile(): Promise<string | undefined> {
   if (!['info', 'debug', 'warning', 'error', 'silent'].includes(profile['log-level'])) {
     profile['log-level'] = 'info'
   }
+  factoryLogger.info(
+    `[TUN-DEBUG] generateProfile: final profile log-level=${profile['log-level']}, tun.enable=${profile.tun?.enable}`
+  )
   // 删除空的局域网允许列表，避免局域网访问异常
   if (!profile['lan-allowed-ips']?.length) {
     delete profile['lan-allowed-ips']
