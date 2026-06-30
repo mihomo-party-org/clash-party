@@ -1,6 +1,16 @@
 import React, { useEffect, useState } from 'react'
 import { toast } from '@renderer/components/base/toast'
-import { Button, Input, Select, SelectItem, Switch, Tab, Tabs, Tooltip } from '@heroui/react'
+import {
+  Button,
+  Divider,
+  Input,
+  Select,
+  SelectItem,
+  Switch,
+  Tab,
+  Tabs,
+  Tooltip
+} from '@heroui/react'
 import { BiCopy, BiSolidFileImport } from 'react-icons/bi'
 import useSWR from 'swr'
 import {
@@ -27,7 +37,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import debounce from '@renderer/utils/debounce'
 import { platform } from '@renderer/utils/init'
 import { useTheme } from 'next-themes'
-import { IoIosHelpCircle, IoMdCloudDownload } from 'react-icons/io'
+import { IoIosArrowDown, IoIosHelpCircle, IoMdCloudDownload } from 'react-icons/io'
 import { MdEditDocument } from 'react-icons/md'
 import { useTranslation } from 'react-i18next'
 import SettingItem from '../base/base-setting-item'
@@ -37,6 +47,9 @@ import CSSEditorModal from './css-editor-modal'
 import TrayIconCropModal from './tray-icon-crop-modal'
 
 const rasterTrayIconPattern = /\.(png|jpe?g|webp)$/i
+const macTrayIconPattern = /\.(ico|icns)$/i
+type TrayIconCropTarget = 'custom' | keyof ICustomTrayIcons
+const customTrayIconStateKeys: (keyof ICustomTrayIcons)[] = ['common', 'sysProxy', 'tun']
 
 const GeneralConfig: React.FC = () => {
   const { t, i18n } = useTranslation()
@@ -47,6 +60,8 @@ const GeneralConfig: React.FC = () => {
   const [fetching, setFetching] = useState(false)
   const [isRelaunching, setIsRelaunching] = useState(false)
   const [trayIconCropDataURL, setTrayIconCropDataURL] = useState('')
+  const [trayIconCropTarget, setTrayIconCropTarget] = useState<TrayIconCropTarget>('custom')
+  const [trayIconDrawerOpen, setTrayIconDrawerOpen] = useState(false)
   const [showHardwareAccelConfirm, setShowHardwareAccelConfirm] = useState(false)
   const [pendingHardwareAccelValue, setPendingHardwareAccelValue] = useState(false)
   const { setTheme } = useTheme()
@@ -61,6 +76,7 @@ const GeneralConfig: React.FC = () => {
     swapTrayClick = false,
     disableTrayIconColor = false,
     customTrayIcon = '',
+    customTrayIcons = {},
     disableAnimations = false,
     showFloatingWindow: showFloating = false,
     spinFloatingIcon = true,
@@ -87,6 +103,76 @@ const GeneralConfig: React.FC = () => {
       setCustomThemes(themes)
     })
   }, [])
+
+  const hasCustomTrayIcons = Boolean(customTrayIcon || Object.values(customTrayIcons).some(Boolean))
+
+  const getTrayIconDisplayText = (icon?: string): string => {
+    if (!icon) return t('common.default')
+    return icon.startsWith('data:image/') ? t('settings.customTrayIconBase64') : icon
+  }
+
+  const patchTrayIcon = async (target: TrayIconCropTarget, icon: string): Promise<void> => {
+    if (target === 'custom') {
+      await patchAppConfig({ customTrayIcon: icon })
+    } else {
+      await patchAppConfig({
+        customTrayIcons: {
+          ...customTrayIcons,
+          [target]: icon
+        }
+      })
+    }
+    await updateTrayIcon()
+  }
+
+  const selectTrayIcon = async (target: TrayIconCropTarget): Promise<void> => {
+    const files = await getFilePath(
+      ['png', 'jpg', 'jpeg', 'webp', 'ico', 'icns'],
+      t('settings.customTrayIconSelect'),
+      t('settings.customTrayIcon')
+    )
+    if (!files?.[0]) return
+    if (
+      rasterTrayIconPattern.test(files[0]) ||
+      (platform === 'darwin' && macTrayIconPattern.test(files[0]))
+    ) {
+      setTrayIconCropTarget(target)
+      setTrayIconCropDataURL(await readImageFileDataURL(files[0]))
+      return
+    }
+    await patchTrayIcon(target, files[0])
+  }
+
+  const resetTrayIcon = async (target: TrayIconCropTarget): Promise<void> => {
+    await patchTrayIcon(target, '')
+  }
+
+  const renderTrayIconPicker = (
+    target: TrayIconCropTarget,
+    label: string,
+    icon: string | undefined
+  ): React.ReactNode => (
+    <div
+      key={target}
+      className="grid min-w-0 grid-cols-[7rem_minmax(0,1fr)_auto_auto] items-center gap-2 rounded-md px-2 py-1.5"
+    >
+      <span className="shrink-0 text-sm text-default-600">{label}</span>
+      <span
+        className="min-w-0 truncate text-right text-xs text-default-500"
+        title={getTrayIconDisplayText(icon)}
+      >
+        {getTrayIconDisplayText(icon)}
+      </span>
+      <Button size="sm" variant="flat" onPress={() => selectTrayIcon(target)}>
+        {t(icon ? 'settings.changeTrayIcon' : 'settings.selectTrayIcon')}
+      </Button>
+      {icon && (
+        <Button size="sm" variant="light" onPress={() => resetTrayIcon(target)}>
+          {t('common.default')}
+        </Button>
+      )}
+    </div>
+  )
 
   return (
     <>
@@ -128,9 +214,8 @@ const GeneralConfig: React.FC = () => {
           imageDataURL={trayIconCropDataURL}
           onCancel={() => setTrayIconCropDataURL('')}
           onConfirm={async (dataURL) => {
-            await patchAppConfig({ customTrayIcon: dataURL })
+            await patchTrayIcon(trayIconCropTarget, dataURL)
             setTrayIconCropDataURL('')
-            await updateTrayIcon()
           }}
         />
       )}
@@ -405,7 +490,7 @@ const GeneralConfig: React.FC = () => {
               <Switch
                 size="sm"
                 isSelected={disableTrayIconColor}
-                isDisabled={Boolean(customTrayIcon)}
+                isDisabled={hasCustomTrayIcons}
                 onValueChange={async (v) => {
                   await patchAppConfig({ disableTrayIconColor: v })
                   await updateTrayIcon()
@@ -421,57 +506,50 @@ const GeneralConfig: React.FC = () => {
                   </Button>
                 </Tooltip>
               }
-              divider
             >
-              <div className="flex items-center justify-end gap-2 min-w-0 max-w-[65%]">
-                {customTrayIcon && (
-                  <span
-                    className="truncate text-xs text-default-500"
-                    title={
-                      customTrayIcon.startsWith('data:image/')
-                        ? t('settings.customTrayIconBase64')
-                        : customTrayIcon
-                    }
-                  >
-                    {customTrayIcon.startsWith('data:image/')
-                      ? t('settings.customTrayIconBase64')
-                      : customTrayIcon}
-                  </span>
-                )}
-                <Button
-                  size="sm"
-                  variant="flat"
-                  onPress={async () => {
-                    const files = await getFilePath(
-                      ['png', 'jpg', 'jpeg', 'webp', 'ico', 'icns'],
-                      t('settings.customTrayIconSelect'),
-                      t('settings.customTrayIcon')
-                    )
-                    if (!files?.[0]) return
-                    if (rasterTrayIconPattern.test(files[0])) {
-                      setTrayIconCropDataURL(await readImageFileDataURL(files[0]))
-                      return
-                    }
-                    await patchAppConfig({ customTrayIcon: files[0] })
-                    await updateTrayIcon()
-                  }}
+              <div className="flex min-w-0 max-w-[68%] items-center justify-end gap-2">
+                <span
+                  className="min-w-0 truncate text-xs text-default-500"
+                  title={getTrayIconDisplayText(customTrayIcon)}
                 >
+                  {getTrayIconDisplayText(customTrayIcon)}
+                </span>
+                <Button size="sm" variant="flat" onPress={() => selectTrayIcon('custom')}>
                   {t(customTrayIcon ? 'settings.changeTrayIcon' : 'settings.selectTrayIcon')}
                 </Button>
                 {customTrayIcon && (
-                  <Button
-                    size="sm"
-                    variant="light"
-                    onPress={async () => {
-                      await patchAppConfig({ customTrayIcon: '' })
-                      await updateTrayIcon()
-                    }}
-                  >
+                  <Button size="sm" variant="light" onPress={() => resetTrayIcon('custom')}>
                     {t('common.default')}
                   </Button>
                 )}
+                <Button
+                  size="sm"
+                  variant="light"
+                  endContent={
+                    <IoIosArrowDown
+                      className={`text-sm transition-transform ${trayIconDrawerOpen ? 'rotate-180' : ''}`}
+                    />
+                  }
+                  onPress={() => setTrayIconDrawerOpen((v) => !v)}
+                >
+                  {t('settings.customTrayIconStates')}
+                </Button>
               </div>
             </SettingItem>
+            {trayIconDrawerOpen && (
+              <div className="mb-2 ml-4 mr-1 mt-2 rounded-lg border border-default-200 bg-default-50/40 p-2">
+                <div className="flex flex-col gap-1">
+                  {customTrayIconStateKeys.map((key) =>
+                    renderTrayIconPicker(
+                      key,
+                      t(`settings.customTrayIcon.${key}`),
+                      customTrayIcons[key]
+                    )
+                  )}
+                </div>
+              </div>
+            )}
+            <Divider className="my-2" />
           </>
         )}
         {platform !== 'linux' && (

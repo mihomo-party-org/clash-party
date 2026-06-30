@@ -258,6 +258,12 @@ interface INetworkLatencyTarget {
   url: string
 }
 
+interface ICustomTrayIcons {
+  common?: string
+  sysProxy?: string
+  tun?: string
+}
+
 interface IAppConfig {
   core: 'mihomo' | 'mihomo-alpha' | 'mihomo-smart' | 'mihomo-specific'
   specificVersion?: string
@@ -359,6 +365,7 @@ interface IAppConfig {
   showTraffic?: boolean
   disableTrayIconColor?: boolean
   customTrayIcon?: string
+  customTrayIcons?: ICustomTrayIcons
   trayProxyGroupStyle?: 'default' | 'submenu'
   disableAnimations?: boolean
   webdavUrl?: string

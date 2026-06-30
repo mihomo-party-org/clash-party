@@ -2,7 +2,7 @@ import { exec, execFile, spawn } from 'child_process'
 import { readFile } from 'fs/promises'
 import path from 'path'
 import { promisify } from 'util'
-import { app, dialog, nativeTheme, shell } from 'electron'
+import { app, dialog, nativeImage, nativeTheme, shell } from 'electron'
 import i18next from 'i18next'
 import {
   dataDir,
@@ -32,6 +32,11 @@ export async function readTextFile(filePath: string): Promise<string> {
 
 export async function readImageFileDataURL(filePath: string): Promise<string> {
   const ext = path.extname(filePath).toLowerCase()
+  if (['.ico', '.icns'].includes(ext)) {
+    const icon = nativeImage.createFromPath(filePath)
+    if (!icon.isEmpty()) return icon.toDataURL()
+  }
+
   const mimeType =
     ext === '.jpg' || ext === '.jpeg'
       ? 'image/jpeg'
@@ -39,7 +44,11 @@ export async function readImageFileDataURL(filePath: string): Promise<string> {
         ? 'image/webp'
         : ext === '.gif'
           ? 'image/gif'
-          : 'image/png'
+          : ext === '.ico'
+            ? 'image/x-icon'
+            : ext === '.icns'
+              ? 'image/icns'
+              : 'image/png'
   const data = await readFile(filePath)
 
   return `data:${mimeType};base64,${data.toString('base64')}`

@@ -32,6 +32,7 @@ export const defaultConfig: IAppConfig = {
   trayProxyGroupStyle: 'default',
   disableTrayIconColor: false,
   customTrayIcon: '',
+  customTrayIcons: {},
   maxLogDays: 7,
   maxLogFileSize: 10,
   disableAppLog: false,

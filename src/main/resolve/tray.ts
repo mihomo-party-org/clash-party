@@ -1,5 +1,7 @@
-import { existsSync } from 'fs'
-import { extname } from 'path'
+import { execFileSync } from 'child_process'
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'fs'
+import { tmpdir } from 'os'
+import { extname, join } from 'path'
 import { app, clipboard, ipcMain, Menu, nativeImage, shell, Tray } from 'electron'
 import { t } from 'i18next'
 import {
@@ -47,6 +49,7 @@ let trayMenu: Menu | null = null
 let macTrafficIconEnabled = false
 type TrayIconStatus = 'white' | 'blue' | 'green' | 'red'
 type TrayImage = Electron.NativeImage | string
+type CustomTrayIconKey = keyof ICustomTrayIcons
 const customTrayIconSize = 16
 const customTrayIconScaleFactors = [1, 1.25, 1.5, 2, 2.5, 3]
 
@@ -425,8 +428,9 @@ export async function createTray(): Promise<void> {
     ipcMain.removeAllListeners('trayIconUpdate')
     ipcMain.on('trayIconUpdate', async (_, png: string, enabled: boolean) => {
       macTrafficIconEnabled = enabled
-      const { customTrayIcon = '' } = await getAppConfig()
-      const customIcon = createCustomTrayImage(customTrayIcon)
+      const appConfig = await getAppConfig()
+      const status = await getTrayIconStatus()
+      const customIcon = createCustomTrayImageForStatus(appConfig, status)
       if (customIcon) {
         tray?.setImage(customIcon)
         await updateTrayToolTip(undefined, undefined, true)
@@ -602,6 +606,29 @@ function createMultiScaleTrayImage(icon: Electron.NativeImage): Electron.NativeI
   return resizeTrayImageForScale(icon, 1)
 }
 
+function createMacIconImage(iconPath: string): Electron.NativeImage | null {
+  if (process.platform !== 'darwin') return null
+  if (!['.ico', '.icns'].includes(extname(iconPath).toLowerCase())) return null
+
+  let tempDir = ''
+  try {
+    tempDir = mkdtempSync(join(tmpdir(), 'clash-party-tray-icon-'))
+    const pngPath = join(tempDir, 'icon.png')
+    execFileSync('sips', ['-s', 'format', 'png', iconPath, '--out', pngPath], {
+      stdio: 'ignore',
+      timeout: 5000
+    })
+    const icon = nativeImage.createFromBuffer(readFileSync(pngPath))
+    return icon.isEmpty() ? null : icon
+  } catch {
+    return null
+  } finally {
+    if (tempDir) {
+      rmSync(tempDir, { recursive: true, force: true })
+    }
+  }
+}
+
 function createCustomTrayImage(customTrayIcon: string): TrayImage | null {
   if (!customTrayIcon) return null
 
@@ -614,10 +641,13 @@ function createCustomTrayImage(customTrayIcon: string): TrayImage | null {
 
   if (!existsSync(customTrayIcon)) return null
 
-  const icon = nativeImage.createFromPath(customTrayIcon)
+  const iconExt = extname(customTrayIcon).toLowerCase()
+  let icon = nativeImage.createFromPath(customTrayIcon)
+  if (icon.isEmpty()) {
+    icon = createMacIconImage(customTrayIcon) || nativeImage.createEmpty()
+  }
   if (icon.isEmpty()) return null
 
-  const iconExt = extname(customTrayIcon).toLowerCase()
   if (process.platform === 'win32' && iconExt === '.ico') {
     return customTrayIcon
   }
@@ -626,6 +656,47 @@ function createCustomTrayImage(customTrayIcon: string): TrayImage | null {
   }
 
   return createMultiScaleTrayImage(icon)
+}
+
+function hasCustomTrayIcons(customTrayIcons?: ICustomTrayIcons): boolean {
+  return Boolean(customTrayIcons && Object.values(customTrayIcons).some(Boolean))
+}
+
+function getCustomTrayIconKey(status: TrayIconStatus): CustomTrayIconKey {
+  switch (status) {
+    case 'blue':
+      return 'sysProxy'
+    case 'green':
+      return 'tun'
+    case 'red':
+      return 'tun'
+    case 'white':
+    default:
+      return 'common'
+  }
+}
+
+function getCustomTrayIconForStatus(
+  appConfig: IAppConfig,
+  status: TrayIconStatus
+): string | undefined {
+  const { customTrayIcon = '', customTrayIcons = {} } = appConfig
+  const iconKey = getCustomTrayIconKey(status)
+
+  if (customTrayIcons[iconKey]) return customTrayIcons[iconKey]
+
+  if (status === 'red') {
+    return customTrayIcons.tun || customTrayIcons.sysProxy || customTrayIcon
+  }
+
+  return customTrayIcon
+}
+
+function createCustomTrayImageForStatus(
+  appConfig: IAppConfig,
+  status: TrayIconStatus
+): TrayImage | null {
+  return createCustomTrayImage(getCustomTrayIconForStatus(appConfig, status) || '')
 }
 
 async function updateTrayToolTip(
@@ -638,7 +709,9 @@ async function updateTrayToolTip(
   const [{ mode, tun }, appConfig] = await Promise.all([getControledMihomoConfig(), getAppConfig()])
   const sysProxy = sysProxyEnabled ?? appConfig.sysProxy.enable
   const tunStatus = tunEnabled ?? tun?.enable === true
-  const isCustomIcon = customIconEnabled ?? Boolean(appConfig.customTrayIcon)
+  const isCustomIcon =
+    customIconEnabled ??
+    Boolean(appConfig.customTrayIcon || hasCustomTrayIcons(appConfig.customTrayIcons))
 
   const modeLabel =
     mode === 'global'
@@ -678,10 +751,11 @@ export function updateTrayIconImmediate(sysProxyEnabled: boolean, tunEnabled: bo
   const status = calculateTrayIconStatus(sysProxyEnabled, tunEnabled)
   const iconPaths = getIconPaths()
 
-  getAppConfig().then(async ({ disableTrayIconColor = false, customTrayIcon = '' }) => {
+  getAppConfig().then(async (appConfig) => {
     if (!tray) return
     try {
-      const customIcon = createCustomTrayImage(customTrayIcon)
+      const { disableTrayIconColor = false } = appConfig
+      const customIcon = createCustomTrayImageForStatus(appConfig, status)
       if (customIcon) {
         tray.setImage(customIcon)
         await updateTrayToolTip(sysProxyEnabled, tunEnabled, true)
@@ -704,12 +778,13 @@ export function updateTrayIconImmediate(sysProxyEnabled: boolean, tunEnabled: bo
 export async function updateTrayIcon(): Promise<void> {
   if (!tray) return
 
-  const { disableTrayIconColor = false, customTrayIcon = '' } = await getAppConfig()
+  const appConfig = await getAppConfig()
+  const { disableTrayIconColor = false } = appConfig
   const status = await getTrayIconStatus()
   const iconPaths = getIconPaths()
 
   try {
-    const customIcon = createCustomTrayImage(customTrayIcon)
+    const customIcon = createCustomTrayImageForStatus(appConfig, status)
     if (customIcon) {
       tray.setImage(customIcon)
       await updateTrayToolTip(undefined, undefined, true)
