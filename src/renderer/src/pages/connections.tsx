@@ -44,7 +44,25 @@ import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-c
 
 let cachedConnections: IMihomoConnectionDetail[] = []
 const MAX_QUEUE_SIZE = 100
+const MAX_MEMORY_CACHE_SIZE = 200
 const CONNECTIONS_FILTER_KEY = 'connections-filter'
+
+function rememberMemoryCacheKey(order: string[], key: string): string[] {
+  const existingIndex = order.indexOf(key)
+  if (existingIndex !== -1) {
+    order.splice(existingIndex, 1)
+  }
+  order.push(key)
+
+  const evicted: string[] = []
+  while (order.length > MAX_MEMORY_CACHE_SIZE) {
+    const oldest = order.shift()
+    if (oldest) {
+      evicted.push(oldest)
+    }
+  }
+  return evicted
+}
 
 const Connections: React.FC = () => {
   const { t } = useTranslation()
@@ -84,11 +102,13 @@ const Connections: React.FC = () => {
 
   const iconRequestQueue = useRef(new Set<string>())
   const processingIcons = useRef(new Set<string>())
+  const iconMemoryOrder = useRef<string[]>([])
   const processIconTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const processIconIdleCallback = useRef<number | null>(null)
 
   const appNameRequestQueue = useRef(new Set<string>())
   const processingAppNames = useRef(new Set<string>())
+  const appNameMemoryOrder = useRef<string[]>([])
   const processAppNameTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     activeConnectionsRef.current = activeConnections
@@ -229,7 +249,14 @@ const Connections: React.FC = () => {
       try {
         const appName = await getAppName(path)
         if (appName) {
-          setAppNameCache((prev) => ({ ...prev, [path]: appName }))
+          setAppNameCache((prev) => {
+            const next = { ...prev, [path]: appName }
+            const evicted = rememberMemoryCacheKey(appNameMemoryOrder.current, path)
+            evicted.forEach((key) => {
+              delete next[key]
+            })
+            return next
+          })
         }
       } catch {
         // ignore
@@ -270,7 +297,14 @@ const Connections: React.FC = () => {
 
         saveIconToCache(path, processedDataURL)
 
-        setIconMap((prev) => ({ ...prev, [path]: processedDataURL }))
+        setIconMap((prev) => {
+          const next = { ...prev, [path]: processedDataURL }
+          const evicted = rememberMemoryCacheKey(iconMemoryOrder.current, path)
+          evicted.forEach((key) => {
+            delete next[key]
+          })
+          return next
+        })
 
         const firstConnection = filteredConnectionsRef.current[0]
         if (firstConnection?.metadata.processPath === path) {
@@ -298,6 +332,7 @@ const Connections: React.FC = () => {
 
   useEffect(() => {
     if (!displayIcon || findProcessMode === 'off') return
+    let loadOtherPathsTimer: ReturnType<typeof setTimeout> | null = null
 
     const visiblePaths = new Set<string>()
     const otherPaths = new Set<string>()
@@ -327,7 +362,14 @@ const Connections: React.FC = () => {
 
       const fromCache = getIconFromCache(path)
       if (fromCache) {
-        setIconMap((prev) => ({ ...prev, [path]: fromCache }))
+        setIconMap((prev) => {
+          const next = { ...prev, [path]: fromCache }
+          const evicted = rememberMemoryCacheKey(iconMemoryOrder.current, path)
+          evicted.forEach((key) => {
+            delete next[key]
+          })
+          return next
+        })
         if (isVisible && filteredConnections[0]?.metadata.processPath === path) {
           setFirstItemRefreshTrigger((prev) => prev + 1)
         }
@@ -356,7 +398,7 @@ const Connections: React.FC = () => {
         })
       }
 
-      setTimeout(loadOtherPaths, 100)
+      loadOtherPathsTimer = setTimeout(loadOtherPaths, 100)
     }
 
     if (processIconTimer.current) clearTimeout(processIconTimer.current)
@@ -369,6 +411,7 @@ const Connections: React.FC = () => {
     }
 
     return (): void => {
+      if (loadOtherPathsTimer) clearTimeout(loadOtherPathsTimer)
       if (processIconTimer.current) clearTimeout(processIconTimer.current)
       if (processIconIdleCallback.current) cancelIdleCallback(processIconIdleCallback.current)
       if (processAppNameTimer.current) clearTimeout(processAppNameTimer.current)

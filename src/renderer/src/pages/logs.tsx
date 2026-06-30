@@ -25,9 +25,8 @@ const cachedLogs: {
   }
 }
 
-window.electron.ipcRenderer.on('mihomoLogs', (_e, ...args) => {
-  const log = args[0] as IMihomoLogInfo
-  log.time = new Date().toLocaleString()
+const appendLog = (entry: IMihomoLogInfo): void => {
+  const log = { ...entry, time: new Date().toLocaleString() }
   cachedLogs.log.push(log)
   if (cachedLogs.log.length >= 500) {
     cachedLogs.log.shift()
@@ -35,7 +34,7 @@ window.electron.ipcRenderer.on('mihomoLogs', (_e, ...args) => {
   if (cachedLogs.trigger !== null) {
     cachedLogs.trigger(cachedLogs.log)
   }
-})
+}
 
 const Logs: React.FC = () => {
   const { t } = useTranslation()
@@ -63,7 +62,12 @@ const Logs: React.FC = () => {
     cachedLogs.trigger = (a): void => {
       setLogs([...a])
     }
+    const handleLog = (_e: unknown, ...args: unknown[]): void => {
+      appendLog(args[0] as IMihomoLogInfo)
+    }
+    window.electron.ipcRenderer.on('mihomoLogs', handleLog)
     return (): void => {
+      window.electron.ipcRenderer.removeListener('mihomoLogs', handleLog)
       cachedLogs.trigger = old
     }
   }, [])
