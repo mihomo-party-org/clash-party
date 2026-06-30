@@ -8,6 +8,7 @@ import { quitWithoutCore, stopCore } from './core/manager'
 import { triggerSysProxy } from './sys/sysproxy'
 import { hideDockIcon, showDockIcon } from './resolve/tray'
 import { dataDir } from './utils/dirs'
+import { createLogger } from './utils/logger'
 
 interface WindowState {
   width: number
@@ -53,6 +54,9 @@ function ensureVisibleOnScreen(state: WindowState): WindowState {
 export let mainWindow: BrowserWindow | null = null
 let quitTimeout: NodeJS.Timeout | null = null
 let createWindowPromise: Promise<void> | null = null
+const windowLogger = createLogger('window')
+const MAX_RENDERER_RECOVERY_ATTEMPTS = 3
+const UNRESPONSIVE_RECOVERY_DELAY_MS = 10000
 type AutoQuitWithoutCoreMode = NonNullable<IAppConfig['autoQuitWithoutCoreMode']>
 
 export async function createWindow(): Promise<void> {
@@ -135,8 +139,31 @@ interface WindowConfig {
 function setupWindowEvents(window: BrowserWindow, config: WindowConfig): void {
   const { silentStart, autoQuitWithoutCore, autoQuitWithoutCoreDelay, autoQuitWithoutCoreMode } =
     config
+  let rendererRecoveryAttempts = 0
+  let unresponsiveRecoveryTimer: NodeJS.Timeout | null = null
+
+  const clearUnresponsiveRecoveryTimer = (): void => {
+    if (!unresponsiveRecoveryTimer) return
+    clearTimeout(unresponsiveRecoveryTimer)
+    unresponsiveRecoveryTimer = null
+  }
+
+  const reloadRenderer = (reason: string): void => {
+    if (window.isDestroyed()) return
+    clearUnresponsiveRecoveryTimer()
+    if (rendererRecoveryAttempts >= MAX_RENDERER_RECOVERY_ATTEMPTS) {
+      void windowLogger.error('Renderer recovery limit reached', reason)
+      return
+    }
+
+    rendererRecoveryAttempts += 1
+    void windowLogger.warn('Reloading renderer after failure', reason)
+    window.webContents.reload()
+  }
 
   window.on('ready-to-show', () => {
+    rendererRecoveryAttempts = 0
+
     if (autoQuitWithoutCore && !window.isVisible()) {
       scheduleQuitWithoutCore(autoQuitWithoutCoreDelay, autoQuitWithoutCoreMode)
     }
@@ -150,8 +177,27 @@ function setupWindowEvents(window: BrowserWindow, config: WindowConfig): void {
   })
 
   window.webContents.on('did-fail-load', () => {
-    window.webContents.reload()
+    reloadRenderer('did-fail-load')
   })
+
+  window.webContents.on('did-finish-load', () => {
+    rendererRecoveryAttempts = 0
+  })
+
+  window.webContents.on('render-process-gone', (_event, details) => {
+    if (details.reason === 'clean-exit') return
+    reloadRenderer(`render-process-gone:${details.reason}`)
+  })
+
+  window.on('unresponsive', () => {
+    clearUnresponsiveRecoveryTimer()
+    unresponsiveRecoveryTimer = setTimeout(() => {
+      unresponsiveRecoveryTimer = null
+      reloadRenderer('unresponsive')
+    }, UNRESPONSIVE_RECOVERY_DELAY_MS)
+  })
+
+  window.on('responsive', clearUnresponsiveRecoveryTimer)
 
   window.on('show', () => {
     showDockIcon()
@@ -178,6 +224,7 @@ function setupWindowEvents(window: BrowserWindow, config: WindowConfig): void {
   })
 
   window.on('closed', () => {
+    clearUnresponsiveRecoveryTimer()
     if (mainWindow === window) {
       mainWindow = null
     }
@@ -250,6 +297,9 @@ export function showMainWindow(): void {
 
   if (mainWindow && !mainWindow.isDestroyed()) {
     clearQuitTimeout()
+    if (mainWindow.webContents.isCrashed()) {
+      mainWindow.webContents.reload()
+    }
     mainWindow.show()
     mainWindow.focusOnWebView()
     return
