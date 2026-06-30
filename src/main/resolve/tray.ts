@@ -597,9 +597,18 @@ function createMultiScaleTrayImage(icon: Electron.NativeImage): Electron.NativeI
     })
   }
 
-  if (!trayImage.isEmpty()) return trayImage
+  if (!trayImage.isEmpty()) {
+    if (process.platform === 'darwin') {
+      trayImage.setTemplateImage(true)
+    }
+    return trayImage
+  }
 
-  return resizeTrayImageForScale(icon, 1)
+  const fallback = resizeTrayImageForScale(icon, 1)
+  if (process.platform === 'darwin') {
+    fallback.setTemplateImage(true)
+  }
+  return fallback
 }
 
 function createCustomTrayImage(customTrayIcon: string): TrayImage | null {
