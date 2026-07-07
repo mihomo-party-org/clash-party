@@ -90,7 +90,7 @@
     "dayjs": "^1.11.21",
     "driver.js": "^1.4.0",
     "electron": "^41.8.0",
-    "electron-builder": "26.0.12",
+    "electron-builder": "26.15.3",
     "electron-vite": "4.0.1",
     "electron-window-state": "^5.0.3",
     "eslint": "9.39.2",

@@ -70,6 +70,7 @@ linux:
   target:
     - deb
     - rpm
+    - pacman
   maintainer: mihomo-party-org
   category: Utility
   artifactName: clash-party-linux-${version}-${arch}.${ext}
@@ -82,5 +83,23 @@ rpm:
   fpm:
     - '--rpm-rpmbuild-define'
     - '_build_id_links none'
+pacman:
+  afterInstall: 'build/linux/postinst'
+  afterRemove: 'build/linux/postuninst'
+  fpm:
+    - --pacman-compression
+    - zstd
+  depends:
+    - alsa-lib
+    - gtk3
+    - libnotify
+    - nss
+    - libxss
+    - libxtst
+    - xdg-utils
+    - at-spi2-core
+    - util-linux-libs
+    - libsecret
+  artifactName: clash-party-linux-${version}-${arch}.pkg.tar.zst
 npmRebuild: true
 publish: []

@@ -283,6 +283,10 @@ jobs:
         run: |
           pnpm install
           sed -i "s/productName: Clash Party/productName: clash-party/" electron-builder.yml
+      - name: Install Build Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libarchive-tools
       - name: Update Version for Dev Build
         if: github.event_name == 'workflow_dispatch'
         env:
@@ -296,7 +300,7 @@ jobs:
           npm_config_target_arch: ${{ matrix.arch }}
         run: pnpm build:linux --${{ matrix.arch }}
       - name: Generate checksums
-        run: pnpm checksum .deb .rpm
+        run: pnpm checksum .deb .rpm .pkg.tar.zst
       - name: Copy Legacy Artifacts
         run: pnpm copy-legacy
       - name: Upload Artifacts
@@ -308,6 +312,7 @@ jobs:
             dist/*.sha256
             dist/*.deb
             dist/*.rpm
+            dist/*.pkg.tar.zst
           if-no-files-found: error
       - name: Publish Release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -317,6 +322,7 @@ jobs:
             dist/*.sha256
             dist/*.deb
             dist/*.rpm
+            dist/*.pkg.tar.zst
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish Dev Release
         if: github.event_name == 'workflow_dispatch'
@@ -327,6 +333,7 @@ jobs:
             dist/*.sha256
             dist/*.deb
             dist/*.rpm
+            dist/*.pkg.tar.zst
           prerelease: true
           draft: false
           token: ${{ secrets.GITHUB_TOKEN }}
