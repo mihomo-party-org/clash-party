@@ -280,10 +280,74 @@ async function downloadFile(url, path) {
     method: 'GET',
     headers: { 'Content-Type': 'application/octet-stream' }
   })
+  if (!response.ok) {
+    throw new Error(`download failed "${url}" (${response.status} ${response.statusText})`)
+  }
   const buffer = await response.arrayBuffer()
   fs.writeFileSync(path, new Uint8Array(buffer))
 
   console.log(`[INFO]: download finished "${url}"`)
+}
+
+async function resolveZipSource(source, targetPath) {
+  if (/^https?:\/\//.test(source)) {
+    await downloadFile(source, targetPath)
+    return
+  }
+
+  if (!fs.existsSync(source)) {
+    throw new Error(`TrafficMonitor zip not found: ${source}`)
+  }
+
+  fs.copyFileSync(source, targetPath)
+  console.log(`[INFO]: copied local zip "${source}"`)
+}
+
+function extractZipToTarget(zipPath, targetPath, stripRootDir) {
+  const zip = new AdmZip(zipPath)
+  const rootPrefix = stripRootDir ? `${stripRootDir}/` : ''
+
+  if (!rootPrefix) {
+    zip.extractAllTo(targetPath, true)
+    return
+  }
+
+  zip.getEntries().forEach((entry) => {
+    if (!entry.entryName.startsWith(rootPrefix)) return
+
+    const entryName = entry.entryName.slice(rootPrefix.length)
+    if (!entryName) return
+
+    const destinationPath = path.resolve(targetPath, entryName)
+    const targetRoot = path.resolve(targetPath)
+    if (destinationPath !== targetRoot && !destinationPath.startsWith(`${targetRoot}${path.sep}`)) {
+      throw new Error(`unsafe zip entry: ${entry.entryName}`)
+    }
+
+    if (entry.isDirectory) {
+      fs.mkdirSync(destinationPath, { recursive: true })
+      return
+    }
+
+    fs.mkdirSync(path.dirname(destinationPath), { recursive: true })
+    fs.writeFileSync(destinationPath, entry.getData())
+  })
+}
+
+function getTrafficMonitorUpgradeSource() {
+  if (process.env.TRAFFIC_MONITOR_ZIP) {
+    return process.env.TRAFFIC_MONITOR_ZIP
+  }
+  if (process.env.TRAFFIC_MONITOR_URL) {
+    return process.env.TRAFFIC_MONITOR_URL
+  }
+
+  const monitorArch = TRAFFIC_MONITOR_ARCH_MAP[arch]
+  if (!monitorArch) {
+    throw new Error(`unsupported TrafficMonitor arch "${arch}"`)
+  }
+
+  return `${TRAFFIC_MONITOR_URL_PREFIX}/TrafficMonitor_${TRAFFIC_MONITOR_VERSION}_${monitorArch}_Lite.zip`
 }
 
 const resolveMmdb = () =>
@@ -319,6 +383,15 @@ const resolveEnableLoopback = () =>
 /* ======= sysproxy-rs ======= */
 const SYSPROXY_RS_URL_PREFIX =
   'https://github.com/mihomo-party-org/sysproxy-rs-opti/releases/latest/download'
+const TRAFFIC_MONITOR_BASE_URL_PREFIX =
+  'https://github.com/mihomo-party-org/mihomo-party-run/releases/download/monitor'
+const TRAFFIC_MONITOR_VERSION = 'V1.86'
+const TRAFFIC_MONITOR_URL_PREFIX = `https://github.com/zhongyang219/TrafficMonitor/releases/download/${TRAFFIC_MONITOR_VERSION}`
+const TRAFFIC_MONITOR_ARCH_MAP = {
+  x64: 'x64',
+  ia32: 'x86',
+  arm64: 'arm64ec'
+}
 
 function getSysproxyNodeName() {
   // 检测是否为 musl 系统（与 src/native/sysproxy/index.js 保持一致）
@@ -386,22 +459,23 @@ const resolveSysproxy = async () => {
 const resolveMonitor = async () => {
   const tempDir = path.join(TEMP_DIR, 'TrafficMonitor')
   const tempZip = path.join(tempDir, `${arch}.zip`)
+  const upgradeZip = path.join(tempDir, `TrafficMonitor_${TRAFFIC_MONITOR_VERSION}.zip`)
   if (!fs.existsSync(tempDir)) {
     fs.mkdirSync(tempDir, { recursive: true })
   }
-  await downloadFile(
-    `https://github.com/mihomo-party-org/mihomo-party-run/releases/download/monitor/${arch}.zip`,
-    tempZip
-  )
-  const zip = new AdmZip(tempZip)
+  await downloadFile(`${TRAFFIC_MONITOR_BASE_URL_PREFIX}/${arch}.zip`, tempZip)
   const resDir = path.join(cwd, 'extra', 'files')
   const targetPath = path.join(resDir, 'TrafficMonitor')
   if (fs.existsSync(targetPath)) {
     fs.rmSync(targetPath, { recursive: true })
   }
-  zip.extractAllTo(targetPath, true)
+  extractZipToTarget(tempZip, targetPath)
 
-  console.log(`[INFO]: TrafficMonitor finished`)
+  const upgradeSource = getTrafficMonitorUpgradeSource()
+  await resolveZipSource(upgradeSource, upgradeZip)
+  extractZipToTarget(upgradeZip, targetPath, 'TrafficMonitor')
+
+  console.log(`[INFO]: TrafficMonitor ${TRAFFIC_MONITOR_VERSION} finished`)
 }
 
 const resolve7zip = () =>
