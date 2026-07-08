@@ -370,6 +370,7 @@
   "traffic.view.host": "Хосты",
   "traffic.view.outbound": "Прокси",
   "traffic.view.process": "Процессы",
+  "traffic.view.rule": "Правила",
   "traffic.timeRange.1h": "1ч",
   "traffic.timeRange.24h": "24ч",
   "traffic.timeRange.7d": "7д",

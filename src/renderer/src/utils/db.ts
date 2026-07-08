@@ -5,13 +5,14 @@ export interface DataUsageLog {
   host: string
   outbound: string
   process: string
+  rule: string
   upload: number
   download: number
 }
 
 const DB_NAME = 'clashparty_db'
 const STORE_NAME = 'data_usage_logs'
-const DB_VERSION = 1
+const DB_VERSION = 2
 
 export class DataUsageDB {
   private db: IDBDatabase | null = null
@@ -24,13 +25,22 @@ export class DataUsageDB {
 
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result
+        const oldVersion = event.oldVersion
         if (!db.objectStoreNames.contains(STORE_NAME)) {
+          // Fresh installation
           const store = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true })
           store.createIndex('timestamp', 'timestamp', { unique: false })
           store.createIndex('sourceIP', 'sourceIP', { unique: false })
           store.createIndex('host', 'host', { unique: false })
           store.createIndex('outbound', 'outbound', { unique: false })
           store.createIndex('process', 'process', { unique: false })
+          store.createIndex('rule', 'rule', { unique: false })
+        } else if (oldVersion < 2) {
+          // Update
+          const store = db.transaction(STORE_NAME, 'versionchange').objectStore(STORE_NAME)
+          if (!store.indexNames.contains('rule')) {
+            store.createIndex('rule', 'rule', { unique: false })
+          }
         }
       }
 

@@ -141,12 +141,19 @@ export function useTrafficLogger(enabled = true): void {
         if (uploadDelta === 0 && downloadDelta === 0) continue
 
         hasDeltas = true
+        // Payload: "TYPE: PAYLOAD", Non-payload: "TYPE", Non-rule "Unknown"
+        const rule = conn.rule
+          ? conn.rulePayload
+            ? `${conn.rule}: ${conn.rulePayload}`
+            : conn.rule
+          : 'Unknown'
         logBufferRef.current.push({
           timestamp: now,
           sourceIP: conn.metadata.sourceIP || 'Inner',
           host: conn.metadata.host || conn.metadata.destinationIP || 'Unknown',
           process: conn.metadata.process || 'Unknown',
           outbound: conn.chains?.[0] || 'DIRECT',
+          rule,
           upload: uploadDelta,
           download: downloadDelta
         })
