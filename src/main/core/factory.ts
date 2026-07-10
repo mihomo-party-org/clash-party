@@ -170,6 +170,17 @@ export async function generateProfile(): Promise<string | undefined> {
   if (!profile['lan-allowed-ips']?.length) {
     delete profile['lan-allowed-ips']
   }
+  // WebUI 仅在外部控制器启用时有效；关闭面板时不向 Mihomo 写入下载地址。
+  const partialProfile = profile as Partial<IMihomoConfig>
+  if (profile['external-controller'] === '') {
+    delete partialProfile['external-controller']
+    delete partialProfile['external-ui']
+    delete partialProfile['external-ui-url']
+    delete partialProfile['external-controller-cors']
+  } else if (profile['external-ui'] === '') {
+    delete partialProfile['external-ui']
+    delete partialProfile['external-ui-url']
+  }
   runtimeConfig = profile
   runtimeConfigStr = stringify(profile)
   if (diffWorkDir) {

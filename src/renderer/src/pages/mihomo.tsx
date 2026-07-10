@@ -42,11 +42,12 @@ import {
   triggerSysProxy,
   fetchMihomoTags,
   installSpecificMihomoCore,
-  clearMihomoVersionCache
+  clearMihomoVersionCache,
+  mihomoUpgradeUI
 } from '@renderer/utils/ipc'
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import InterfaceModal from '@renderer/components/mihomo/interface-modal'
-import { MdDeleteForever, MdEdit, MdDelete, MdOpenInNew } from 'react-icons/md'
+import { MdDeleteForever, MdOpenInNew } from 'react-icons/md'
 import { useTranslation } from 'react-i18next'
 import {
   DEFAULT_MIHOMO_LAN_ALLOWED_IPS,
@@ -61,33 +62,35 @@ const CoreMap = {
   'mihomo-specific': 'mihomo.specificVersion'
 }
 
-interface WebUIPanel {
-  id: string
+interface WebUIPanelOption {
   name: string
   url: string
-  isDefault?: boolean
 }
 
-const defaultWebUIPanels: WebUIPanel[] = [
+const WEBUI_PANEL_OPTIONS: WebUIPanelOption[] = [
   {
-    id: 'metacubexd',
-    name: 'MetaCubeXD',
-    url: 'https://metacubex.github.io/metacubexd/#/setup?http=true&hostname=%host&port=%port&secret=%secret',
-    isDefault: true
+    name: 'zashboard',
+    url: 'https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip'
   },
   {
-    id: 'yacd',
-    name: 'YACD',
-    url: 'https://yacd.metacubex.one/?hostname=%host&port=%port&secret=%secret',
-    isDefault: true
+    name: 'metacubexd',
+    url: 'https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip'
   },
   {
-    id: 'zashboard',
-    name: 'Zashboard',
-    url: 'https://board.zash.run.place/#/setup?http=true&hostname=%host&port=%port&secret=%secret',
-    isDefault: true
+    name: 'yacd-meta',
+    url: 'https://github.com/MetaCubeX/Yacd-meta/archive/refs/heads/gh-pages.zip'
+  },
+  {
+    name: 'yacd',
+    url: 'https://github.com/haishanh/yacd/archive/refs/heads/gh-pages.zip'
+  },
+  {
+    name: 'razord-meta',
+    url: 'https://github.com/MetaCubeX/Razord-meta/archive/refs/heads/gh-pages.zip'
   }
 ]
+
+const DEFAULT_WEBUI_PANEL_URL = WEBUI_PANEL_OPTIONS[0].url
 
 const Mihomo: React.FC = () => {
   const { t } = useTranslation()
@@ -120,6 +123,8 @@ const Mihomo: React.FC = () => {
   const {
     ipv6,
     'external-controller': externalController = '',
+    'external-ui': externalUi = '',
+    'external-ui-url': externalUiUrl = DEFAULT_WEBUI_PANEL_URL,
     secret = '',
     authentication = [],
     'skip-auth-prefixes': skipAuthPrefixes = DEFAULT_MIHOMO_SKIP_AUTH_PREFIXES,
@@ -152,6 +157,9 @@ const Mihomo: React.FC = () => {
   })
   const [secretInput, setSecretInput] = useState(secret)
   const [isSecretVisible, setIsSecretVisible] = useState(false)
+  const [enableExternalUi, setEnableExternalUi] = useState(externalUi === 'ui')
+  const [externalUiUrlInput, setExternalUiUrlInput] = useState(externalUiUrl)
+  const [upgradingExternalUi, setUpgradingExternalUi] = useState(false)
   const [lanAllowedIpsInput, setLanAllowedIpsInput] = useState(lanAllowedIps)
   const [lanDisallowedIpsInput, setLanDisallowedIpsInput] = useState(lanDisallowedIps)
   const [authenticationInput, setAuthenticationInput] = useState(authentication)
@@ -166,162 +174,16 @@ const Mihomo: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [refreshing, setRefreshing] = useState(false)
 
-  // WebUI 管理状态
-  const [isWebUIModalOpen, setIsWebUIModalOpen] = useState(false)
-  const [allPanels, setAllPanels] = useState<WebUIPanel[]>([])
-  const [editingPanel, setEditingPanel] = useState<WebUIPanel | null>(null)
-  const [newPanelName, setNewPanelName] = useState('')
-  const [newPanelUrl, setNewPanelUrl] = useState('')
-
-  const urlInputRef = useRef<HTMLInputElement>(null)
-
-  // 解析主机和端口
-  const parseController = () => {
-    if (externalController) {
-      const [host, port] = externalController.split(':')
-      return { host: host.replace('0.0.0.0', '127.0.0.1'), port }
-    }
-    return { host: '127.0.0.1', port: '9090' }
-  }
-
-  const { host, port } = parseController()
-
   // 生成随机端口 (范围 1024-65535)
   const generateRandomPort = () => Math.floor(Math.random() * (65535 - 1024 + 1)) + 1024
 
-  // 初始化面板列表
   useEffect(() => {
-    const savedPanels = localStorage.getItem('webui-panels')
-    if (savedPanels) {
-      setAllPanels(JSON.parse(savedPanels))
-    } else {
-      setAllPanels(defaultWebUIPanels)
-    }
-  }, [])
+    setEnableExternalUi(externalUi === 'ui')
+  }, [externalUi])
 
-  // 保存面板列表到 localStorage
   useEffect(() => {
-    if (allPanels.length > 0) {
-      localStorage.setItem('webui-panels', JSON.stringify(allPanels))
-    }
-  }, [allPanels])
-
-  // 在 URL 输入框光标处插入或替换变量
-  const insertVariableAtCursor = (variable: string) => {
-    if (!urlInputRef.current) return
-
-    const input = urlInputRef.current
-    const start = input.selectionStart || 0
-    const end = input.selectionEnd || 0
-    const currentValue = newPanelUrl || ''
-
-    // 如果有选中文本，则替换选中的文本
-    const newValue = currentValue.substring(0, start) + variable + currentValue.substring(end)
-
-    setNewPanelUrl(newValue)
-
-    // 设置光标位置到插入变量之后
-    setTimeout(() => {
-      if (urlInputRef.current) {
-        const newCursorPos = start + variable.length
-        urlInputRef.current.setSelectionRange(newCursorPos, newCursorPos)
-        urlInputRef.current.focus()
-      }
-    }, 0)
-  }
-
-  // 打开 WebUI 面板
-  const openWebUI = (panel: WebUIPanel) => {
-    const url = panel.url.replace('%host', host).replace('%port', port).replace('%secret', secret)
-    window.open(url, '_blank')
-  }
-
-  // 添加新面板
-  const addNewPanel = () => {
-    if (newPanelName && newPanelUrl) {
-      const newPanel: WebUIPanel = {
-        id: Date.now().toString(),
-        name: newPanelName,
-        url: newPanelUrl
-      }
-      setAllPanels([...allPanels, newPanel])
-      setNewPanelName('')
-      setNewPanelUrl('')
-      setEditingPanel(null)
-    }
-  }
-
-  // 更新面板
-  const updatePanel = () => {
-    if (editingPanel && newPanelName && newPanelUrl) {
-      const updatedPanels = allPanels.map((panel) =>
-        panel.id === editingPanel.id ? { ...panel, name: newPanelName, url: newPanelUrl } : panel
-      )
-      setAllPanels(updatedPanels)
-      setEditingPanel(null)
-      setNewPanelName('')
-      setNewPanelUrl('')
-    }
-  }
-
-  // 删除面板
-  const deletePanel = (id: string) => {
-    setAllPanels(allPanels.filter((panel) => panel.id !== id))
-  }
-
-  // 开始编辑面板
-  const startEditing = (panel: WebUIPanel) => {
-    setEditingPanel(panel)
-    setNewPanelName(panel.name)
-    setNewPanelUrl(panel.url)
-  }
-
-  // 取消编辑
-  const cancelEditing = () => {
-    setEditingPanel(null)
-    setNewPanelName('')
-    setNewPanelUrl('')
-  }
-
-  // 恢复默认面板
-  const restoreDefaultPanels = () => {
-    setAllPanels(defaultWebUIPanels)
-  }
-
-  // 用于高亮显示 URL 中的变量
-  const HighlightedUrl: React.FC<{ url: string }> = ({ url }) => {
-    const parts = url.split(/(%host|%port|%secret)/g)
-
-    return (
-      <p className="text-sm text-default-500 break-all">
-        {parts.map((part, index) => {
-          if (part === '%host' || part === '%port' || part === '%secret') {
-            return (
-              <span key={index} className="bg-warning-200 text-warning-800 px-1 rounded">
-                {part}
-              </span>
-            )
-          }
-          return part
-        })}
-      </p>
-    )
-  }
-
-  // 可点击的变量标签组件
-  const ClickableVariableTag: React.FC<{
-    variable: string
-    onClick: (variable: string) => void
-  }> = ({ variable, onClick }) => {
-    return (
-      <span
-        className="bg-warning-200 text-warning-800 px-1 rounded ml-1 cursor-pointer hover:bg-warning-300"
-        onClick={() => onClick(variable)}
-      >
-        {variable}
-      </span>
-    )
-  }
+    setExternalUiUrlInput(externalUiUrl)
+  }, [externalUiUrl])
 
   const onChangeNeedRestart = async (patch: Partial<IMihomoConfig>): Promise<void> => {
     await patchControledMihomoConfig(patch)
@@ -333,6 +195,57 @@ const Mihomo: React.FC = () => {
       }
     } catch (e) {
       console.error('Apply config change failed:', e)
+    }
+  }
+
+  const upgradeExternalUi = async (): Promise<void> => {
+    try {
+      setUpgradingExternalUi(true)
+      await mihomoUpgradeUI()
+      toast.success(t('settings.webui.updateSuccess'))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      toast.error(message, t('settings.webui.updateFailed'))
+    } finally {
+      setUpgradingExternalUi(false)
+    }
+  }
+
+  const saveExternalUiUrl = async (): Promise<void> => {
+    await onChangeNeedRestart({ 'external-ui-url': externalUiUrlInput })
+    await upgradeExternalUi()
+  }
+
+  const openExternalUi = (): void => {
+    try {
+      let controller = externalController.trim()
+      if (controller.startsWith(':')) controller = `127.0.0.1${controller}`
+      if (controller.startsWith('0.0.0.0:')) {
+        controller = controller.replace('0.0.0.0:', '127.0.0.1:')
+      }
+      if (controller.startsWith('[::]:')) controller = controller.replace('[::]:', '[::1]:')
+
+      const controllerUrl = new URL(`http://${controller}`)
+      const hostname = controllerUrl.hostname.replace(/^\[|\]$/g, '')
+      const params = new URLSearchParams({
+        hostname,
+        port: controllerUrl.port
+      })
+      if (secret) params.set('secret', secret)
+
+      const panelName = externalUiUrl.toLowerCase()
+      let webUiUrl = `${controllerUrl.origin}/ui/?${params.toString()}`
+      if (panelName.includes('zashboard') || panelName.includes('metacubexd')) {
+        webUiUrl = `${controllerUrl.origin}/ui/#/setup?${params.toString()}`
+      } else if (panelName.includes('razord')) {
+        params.set('host', hostname)
+        params.delete('hostname')
+        webUiUrl = `${controllerUrl.origin}/ui/#/proxies?${params.toString()}`
+      }
+
+      window.open(webUiUrl, '_blank', 'noopener,noreferrer')
+    } catch {
+      toast.error(t('settings.webui.invalidController'))
     }
   }
 
@@ -1116,18 +1029,86 @@ const Mihomo: React.FC = () => {
               />
             </div>
           </SettingItem>
-          <SettingItem title={t('settings.webui.title')} divider>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                color="primary"
-                isDisabled={!externalController || externalController.trim() === ''}
-                onPress={() => setIsWebUIModalOpen(true)}
-              >
-                {t('settings.webui.manage')}
-              </Button>
-            </div>
-          </SettingItem>
+          {externalController && (
+            <>
+              <SettingItem title={t('settings.webui.enable')} divider>
+                <Switch
+                  size="sm"
+                  isSelected={enableExternalUi}
+                  onValueChange={(enabled) => {
+                    setEnableExternalUi(enabled)
+                    onChangeNeedRestart({ 'external-ui': enabled ? 'ui' : '' })
+                  }}
+                />
+              </SettingItem>
+              {enableExternalUi && (
+                <SettingItem
+                  title={t('settings.webui.panel')}
+                  actions={
+                    <>
+                      <Button
+                        isIconOnly
+                        size="sm"
+                        variant="light"
+                        isLoading={upgradingExternalUi}
+                        title={t('settings.webui.update')}
+                        onPress={upgradeExternalUi}
+                      >
+                        <IoMdCloudDownload className="text-lg" />
+                      </Button>
+                      <Button
+                        isIconOnly
+                        size="sm"
+                        variant="light"
+                        title={t('settings.webui.open')}
+                        onPress={openExternalUi}
+                      >
+                        <MdOpenInNew className="text-lg" />
+                      </Button>
+                    </>
+                  }
+                  divider
+                >
+                  <div className="flex">
+                    {externalUiUrlInput !== externalUiUrl && (
+                      <Button
+                        size="sm"
+                        color="primary"
+                        className="mr-2"
+                        onPress={saveExternalUiUrl}
+                      >
+                        {t('mihomo.confirm')}
+                      </Button>
+                    )}
+                    <Select
+                      aria-label={t('settings.webui.panel')}
+                      classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
+                      className="w-40"
+                      size="sm"
+                      selectedKeys={new Set([externalUiUrlInput])}
+                      disallowEmptySelection
+                      onSelectionChange={(selection) => {
+                        setExternalUiUrlInput(selection.currentKey as string)
+                      }}
+                    >
+                      {(WEBUI_PANEL_OPTIONS.some((panel) => panel.url === externalUiUrlInput)
+                        ? WEBUI_PANEL_OPTIONS
+                        : [
+                            {
+                              name: t('settings.webui.customPanel'),
+                              url: externalUiUrlInput
+                            },
+                            ...WEBUI_PANEL_OPTIONS
+                          ]
+                      ).map((panel) => (
+                        <SelectItem key={panel.url}>{panel.name}</SelectItem>
+                      ))}
+                    </Select>
+                  </div>
+                </SettingItem>
+              )}
+            </>
+          )}
           <SettingItem title={t('mihomo.ipv6')} divider>
             <Switch
               size="sm"
@@ -1504,123 +1485,6 @@ const Mihomo: React.FC = () => {
           </SettingItem>
         </SettingCard>
       </BasePage>
-
-      {/* WebUI 管理模态框 */}
-      <Modal
-        isOpen={isWebUIModalOpen}
-        onOpenChange={setIsWebUIModalOpen}
-        size="5xl"
-        scrollBehavior="inside"
-        backdrop="blur"
-        classNames={{ backdrop: 'top-[48px]' }}
-        hideCloseButton
-      >
-        <ModalContent className="h-full w-[calc(100%-100px)]">
-          <ModalHeader className="flex pb-0 app-drag">{t('settings.webui.manage')}</ModalHeader>
-          <ModalBody className="flex flex-col h-full">
-            <div className="flex flex-col h-full">
-              {/* 添加/编辑面板表单 */}
-              <div className="flex flex-col gap-2 p-3 bg-default-100 rounded-lg shrink-0">
-                <Input
-                  label={t('settings.webui.panelName')}
-                  placeholder={t('settings.webui.panelNamePlaceholder')}
-                  value={newPanelName}
-                  onValueChange={setNewPanelName}
-                />
-                <Input
-                  ref={urlInputRef}
-                  label={t('settings.webui.panelUrl')}
-                  placeholder={t('settings.webui.panelUrlPlaceholder')}
-                  value={newPanelUrl}
-                  onValueChange={setNewPanelUrl}
-                />
-                <div className="text-xs text-default-500">
-                  {t('settings.webui.variableHint')}:
-                  <ClickableVariableTag variable="%host" onClick={insertVariableAtCursor} />
-                  <ClickableVariableTag variable="%port" onClick={insertVariableAtCursor} />
-                  <ClickableVariableTag variable="%secret" onClick={insertVariableAtCursor} />
-                </div>
-                <div className="flex gap-2">
-                  {editingPanel ? (
-                    <>
-                      <Button
-                        size="sm"
-                        color="primary"
-                        onPress={updatePanel}
-                        isDisabled={!newPanelName || !newPanelUrl}
-                      >
-                        {t('common.save')}
-                      </Button>
-                      <Button size="sm" color="default" variant="bordered" onPress={cancelEditing}>
-                        {t('common.cancel')}
-                      </Button>
-                    </>
-                  ) : (
-                    <Button
-                      size="sm"
-                      color="primary"
-                      onPress={addNewPanel}
-                      isDisabled={!newPanelName || !newPanelUrl}
-                    >
-                      {t('settings.webui.addPanel')}
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    color="warning"
-                    variant="bordered"
-                    onPress={restoreDefaultPanels}
-                  >
-                    {t('settings.webui.restoreDefaults')}
-                  </Button>
-                </div>
-              </div>
-
-              {/* 面板列表 */}
-              <div className="flex flex-col gap-2 mt-2 overflow-y-auto grow">
-                <h3 className="text-lg font-semibold">{t('settings.webui.panels')}</h3>
-                {allPanels.map((panel) => (
-                  <div
-                    key={panel.id}
-                    className="flex items-start justify-between p-3 bg-default-50 rounded-lg shrink-0"
-                  >
-                    <div className="flex-1 mr-2">
-                      <p className="font-medium">{panel.name}</p>
-                      <HighlightedUrl url={panel.url} />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button isIconOnly size="sm" color="primary" onPress={() => openWebUI(panel)}>
-                        <MdOpenInNew />
-                      </Button>
-                      <Button
-                        isIconOnly
-                        size="sm"
-                        color="warning"
-                        onPress={() => startEditing(panel)}
-                      >
-                        <MdEdit />
-                      </Button>
-                      <Button
-                        isIconOnly
-                        size="sm"
-                        color="danger"
-                        onPress={() => deletePanel(panel.id)}
-                      >
-                        <MdDelete />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </ModalBody>
-          <ModalFooter className="pt-0">
-            <Button color="primary" onPress={() => setIsWebUIModalOpen(false)}>
-              {t('common.close')}
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
 
       {/* 自定义版本选择模态框 */}
       <Modal
