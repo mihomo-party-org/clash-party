@@ -145,7 +145,8 @@ const TrafficPage: React.FC = () => {
     sourceIP: t('traffic.view.sourceIP'),
     host: t('traffic.view.host'),
     outbound: t('traffic.view.outbound'),
-    process: t('traffic.view.process')
+    process: t('traffic.view.process'),
+    rule: t('traffic.view.rule')
   }
 
   return (

@@ -391,6 +391,7 @@
   "traffic.view.host": "網域",
   "traffic.view.outbound": "代理",
   "traffic.view.process": "程序",
+  "traffic.view.rule": "規則",
   "traffic.timeRange.1h": "1 小時",
   "traffic.timeRange.24h": "24 小時",
   "traffic.timeRange.7d": "7 天",

@@ -391,6 +391,7 @@
   "traffic.view.host": "Hosts",
   "traffic.view.outbound": "Proxies",
   "traffic.view.process": "Processes",
+  "traffic.view.rule": "Rules",
   "traffic.timeRange.1h": "1h",
   "traffic.timeRange.24h": "24h",
   "traffic.timeRange.7d": "7d",

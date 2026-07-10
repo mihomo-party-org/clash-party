@@ -1,6 +1,6 @@
 import { db } from '@renderer/utils/db'
 
-export type DataUsageType = 'sourceIP' | 'host' | 'outbound' | 'process'
+export type DataUsageType = 'sourceIP' | 'host' | 'outbound' | 'process' | 'rule'
 
 export interface AggregatedData {
   label: string
@@ -26,7 +26,9 @@ export async function getAggregatedData(
           ? log.host
           : type === 'outbound'
             ? log.outbound
-            : log.process
+            : type === 'process'
+              ? log.process
+              : log.rule || 'Unknown'
 
     const existing = map.get(label)
     if (existing) {
@@ -60,7 +62,9 @@ export async function getSubStatsByHost(
       ? log.sourceIP === label
       : dimension === 'outbound'
         ? log.outbound === label
-        : log.process === label
+        : dimension === 'process'
+          ? log.process === label
+          : (log.rule || 'Unknown') === label
   )
 
   const map = new Map<string, AggregatedData>()
@@ -129,7 +133,9 @@ export async function getProxyStatsByHost(
       ? log.sourceIP === parentLabel
       : dimension === 'process'
         ? log.process === parentLabel
-        : log.outbound === parentLabel
+        : dimension === 'outbound'
+          ? log.outbound === parentLabel
+          : (log.rule || 'Unknown') === parentLabel
   })
 
   const map = new Map<string, AggregatedData>()
