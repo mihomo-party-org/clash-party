@@ -82,6 +82,7 @@ const coreHookTimeout = 30000
 
 // 核心进程状态
 let child: ChildProcess | null = null
+let stoppingChild: ChildProcess | null = null
 let retry = 10
 let isRestarting = false
 
@@ -105,6 +106,37 @@ interface CoreHookWaiter {
 
 function hasCoreProcess(): boolean {
   return Boolean(child && !child.killed && child.exitCode === null && child.signalCode === null)
+}
+
+async function waitForChildExit(proc: ChildProcess, timeout: number): Promise<boolean> {
+  if (proc.exitCode !== null || proc.signalCode !== null) return true
+
+  return new Promise((resolve) => {
+    let completed = false
+    const complete = (exited: boolean): void => {
+      if (completed) return
+      completed = true
+      clearTimeout(timer)
+      proc.off('close', onClose)
+      resolve(exited)
+    }
+    const onClose = (): void => complete(true)
+    const timer = setTimeout(() => complete(false), timeout)
+
+    proc.once('close', onClose)
+    if (proc.exitCode !== null || proc.signalCode !== null) complete(true)
+  })
+}
+
+export async function waitForCoreExit(timeout = 800): Promise<void> {
+  const proc = child ?? stoppingChild
+  if (!proc || (await waitForChildExit(proc, timeout))) return
+
+  try {
+    proc.kill('SIGKILL')
+  } catch {
+    // The process exited after the timeout but before SIGKILL was sent.
+  }
 }
 
 function shellQuote(value: string): string {
@@ -588,7 +620,7 @@ export async function startCore(detached = false, skipStop = false): Promise<Pro
 }
 
 // 停止核心
-export async function stopCore(force = false): Promise<void> {
+export async function stopCore(force = false, waitForExit = false): Promise<void> {
   if (!force && process.platform === 'darwin') {
     try {
       await recoverDNS()
@@ -598,10 +630,17 @@ export async function stopCore(force = false): Promise<void> {
   }
 
   if (child) {
-    child.removeAllListeners()
-    child.kill('SIGINT')
+    const proc = child
+    proc.removeAllListeners()
+    stoppingChild = proc
+    proc.once('close', () => {
+      if (stoppingChild === proc) stoppingChild = null
+    })
+    proc.kill('SIGINT')
     child = null
   }
+
+  if (waitForExit) await waitForCoreExit()
 
   stopMihomoTraffic()
   stopMihomoConnections()

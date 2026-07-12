@@ -3,7 +3,7 @@ import { promisify } from 'util'
 import { stat } from 'fs/promises'
 import { existsSync } from 'fs'
 import { app, powerMonitor } from 'electron'
-import { stopCore, cleanupCoreWatcher } from './core/manager'
+import { stopCore, cleanupCoreWatcher, waitForCoreExit } from './core/manager'
 import { primeAdminPrivilegesCache } from './core/admin'
 import { triggerSysProxy, disableSysProxySync } from './sys/sysproxy'
 import { exePath } from './utils/dirs'
@@ -95,8 +95,11 @@ export function setupAppLifecycle(): void {
     }
   }
 
-  const cleanupBeforeExit = async (): Promise<void> => {
-    if (isQuitting) return
+  const cleanupBeforeExit = async (waitForCoreShutdown = false): Promise<void> => {
+    if (isQuitting) {
+      if (waitForCoreShutdown) await waitForCoreExit()
+      return
+    }
     isQuitting = true
 
     saveMainWindowState() // 硬退出补一次落盘
@@ -113,7 +116,7 @@ export function setupAppLifecycle(): void {
         triggerSysProxy(false).then(() => {
           sysProxyDisabled = true
         }),
-        stopCore()
+        stopCore(false, waitForCoreShutdown)
       ]).then(() => {}),
       1200
     )
@@ -133,6 +136,12 @@ export function setupAppLifecycle(): void {
     await cleanupBeforeExit()
     app.exit()
   })
+
+  if (process.platform === 'linux') {
+    process.once('SIGTERM', () => {
+      void cleanupBeforeExit(true).finally(() => app.exit())
+    })
+  }
 
   app.on('will-quit', () => {
     if (!sysProxyDisabled) {
