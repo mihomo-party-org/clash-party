@@ -169,3 +169,28 @@ export async function waitForCoreReady(): Promise<void> {
     }
   }
 }
+
+export async function verifyProcessOwner(pid: number, nameMatch: string): Promise<boolean> {
+  try {
+    process.kill(pid, 0)
+  } catch {
+    return false
+  }
+
+  try {
+    if (process.platform === 'win32') {
+      const { stdout } = await execPromise(`tasklist /FI "PID eq ${pid}" /FO CSV /NH`, {
+        windowsHide: true,
+        timeout: 1000
+      })
+      return stdout.toLowerCase().includes(nameMatch.toLowerCase())
+    } else {
+      // 使用 `comm=` 参数最多可显示 15 字符，超出会截断；TrafficMonitor 为 14 字符，可用
+      const { stdout } = await execPromise(`ps -p ${pid} -o comm=`, { timeout: 1000 })
+      return stdout.toLowerCase().includes(nameMatch.toLowerCase())
+    }
+  } catch {
+    return false
+  }
+}
+

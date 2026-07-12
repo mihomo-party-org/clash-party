@@ -4,6 +4,7 @@ import { existsSync } from 'fs'
 import { readFile, rm, writeFile } from 'fs/promises'
 import { dataDir, resourcesFilesDir } from '../utils/dirs'
 import { getAppConfig } from '../config'
+import { verifyProcessOwner } from '../core/process'
 
 let child: ChildProcess
 
@@ -12,7 +13,12 @@ export async function startMonitor(detached = false): Promise<void> {
   if (existsSync(path.join(dataDir(), 'monitor.pid'))) {
     const pid = parseInt(await readFile(path.join(dataDir(), 'monitor.pid'), 'utf-8'))
     try {
-      process.kill(pid, 'SIGINT')
+      if (!isNaN(pid)) {
+        const isOwner = await verifyProcessOwner(pid, 'TrafficMonitor')
+        if (isOwner) {
+          process.kill(pid, 'SIGINT')
+        }
+      }
     } catch {
       // ignore
     } finally {

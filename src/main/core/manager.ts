@@ -54,7 +54,8 @@ import {
   cleanupSocketFile,
   cleanupWindowsNamedPipes,
   validateWindowsPipeAccess,
-  waitForCoreReady
+  waitForCoreReady,
+  verifyProcessOwner
 } from './process'
 import { setPublicDNS, recoverDNS } from './dns'
 
@@ -250,14 +251,18 @@ async function stopPidFileCore(): Promise<void> {
   const pid = parseInt(pidString.trim())
   if (!isNaN(pid)) {
     try {
-      process.kill(pid, 0)
-      process.kill(pid, 'SIGINT')
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      try {
-        process.kill(pid, 0)
-        process.kill(pid, 'SIGKILL')
-      } catch {
-        // ignore
+      const isOwner = await verifyProcessOwner(pid, 'mihomo')
+      if (isOwner) {
+        process.kill(pid, 'SIGINT')
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+        try {
+          process.kill(pid, 0)
+          process.kill(pid, 'SIGKILL')
+        } catch {
+          // ignore
+        }
+      } else {
+        managerLogger.info(`PID ${pid} is not owned by mihomo, skipping kill`)
       }
     } catch {
       // ignore
