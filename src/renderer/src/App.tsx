@@ -235,20 +235,21 @@ const App: React.FC = () => {
       className={`w-full h-screen flex ${resizing ? 'cursor-ew-resize' : ''}`}
     >
       {siderWidthValue === narrowWidth ? (
-        <div style={{ width: `${narrowWidth}px` }} className="side h-full">
-          <div className="app-drag flex justify-center items-center z-40 bg-transparent h-12.25">
+        <div style={{ width: `${narrowWidth}px` }} className="side h-full flex flex-col">
+          <div className="app-drag flex shrink-0 justify-center items-center z-40 bg-transparent h-11.25">
             {platform !== 'darwin' && <MihomoIcon className="h-8 leading-8 text-lg mx-px" />}
-            <UpdaterButton iconOnly={true} />
           </div>
-          <div className="h-[calc(100%-110px)] overflow-y-auto no-scrollbar">
-            <div className="h-full w-full flex flex-col gap-2">
+          <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar">
+            <div className="min-h-full w-full flex flex-col gap-2">
               {order.map((key) => {
                 const Component = componentMap[key]
                 return <Component key={key} iconOnly={true} />
               })}
             </div>
           </div>
-          <div className="mt-2 flex justify-center items-center h-12">
+          <div className="px-2 pt-2 pb-4 flex shrink-0 flex-col items-center space-y-2">
+            <UpdaterButton iconOnly={true} />
+            <OutboundModeSwitcher iconOnly />
             <Button
               size="sm"
               className="app-nodrag"

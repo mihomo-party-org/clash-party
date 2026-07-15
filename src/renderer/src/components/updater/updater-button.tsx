@@ -43,7 +43,7 @@ const UpdaterButton: React.FC<Props> = (props) => {
         <Button
           isIconOnly
           variant="flat"
-          className={`fixed rounded-full app-nodrag`}
+          className="rounded-full app-nodrag"
           color="danger"
           size="md"
           onPress={() => {

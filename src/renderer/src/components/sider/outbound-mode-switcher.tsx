@@ -6,7 +6,11 @@ import { mihomoCloseAllConnections, patchMihomoConfig, updateTrayIcon } from '@r
 import { Key } from 'react'
 import { useTranslation } from 'react-i18next'
 
-const OutboundModeSwitcher: React.FC = () => {
+interface Props {
+  iconOnly?: boolean
+}
+
+const OutboundModeSwitcher: React.FC<Props> = ({ iconOnly }: Props) => {
   const { t } = useTranslation()
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
   const { mutate: mutateGroups } = useGroups()
@@ -25,6 +29,22 @@ const OutboundModeSwitcher: React.FC = () => {
     await updateTrayIcon()
   }
   if (!mode) return null
+  if (iconOnly) {
+    return (
+      <Tabs
+        color="primary"
+        selectedKey={mode}
+        classNames={{
+          tabList: 'bg-content1 shadow-medium outbound-mode-card flex-col'
+        }}
+        onSelectionChange={(key: Key) => onChangeMode(key as OutboundMode)}
+      >
+        <Tab className={`${mode === 'rule' ? 'font-bold' : ''}`} key="rule" title="R" />
+        <Tab className={`${mode === 'global' ? 'font-bold' : ''}`} key="global" title="G" />
+        <Tab className={`${mode === 'direct' ? 'font-bold' : ''}`} key="direct" title="D" />
+      </Tabs>
+    )
+  }
   return (
     <Tabs
       fullWidth
