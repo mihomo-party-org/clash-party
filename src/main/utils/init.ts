@@ -250,6 +250,10 @@ async function initFiles(): Promise<void> {
       targetDirs: [mihomoWorkDir(), mihomoTestDir()]
     },
     {
+      name: 'BundleMRS.7z',
+      targetDirs: [mihomoWorkDir(), mihomoTestDir()]
+    },
+    {
       name: 'sub-store.bundle.cjs',
       targetDirs: [mihomoWorkDir()]
     },

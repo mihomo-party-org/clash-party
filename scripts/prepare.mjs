@@ -311,6 +311,11 @@ const resolveASN = () =>
     file: 'ASN.mmdb',
     downloadURL: `https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb`
   })
+const resolveBundleMRS = () =>
+  resolveResource({
+    file: 'BundleMRS.7z',
+    downloadURL: `https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/BundleMRS.7z`
+  })
 const resolveEnableLoopback = () =>
   resolveResource({
     file: 'enableLoopback.exe',
@@ -476,6 +481,7 @@ const tasks = [
   { name: 'geosite', func: resolveGeosite, retry: 5 },
   { name: 'geoip', func: resolveGeoIP, retry: 5 },
   { name: 'asn', func: resolveASN, retry: 5 },
+  { name: 'bundlemrs', func: resolveBundleMRS, retry: 5 },
   {
     name: 'font',
     func: resolveFont,
