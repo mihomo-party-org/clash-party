@@ -1,10 +1,45 @@
 import fs from 'fs'
 import path from 'path'
-import { spawnSync } from 'child_process'
+import { execFile, spawnSync } from 'child_process'
+import { promisify } from 'util'
 import plist from 'plist'
 import { findBestAppPath, isIOSApp } from './icon'
 
+const execFileAsync = promisify(execFile)
+
+async function getWindowsAppName(appPath: string): Promise<string> {
+  if (!fs.existsSync(appPath)) return ''
+
+  const escapedPath = appPath.replace(/'/g, "''")
+  const script = [
+    '[Console]::OutputEncoding = [System.Text.Encoding]::UTF8',
+    `$item = Get-Item -LiteralPath '${escapedPath}' -ErrorAction Stop`,
+    '$name = $item.VersionInfo.FileDescription',
+    'if ([string]::IsNullOrWhiteSpace($name)) { $name = $item.VersionInfo.ProductName }',
+    '$name'
+  ].join('; ')
+
+  try {
+    const { stdout } = await execFileAsync(
+      'powershell',
+      ['-NoProfile', '-NonInteractive', '-Command', script],
+      {
+        encoding: 'utf8',
+        timeout: 5000,
+        windowsHide: true
+      }
+    )
+    return stdout.trim()
+  } catch {
+    return ''
+  }
+}
+
 export async function getAppName(appPath: string): Promise<string> {
+  if (process.platform === 'win32') {
+    return getWindowsAppName(appPath)
+  }
+
   if (process.platform === 'darwin') {
     try {
       const targetPath = findBestAppPath(appPath)
