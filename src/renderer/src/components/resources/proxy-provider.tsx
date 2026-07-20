@@ -9,13 +9,14 @@ import { Button, Chip } from '@heroui/react'
 import { toast } from '@renderer/components/base/toast'
 import { IoMdRefresh } from 'react-icons/io'
 import { CgLoadbarDoc } from 'react-icons/cg'
-import { MdEditDocument } from 'react-icons/md'
+import { MdEditDocument, MdQrCode2 } from 'react-icons/md'
 import dayjs from '@renderer/utils/dayjs'
 import { calcTraffic } from '@renderer/utils/calc'
 import { getHash } from '@renderer/utils/hash'
 import { useTranslation } from 'react-i18next'
 import SettingItem from '../base/base-setting-item'
 import SettingCard from '../base/base-setting-card'
+import QrCodeModal from '../profiles/qr-code-modal'
 import Viewer from './viewer'
 const ProxyProvider: React.FC = () => {
   const { t } = useTranslation()
@@ -26,6 +27,7 @@ const ProxyProvider: React.FC = () => {
     title: '',
     privderType: ''
   })
+  const [qrCode, setQrCode] = useState<{ name: string; url: string } | null>(null)
   useEffect(() => {
     if (showDetails.title) {
       const fetchProviderPath = async (name: string): Promise<void> => {
@@ -81,8 +83,23 @@ const ProxyProvider: React.FC = () => {
     return null
   }
 
+  const onShowQrCode = async (name: string): Promise<void> => {
+    try {
+      const config = await getRuntimeConfig()
+      const provider = config?.['proxy-providers']?.[name]
+      if (provider?.url) {
+        setQrCode({ name, url: provider.url })
+      }
+    } catch {
+      // Ignore providers that are no longer present in the runtime config.
+    }
+  }
+
   return (
     <SettingCard>
+      {qrCode && (
+        <QrCodeModal title={qrCode.name} url={qrCode.url} onClose={() => setQrCode(null)} />
+      )}
       {showDetails.show && (
         <Viewer
           path={showDetails.path}
@@ -120,9 +137,17 @@ const ProxyProvider: React.FC = () => {
           >
             <div className="flex h-[32px] leading-[32px] text-foreground-500">
               <div>{dayjs(provider.updatedAt).fromNow()}</div>
-              {/* <Button isIconOnly className="ml-2" size="sm">
-                <IoMdEye className="text-lg" />
-              </Button> */}
+              {provider.vehicleType === 'HTTP' && (
+                <Button
+                  isIconOnly
+                  title={t('profiles.qrCode.show')}
+                  className="ml-2"
+                  size="sm"
+                  onPress={() => onShowQrCode(provider.name)}
+                >
+                  <MdQrCode2 className="text-lg" />
+                </Button>
+              )}
               <Button
                 isIconOnly
                 title={

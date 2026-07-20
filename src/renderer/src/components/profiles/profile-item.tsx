@@ -248,7 +248,7 @@ const ProfileItem: React.FC<Props> = (props) => {
         <EditTunnelsModal id={info.id} onClose={() => setOpenTunnelsEditor(false)} />
       )}
       {openQrCode && info.url && (
-        <QrCodeModal url={info.url} onClose={() => setOpenQrCode(false)} />
+        <QrCodeModal title={info.name} url={info.url} onClose={() => setOpenQrCode(false)} />
       )}
       {openInfoEditor && (
         <EditInfoModal

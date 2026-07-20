@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 
 interface Props {
   url: string
+  title?: string
   onClose: () => void
 }
 
@@ -14,9 +15,14 @@ const QrCodeModal: React.FC<Props> = (props) => {
   return (
     <Modal isOpen onOpenChange={(open) => !open && props.onClose()} size="xs">
       <ModalContent>
-        <ModalHeader>{t('profiles.qrCode.title')}</ModalHeader>
+        <ModalHeader>{props.title || t('profiles.qrCode.title')}</ModalHeader>
         <ModalBody className="flex items-center pb-6">
-          <QRCodeSVG value={props.url} size={220} level="M" />
+          <div className="rounded-lg bg-white p-4">
+            <QRCodeSVG value={props.url} size={220} level="M" />
+          </div>
+          <p className="mt-2 break-all text-center text-sm text-foreground-500 select-all">
+            {props.url}
+          </p>
         </ModalBody>
       </ModalContent>
     </Modal>
