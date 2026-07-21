@@ -1,16 +1,20 @@
-import { mkdtempSync, rmSync } from 'fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
 let TMP = ''
-vi.mock('../utils/dirs', () => ({ pluginConfigPath: () => join(TMP, 'plugin.yaml') }))
+vi.mock('../utils/dirs', () => ({
+  pluginConfigPath: () => join(TMP, 'plugin.yaml'),
+  appConfigPath: () => join(TMP, 'app.yaml')
+}))
 
 import {
   getPluginConfig,
   addPluginItem,
   getPluginItem,
   updatePluginItem,
+  patchPluginItem,
   removePluginItem
 } from './plugin'
 
@@ -29,6 +33,7 @@ function item(id: string): IPluginItem {
 
 beforeEach(() => {
   TMP = mkdtempSync(join(tmpdir(), 'cpxcfg-'))
+  writeFileSync(join(TMP, 'app.yaml'), '{}')
 })
 afterEach(() => rmSync(TMP, { recursive: true, force: true }))
 
@@ -45,6 +50,11 @@ describe('plugin config CRUD', () => {
     await addPluginItem(item('a'))
     await updatePluginItem({ ...item('a'), status: 'needs-reauth' })
     expect((await getPluginItem('a'))?.status).toBe('needs-reauth')
+  })
+  it('patches an item', async () => {
+    await addPluginItem(item('a'))
+    await patchPluginItem('a', { useProxy: true })
+    expect((await getPluginItem('a'))?.useProxy).toBe(true)
   })
   it('removes an item', async () => {
     await addPluginItem(item('a'))

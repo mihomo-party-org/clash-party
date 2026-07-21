@@ -648,6 +648,7 @@ interface IPluginItem {
   status: IPluginStatus
   interval?: number
   autoUpdate?: boolean
+  useProxy?: boolean // 插件请求经由代理开关（可选，覆盖全局配置）
   created: number
   updated: number
   lastUpdateErrorType?: 'auth' | 'transient'

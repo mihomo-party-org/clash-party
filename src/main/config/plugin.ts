@@ -53,6 +53,15 @@ export async function updatePluginItem(newItem: IPluginItem): Promise<void> {
   })
 }
 
+export async function patchPluginItem(id: string, patch: Partial<IPluginItem>): Promise<void> {
+  await update((c) => {
+    const idx = c.items.findIndex((i) => i.id === id)
+    if (idx === -1) throw new Error('Plugin not found')
+    c.items[idx] = { ...c.items[idx], ...patch }
+    return c
+  })
+}
+
 export async function removePluginItem(id: string): Promise<void> {
   await update((c) => {
     c.items = c.items.filter((i) => i.id !== id)

@@ -164,6 +164,7 @@ interface IpcApi {
   loginPlugin: (id: string) => Promise<void>
   removePlugin: (id: string) => Promise<void>
   updatePluginProfile: (id: string, force?: boolean) => Promise<void>
+  patchPluginItem: (id: string, patch: Partial<IPluginItem>) => Promise<void>
   // Misc
   getGistUrl: () => Promise<string>
   generateGistAgeKeyPair: () => Promise<{ secretKey: string; recipient: string }>
@@ -329,6 +330,7 @@ export const {
   loginPlugin,
   removePlugin,
   updatePluginProfile,
+  patchPluginItem,
   // Misc
   getGistUrl,
   generateGistAgeKeyPair,

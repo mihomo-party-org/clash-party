@@ -23,9 +23,16 @@ interface Props {
 const MAX_CPX_BYTES = 10 * 1024 * 1024 // guard against a huge mis-dropped file freezing the renderer
 
 function abToBase64(buf: ArrayBuffer): string {
+  if (typeof Buffer !== 'undefined') {
+    return Buffer.from(buf).toString('base64')
+  }
   let binary = ''
   const bytes = new Uint8Array(buf)
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+  const chunkSize = 0x8000
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize)
+    binary += String.fromCharCode.apply(null, chunk as unknown as number[])
+  }
   return btoa(binary)
 }
 

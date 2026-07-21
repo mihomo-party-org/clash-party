@@ -3,7 +3,8 @@ import {
   getPluginItem,
   addPluginItem,
   updatePluginItem,
-  removePluginItem
+  removePluginItem,
+  patchPluginItem as patchConfig
 } from '../../config/plugin'
 import { upsertPluginProfile, removePluginProfileContent } from '../../config/profile'
 import { getAppConfig } from '../../config/app'
@@ -37,9 +38,11 @@ interface NetOpts {
   proxy?: { host: string; port: number }
 }
 
-async function netOpts(): Promise<NetOpts> {
-  const { subscriptionTimeout = 30000, pluginUseProxy } = await getAppConfig()
-  if (!pluginUseProxy) return { timeout: subscriptionTimeout }
+async function netOpts(item?: IPluginItem): Promise<NetOpts> {
+  const { subscriptionTimeout = 30000, pluginUseProxy: globalUseProxy = false } =
+    await getAppConfig()
+  const useProxy = typeof item?.useProxy === 'boolean' ? item.useProxy : globalUseProxy
+  if (!useProxy) return { timeout: subscriptionTimeout }
   const { getControledMihomoConfig } = await import('../../config/controledMihomo')
   const { 'mixed-port': port = 7890 } = await getControledMihomoConfig()
   return { timeout: subscriptionTimeout, proxy: { host: '127.0.0.1', port } }
@@ -68,6 +71,7 @@ export async function previewPlugin(fileBytesB64: string): Promise<IPluginDescri
 // 安装：解析 + 建 needs-login 记录（无 profileId、不联网）
 export async function installPlugin(fileBytesB64: string): Promise<IPluginItem> {
   const d = readDescriptor(fileBytesB64)
+  const { pluginUseProxy = false } = await getAppConfig()
   const now = Date.now()
   const record: IPluginItem = {
     id: randomUUID(),
@@ -79,6 +83,7 @@ export async function installPlugin(fileBytesB64: string): Promise<IPluginItem> 
     status: 'needs-login',
     interval: DEFAULT_PLUGIN_INTERVAL_MIN,
     autoUpdate: true,
+    useProxy: pluginUseProxy,
     created: now,
     updated: now
   }
@@ -141,7 +146,7 @@ export async function loginPlugin(id: string): Promise<void> {
 async function runLogin(id: string): Promise<void> {
   const record = await getPluginItem(id)
   if (!record) throw new Error('Plugin not found')
-  const net = await netOpts()
+  const net = await netOpts(record)
 
   const existingResult = await readVault(id)
   if (existingResult.kind === 'unavailable') throw new VaultUnavailableError()
@@ -286,7 +291,7 @@ export async function updatePluginProfile(id: string, force = false): Promise<vo
     return
   }
   const vault = vaultResult.vault
-  const net = await netOpts()
+  const net = await netOpts(record)
   try {
     const content = await fetchWithRediscovery(id, record, vault, net)
     await upsertPluginProfile(
@@ -348,7 +353,7 @@ export async function revokePluginDevice(id: string): Promise<void> {
   const vault = vaultResult.vault
   const record = await getPluginItem(id)
   const cred = { deviceId: vault.deviceId, privKeyB64: vault.devicePrivKey }
-  const net = await netOpts()
+  const net = await netOpts(record ?? undefined)
   try {
     // 网关轮换后旧 gateway 可能 retired/unreachable：用 loginUrl 重新发现再 revoke，避免设备绑定残留
     if (record) {
@@ -371,5 +376,10 @@ export async function removePlugin(id: string): Promise<void> {
   await removeVault(id)
   if (record?.profileId) await removePluginProfileContent(record.profileId)
   await removePluginItem(id)
+  notifyRenderer()
+}
+
+export async function patchPluginItem(id: string, patch: Partial<IPluginItem>): Promise<void> {
+  await patchConfig(id, patch)
   notifyRenderer()
 }

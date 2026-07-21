@@ -153,6 +153,7 @@ const validInvokeChannels = [
   'loginPlugin',
   'removePlugin',
   'updatePluginProfile',
+  'patchPluginItem',
   // Misc
   'getGistUrl',
   'generateGistAgeKeyPair',

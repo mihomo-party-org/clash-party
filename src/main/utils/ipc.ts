@@ -128,7 +128,8 @@ import {
   installPlugin,
   loginPlugin,
   removePlugin,
-  updatePluginProfile
+  updatePluginProfile,
+  patchPluginItem
 } from '../resolve/plugin'
 import { getPluginConfig } from '../config/plugin'
 import { getImageDataURL } from './image'
@@ -357,6 +358,7 @@ const asyncHandlers: Record<string, AsyncFn> = {
   loginPlugin,
   removePlugin,
   updatePluginProfile,
+  patchPluginItem,
   // Misc
   getGistUrl,
   generateGistAgeKeyPair,
