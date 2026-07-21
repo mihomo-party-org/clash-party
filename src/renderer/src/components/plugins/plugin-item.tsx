@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from '@renderer/components/base/toast'
 import { removePlugin, loginPlugin } from '@renderer/utils/ipc'
 import BaseConfirmModal from '@renderer/components/base/base-confirm-modal'
+import { TbPuzzle } from 'react-icons/tb'
 
 interface Props {
   item: IPluginItem
@@ -42,7 +43,10 @@ const PluginItem: React.FC<Props> = ({ item, onChanged }) => {
     <Card>
       <CardBody className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <span className="font-bold">{item.name}</span>
+          <div className="flex items-center gap-1.5 text-primary">
+            <TbPuzzle className="text-lg" />
+            <span className="font-bold text-foreground">{item.name}</span>
+          </div>
           <Chip size="sm" color={statusColor[item.status]}>
             {t(`plugins.status.${item.status}`)}
           </Chip>

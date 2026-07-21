@@ -828,7 +828,11 @@
     "useProxyWarning": "插件请求经由本地混合端口代理发出。仍校验 https、主机、重定向和大小，但无法验证代理最终解析到的 IP，SSRF 防护降级。",
     "remove": "删除",
     "removeConfirm": "确认删除该插件及其订阅？",
-    "status": { "needs-login": "待登录", "active": "正常", "needs-reauth": "需重新登录" },
+    "status": {
+      "needs-login": "待登录",
+      "active": "正常",
+      "needs-reauth": "需重新登录"
+    },
     "installed": "已安装",
     "installFailed": "安装失败",
     "previewFailed": "插件文件无效",

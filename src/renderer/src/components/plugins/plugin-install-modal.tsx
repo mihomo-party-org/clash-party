@@ -1,8 +1,18 @@
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@heroui/react'
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
+  Checkbox,
+  Tooltip
+} from '@heroui/react'
 import React, { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from '@renderer/components/base/toast'
 import { previewPlugin, installPlugin } from '@renderer/utils/ipc'
+import { useAppConfig } from '@renderer/hooks/use-app-config'
 
 interface Props {
   onClose: () => void
@@ -29,6 +39,9 @@ function hostOf(url: string): string {
 
 const PluginInstallModal: React.FC<Props> = ({ onClose, initialFile, initialData }) => {
   const { t } = useTranslation()
+
+  const { appConfig, patchAppConfig } = useAppConfig()
+  const pluginUseProxy = appConfig?.pluginUseProxy ?? false
   const fileInput = useRef<HTMLInputElement>(null)
   const [fileName, setFileName] = useState('')
   const [fileB64, setFileB64] = useState('')
@@ -104,22 +117,37 @@ const PluginInstallModal: React.FC<Props> = ({ onClose, initialFile, initialData
   }
 
   return (
-    <Modal isOpen onOpenChange={(open) => !open && onClose()} size="md">
+    <Modal
+      backdrop="blur"
+      classNames={{ backdrop: 'top-[48px]' }}
+      isOpen
+      hideCloseButton
+      onOpenChange={(open) => !open && onClose()}
+      size="md"
+    >
       <ModalContent>
-        <ModalHeader>{preview ? t('plugins.confirmTitle') : t('plugins.import')}</ModalHeader>
+        <ModalHeader>{preview ? t('plugins.confirmTitle') : t('plugins.title')}</ModalHeader>
         <ModalBody>
           {!preview ? (
-            <div className="flex flex-col gap-3">
-              <input
-                ref={fileInput}
-                type="file"
-                accept=".cpx"
-                className="hidden"
-                onChange={onPickFile}
-              />
-              <Button variant="flat" isDisabled={busy} onPress={() => fileInput.current?.click()}>
-                {fileName || t('plugins.chooseFile')}
-              </Button>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium">{t('plugins.import')}</span>
+                <input
+                  ref={fileInput}
+                  type="file"
+                  accept=".cpx"
+                  className="hidden"
+                  onChange={onPickFile}
+                />
+                <Button
+                  variant="flat"
+                  size="sm"
+                  isDisabled={busy}
+                  onPress={() => fileInput.current?.click()}
+                >
+                  {fileName || t('plugins.chooseFile')}
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="flex flex-col gap-2 text-sm">
@@ -138,19 +166,30 @@ const PluginInstallModal: React.FC<Props> = ({ onClose, initialFile, initialData
             </div>
           )}
         </ModalBody>
-        <ModalFooter>
-          <Button variant="light" onPress={onClose}>
-            {t('plugins.cancel')}
-          </Button>
-          {!preview ? (
-            <Button color="primary" isLoading={busy} isDisabled={!fileB64} onPress={doPreview}>
-              {t('plugins.next')}
+        <ModalFooter className="flex items-center justify-between">
+          <Tooltip content={t('plugins.useProxyWarning')} placement="bottom">
+            <Checkbox
+              size="sm"
+              isSelected={pluginUseProxy}
+              onValueChange={(v) => patchAppConfig({ pluginUseProxy: v })}
+            >
+              {t('plugins.useProxy')}
+            </Checkbox>
+          </Tooltip>
+          <div className="flex items-center gap-2">
+            <Button variant="light" onPress={onClose}>
+              {t('plugins.cancel')}
             </Button>
-          ) : (
-            <Button color="primary" isLoading={busy} onPress={doInstall}>
-              {t('plugins.install')}
-            </Button>
-          )}
+            {!preview ? (
+              <Button color="primary" isLoading={busy} isDisabled={!fileB64} onPress={doPreview}>
+                {t('plugins.next')}
+              </Button>
+            ) : (
+              <Button color="primary" isLoading={busy} onPress={doInstall}>
+                {t('plugins.install')}
+              </Button>
+            )}
+          </div>
         </ModalFooter>
       </ModalContent>
     </Modal>

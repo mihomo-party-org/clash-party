@@ -828,7 +828,11 @@
     "useProxyWarning": "外掛請求經由本機混合埠代理發出。仍校驗 https、主機、重新導向與大小，但無法驗證代理最終解析到的 IP，SSRF 防護降級。",
     "remove": "刪除",
     "removeConfirm": "確認刪除該外掛及其訂閱？",
-    "status": { "needs-login": "待登入", "active": "正常", "needs-reauth": "需重新登入" },
+    "status": {
+      "needs-login": "待登入",
+      "active": "正常",
+      "needs-reauth": "需重新登入"
+    },
     "installed": "已安裝",
     "installFailed": "安裝失敗",
     "previewFailed": "外掛檔案無效",
