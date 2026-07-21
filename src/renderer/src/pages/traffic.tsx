@@ -3,7 +3,7 @@ import TrafficRankings from '@renderer/components/traffic/traffic-rankings'
 import TrafficTrendChart from '@renderer/components/traffic/traffic-trend-chart'
 import TrafficDetailsTable from '@renderer/components/traffic/traffic-details-table'
 import {
-  getTrafficOverview,
+  getTrafficData,
   getSubStatsByHost,
   getDevicesByHost,
   getProxyStatsByHost,
@@ -11,7 +11,7 @@ import {
   type DataUsageType
 } from '@renderer/utils/dataUsage'
 import { db } from '@renderer/utils/db'
-import { Button, Tab, Tabs } from '@heroui/react'
+import { Button, Spinner, Tab, Tabs } from '@heroui/react'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { calcTraffic } from '@renderer/utils/calc'
@@ -20,7 +20,6 @@ import { CgTrash } from 'react-icons/cg'
 type TimeRange = '1h' | '24h' | '7d' | '30d'
 
 const TIME_RANGES: TimeRange[] = ['1h', '24h', '7d', '30d']
-const AUTO_REFRESH_INTERVAL_MS = 5000
 
 function getTimeRange(range: TimeRange): { start: number; end: number; bucketSizeMs: number } {
   const end = Date.now()
@@ -53,65 +52,43 @@ const TrafficPage: React.FC = () => {
   const [selectedSubRow, setSelectedSubRow] = useState<string | null>(null)
   const [totalStats, setTotalStats] = useState({ upload: 0, download: 0, total: 0, count: 0 })
   const [bucketSizeMs, setBucketSizeMs] = useState(60 * 60 * 1000)
-  const loadGenerationRef = useRef(0)
+  const [isLoading, setIsLoading] = useState(false)
+  const loadIdRef = useRef(0)
 
-  const load = useCallback(
-    async (
-      resetSelection = true,
-      generation = loadGenerationRef.current,
-      isCancelled: () => boolean = () => false
-    ) => {
-      const { start, end, bucketSizeMs: bms } = getTimeRange(timeRange)
-      const { rankings: agg, trend } = await getTrafficOverview(activeView, start, end, bms)
+  const load = useCallback(async () => {
+    const loadId = ++loadIdRef.current
+    setIsLoading(true)
 
-      if (isCancelled() || generation !== loadGenerationRef.current) return
+    const { start, end, bucketSizeMs: bms } = getTimeRange(timeRange)
+    setBucketSizeMs(bms)
 
-      setBucketSizeMs(bms)
-      setRankings(agg)
-      setTrendData(trend)
-      setTotalStats(
-        agg.reduce(
-          (acc, r) => ({
-            upload: acc.upload + r.upload,
-            download: acc.download + r.download,
-            total: acc.total + r.total,
-            count: acc.count + r.count
-          }),
-          { upload: 0, download: 0, total: 0, count: 0 }
-        )
+    const data = await getTrafficData(activeView, start, end, bms)
+
+    if (loadId !== loadIdRef.current) return
+
+    setRankings(data.rankings)
+    setTrendData(data.trend)
+    setTotalStats(
+      data.rankings.reduce(
+        (acc, r) => ({
+          upload: acc.upload + r.upload,
+          download: acc.download + r.download,
+          total: acc.total + r.total,
+          count: acc.count + r.count
+        }),
+        { upload: 0, download: 0, total: 0, count: 0 }
       )
+    )
 
-      if (resetSelection) {
-        setSelectedRow(null)
-        setSubStats([])
-        setProxyStatsMap({})
-        setSelectedSubRow(null)
-      }
-    },
-    [activeView, timeRange]
-  )
+    setSelectedRow(null)
+    setSubStats([])
+    setProxyStatsMap({})
+    setSelectedSubRow(null)
+    setIsLoading(false)
+  }, [activeView, timeRange])
 
   useEffect(() => {
-    const generation = ++loadGenerationRef.current
-    let refreshTimer: ReturnType<typeof setTimeout> | null = null
-    let cancelled = false
-
-    const refresh = async (resetSelection: boolean): Promise<void> => {
-      await load(resetSelection, generation, () => cancelled)
-      if (cancelled || generation !== loadGenerationRef.current) return
-      refreshTimer = setTimeout(() => {
-        void refresh(false)
-      }, AUTO_REFRESH_INTERVAL_MS)
-    }
-
-    void refresh(true)
-
-    return () => {
-      cancelled = true
-      if (refreshTimer !== null) {
-        clearTimeout(refreshTimer)
-      }
-    }
+    load()
   }, [load])
 
   const handleSelectRow = useCallback(
@@ -202,7 +179,12 @@ const TrafficPage: React.FC = () => {
         </div>
       }
     >
-      <div className="flex flex-col gap-3 p-2">
+      <div className="relative flex flex-col gap-3 p-2">
+        {isLoading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-background/60 backdrop-blur-[2px]">
+            <Spinner size="lg" />
+          </div>
+        )}
         {/* Summary stats */}
         <div className="grid grid-cols-4 gap-2">
           {[
