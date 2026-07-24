@@ -1,6 +1,6 @@
 import { calcTraffic } from '@renderer/utils/calc'
 import type { AggregatedData, DataUsageType } from '@renderer/utils/dataUsage'
-import { Button, Input } from '@heroui/react'
+import { Button, Input, Spinner } from '@heroui/react'
 import { IoChevronDown, IoChevronForward, IoSearch } from 'react-icons/io5'
 import React, { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -12,6 +12,8 @@ interface Props {
   proxyStatsMap: Record<string, AggregatedData[]>
   selectedSubRow: string | null
   onSubRowClick: (parentLabel: string, subLabel: string) => void
+  isLoading?: boolean
+  expandingKey?: string | null
 }
 
 type SortField = 'label' | 'upload' | 'download' | 'total'
@@ -22,7 +24,9 @@ const TrafficDetailsTable: React.FC<Props> = ({
   subStats,
   proxyStatsMap,
   selectedSubRow,
-  onSubRowClick
+  onSubRowClick,
+  isLoading = false,
+  expandingKey = null
 }) => {
   const { t } = useTranslation()
   const [search, setSearch] = useState('')
@@ -122,7 +126,15 @@ const TrafficDetailsTable: React.FC<Props> = ({
             </tr>
           </thead>
           <tbody>
-            {paged.map((sub, idx) => {
+            {isLoading ? (
+              <tr>
+                <td colSpan={4} className="py-12 text-center">
+                  <Spinner size="sm" />
+                </td>
+              </tr>
+            ) : (
+              <>
+                {paged.map((sub, idx) => {
               const compositeKey = `${selectedRow}:${sub.label}`
               const isExpanded = selectedSubRow === compositeKey
               return (
@@ -160,7 +172,11 @@ const TrafficDetailsTable: React.FC<Props> = ({
                   {isExpanded && (
                     <tr>
                       <td colSpan={4} className="px-4 pb-3 pt-1">
-                        {(proxyStatsMap[compositeKey] ?? []).length === 0 ? (
+                        {expandingKey === compositeKey && !proxyStatsMap[compositeKey] ? (
+                          <div className="flex items-center justify-center py-3">
+                            <Spinner size="sm" />
+                          </div>
+                        ) : (proxyStatsMap[compositeKey] ?? []).length === 0 ? (
                           <div className="py-3 text-center text-xs text-foreground/40">—</div>
                         ) : (
                           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
@@ -195,13 +211,15 @@ const TrafficDetailsTable: React.FC<Props> = ({
                 </React.Fragment>
               )
             })}
+                {paged.length === 0 && (
+                  <div className="flex items-center justify-center py-12 text-sm text-foreground/40 italic">
+                    {t('traffic.noData')}
+                  </div>
+                )}
+              </>
+            )}
           </tbody>
         </table>
-        {paged.length === 0 && (
-          <div className="flex items-center justify-center py-12 text-sm text-foreground/40 italic">
-            {t('traffic.noData')}
-          </div>
-        )}
       </div>
 
       {/* Footer */}
