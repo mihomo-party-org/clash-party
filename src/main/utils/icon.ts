@@ -1,4 +1,4 @@
-import { exec } from 'child_process'
+import { exec, execFile } from 'child_process'
 import fs, { existsSync } from 'fs'
 import os from 'os'
 import path from 'path'
@@ -80,6 +80,36 @@ export function findBestAppPath(appPath: string): string | null {
     }
   }
   return appPaths[0]
+}
+
+async function getMacOSIconBuffer(appPath: string): Promise<Buffer> {
+  if (!app.isPackaged) {
+    const { fileIconToBuffer } = await import('file-icon')
+    return Buffer.from(await fileIconToBuffer(appPath, { size: 512 }))
+  }
+
+  const fileIconPath = path.join(
+    process.resourcesPath,
+    'app.asar.unpacked',
+    'node_modules',
+    'file-icon',
+    'file-icon'
+  )
+
+  return new Promise((resolve, reject) => {
+    execFile(
+      fileIconPath,
+      [JSON.stringify([{ appOrPID: appPath, size: 512 }])],
+      { encoding: null, maxBuffer: 100 * 1024 * 1024 },
+      (error, stdout) => {
+        if (error) {
+          reject(error)
+          return
+        }
+        resolve(stdout)
+      }
+    )
+  })
 }
 
 async function findDesktopFile(appPath: string): Promise<string | null> {
@@ -184,12 +214,11 @@ export async function getIconDataURL(appPath: string): Promise<string> {
     if (!appPath.includes('.app') && !appPath.includes('.xpc')) {
       return darwinDefaultIcon
     }
-    const { fileIconToBuffer } = await import('file-icon')
     const targetPath = findBestAppPath(appPath)
     if (!targetPath) {
       return darwinDefaultIcon
     }
-    const iconBuffer = await fileIconToBuffer(targetPath, { size: 512 })
+    const iconBuffer = await getMacOSIconBuffer(targetPath)
     const base64Icon = Buffer.from(iconBuffer).toString('base64')
     return `data:image/png;base64,${base64Icon}`
   }
