@@ -50,7 +50,7 @@ const Tun: React.FC = () => {
     dnsHijack,
     strictRoute,
     routeExcludeAddress,
-    mtu
+    mtu: Math.min(Math.max(mtu || 1500, 1), 65535)
   })
   const setValues = (v: typeof values): void => {
     originSetValues(v)
@@ -260,9 +260,12 @@ const Tun: React.FC = () => {
               type="number"
               className="w-25"
               value={values.mtu.toString()}
+              min={1}
               onValueChange={(v) => {
-                const num = parseInt(v)
-                setValues({ ...values, mtu: isNaN(num) ? DEFAULT_MIHOMO_TUN_CONFIG.mtu : num })
+                setValues({
+                  ...values,
+                  mtu: Math.min(Math.max(parseInt(v) || 1500, 1), 65535)
+                })
               }}
             />
           </SettingItem>
