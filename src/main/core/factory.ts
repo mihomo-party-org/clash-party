@@ -33,6 +33,15 @@ const SMART_OVERRIDE_ID = 'smart-core-override'
 let runtimeConfigStr: string = ''
 let runtimeConfig: IMihomoConfig = {} as IMihomoConfig
 
+interface GenerateProfileOptions {
+  profileId?: string
+  baseProfile?: IMihomoConfig
+  ageSecretKey?: string
+  profileOverrideIds?: string[]
+  outputPath?: string
+  updateRuntimeConfig?: boolean
+}
+
 // 辅助函数：处理带偏移量的规则
 function processRulesWithOffset(ruleStrings: string[], currentRules: string[], isAppend = false) {
   const normalRules: string[] = []
@@ -108,26 +117,28 @@ function ensureSmartProxyServerTunExclude(profile: IMihomoConfig, enabled: boole
 }
 
 export async function generateProfile(
-  pendingControledMihomoConfig?: Partial<IMihomoConfig>
+  pendingControledMihomoConfig?: Partial<IMihomoConfig>,
+  options: GenerateProfileOptions = {}
 ): Promise<string | undefined> {
   // 读取最新的配置
   const { current } = await getProfileConfig(true)
+  const profileId = options.profileId ?? current
   const {
     diffWorkDir = false,
     controlDns = DEFAULT_CONTROL_DNS,
     controlSniff = DEFAULT_CONTROL_SNIFF,
     useNameserverPolicy
   } = await getAppConfig()
-  const currentProfileItem = await getProfileItem(current)
-  const ageSecretKey = currentProfileItem?.ageSecretKey || ''
-  const baseProfile = await getProfile(current)
-  const overrideIds = await getOrderedOverrideIds(current)
+  const currentProfileItem = await getProfileItem(profileId)
+  const ageSecretKey = options.ageSecretKey ?? currentProfileItem?.ageSecretKey ?? ''
+  const baseProfile = options.baseProfile ?? (await getProfile(profileId))
+  const overrideIds = await getOrderedOverrideIds(profileId, options.profileOverrideIds)
   const profileWithNormalOverride = await applyOverrides(
     baseProfile,
     overrideIds.normal,
     ageSecretKey
   )
-  const profileWithRuleOverride = await applyRuleOverride(current, profileWithNormalOverride)
+  const profileWithRuleOverride = await applyRuleOverride(profileId, profileWithNormalOverride)
   const currentProfile = await applyOverrides(
     profileWithRuleOverride,
     overrideIds.smart,
@@ -187,15 +198,18 @@ export async function generateProfile(
   }
   const coreConfigStr = stringify(coreProfile)
   if (diffWorkDir) {
-    await prepareProfileWorkDir(current)
+    await prepareProfileWorkDir(profileId)
   }
   await atomicWriteFile(
-    diffWorkDir ? mihomoWorkConfigPath(current) : mihomoWorkConfigPath('work'),
+    options.outputPath ??
+      (diffWorkDir ? mihomoWorkConfigPath(profileId) : mihomoWorkConfigPath('work')),
     coreConfigStr
   )
-  runtimeConfig = profile
-  runtimeConfigStr = nextRuntimeConfigStr
-  return current
+  if (options.updateRuntimeConfig !== false) {
+    runtimeConfig = profile
+    runtimeConfigStr = nextRuntimeConfigStr
+  }
+  return profileId
 }
 
 async function applyRuleOverride(
@@ -292,13 +306,16 @@ async function prepareProfileWorkDir(current: string | undefined): Promise<void>
   ])
 }
 
-async function getOrderedOverrideIds(current: string | undefined): Promise<{
+async function getOrderedOverrideIds(
+  current: string | undefined,
+  profileOverrideIds?: string[]
+): Promise<{
   normal: string[]
   smart: string[]
 }> {
   const { items = [] } = (await getOverrideConfig()) || {}
   const globalOverride = items.filter((item) => item.global).map((item) => item.id)
-  const { override = [] } = (await getProfileItem(current)) || {}
+  const override = profileOverrideIds ?? (await getProfileItem(current))?.override ?? []
   const orderedOverrideIds = [...new Set(globalOverride.concat(override))]
 
   return {

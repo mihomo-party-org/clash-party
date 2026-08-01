@@ -932,20 +932,24 @@ async function checkProfile(
   diffWorkDir: boolean = false,
   ageSecretKey?: string
 ): Promise<void> {
+  await checkProfileConfig(
+    diffWorkDir ? mihomoWorkConfigPath(current) : mihomoWorkConfigPath('work'),
+    core,
+    ageSecretKey
+  )
+}
+
+export async function checkProfileConfig(
+  configPath: string,
+  core: string = 'mihomo',
+  ageSecretKey?: string
+): Promise<void> {
   const corePath = mihomoCorePath(core)
 
   try {
-    await execFilePromise(
-      corePath,
-      [
-        '-t',
-        '-f',
-        diffWorkDir ? mihomoWorkConfigPath(current) : mihomoWorkConfigPath('work'),
-        '-d',
-        mihomoTestDir()
-      ],
-      { env: buildCoreEnv(undefined, ageSecretKey) }
-    )
+    await execFilePromise(corePath, ['-t', '-f', configPath, '-d', mihomoTestDir()], {
+      env: buildCoreEnv(undefined, ageSecretKey)
+    })
   } catch (error) {
     managerLogger.error('Profile check failed', error)
 

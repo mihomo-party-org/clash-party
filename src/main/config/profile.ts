@@ -1,4 +1,4 @@
-import { access, readFile, rm, unlink } from 'fs/promises'
+import { access, mkdtemp, readFile, rm, unlink } from 'fs/promises'
 import { constants, existsSync } from 'fs'
 import { exec, execFile } from 'child_process'
 import { isAbsolute, join, relative, resolve } from 'path'
@@ -14,7 +14,7 @@ import { decryptAgeContent } from '../utils/age'
 import { DEFAULT_MIHOMO_PORTS } from '../../shared/appConfig'
 import { subStorePort } from '../resolve/server'
 import { mihomoCloseAllConnections, mihomoHotReloadConfig } from '../core/mihomoApi'
-import { restartCore } from '../core/manager'
+import { checkProfileConfig, restartCore } from '../core/manager'
 import { generateProfile } from '../core/factory'
 import { addProfileUpdater, removeProfileUpdater } from '../core/profileUpdater'
 import {
@@ -528,6 +528,7 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
       newItem.extra = parseSubinfo(headers['subscription-userinfo'])
     }
 
+    await validateRemoteProfileCandidate(newItem, data)
     await setProfileStr(id, data)
     await profileLogger.info(
       `Remote profile saved id=${id} name=${newItem.name} path=${profilePath(
@@ -542,6 +543,27 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
     return await promise
   } finally {
     inflightRemoteFetches.delete(dedupKey)
+  }
+}
+
+async function validateRemoteProfileCandidate(item: IProfileItem, content: string): Promise<void> {
+  const candidateDir = await mkdtemp(join(tmpdir(), 'mihomo-party-profile-'))
+  const candidatePath = join(candidateDir, 'config.yaml')
+
+  try {
+    const { core = 'mihomo' } = await getAppConfig()
+    const baseProfile = await parseProfileContent(item.id, content, item.ageSecretKey)
+    await generateProfile(undefined, {
+      profileId: item.id,
+      baseProfile,
+      ageSecretKey: item.ageSecretKey,
+      profileOverrideIds: item.override ?? [],
+      outputPath: candidatePath,
+      updateRuntimeConfig: false
+    })
+    await checkProfileConfig(candidatePath, core, item.ageSecretKey)
+  } finally {
+    await rm(candidateDir, { recursive: true, force: true }).catch(() => {})
   }
 }
 
@@ -577,11 +599,15 @@ export async function setProfileStr(id: string, content: string): Promise<void> 
 
 export async function getProfile(id: string | undefined): Promise<IMihomoConfig> {
   const item = await getProfileItem(id)
-  const profile = await decryptAgeContent(
-    await getProfileStr(id),
-    item?.ageSecretKey,
-    `profile "${id || 'default'}"`
-  )
+  return await parseProfileContent(id, await getProfileStr(id), item?.ageSecretKey)
+}
+
+export async function parseProfileContent(
+  id: string | undefined,
+  content: string,
+  ageSecretKey?: string
+): Promise<IMihomoConfig> {
+  const profile = await decryptAgeContent(content, ageSecretKey, `profile "${id || 'default'}"`)
 
   // 检测是否为 HTML 内容（订阅返回错误页面）
   const trimmed = profile.trim()
