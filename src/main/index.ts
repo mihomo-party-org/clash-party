@@ -206,6 +206,7 @@ app.on('second-instance', (_event, commandline) => {
   }
   const pluginFile = findPluginFile(commandline)
   if (pluginFile) queueLaunchTarget({ type: 'plugin-file', value: pluginFile })
+  else showMainWindow()
 })
 
 app.on('open-url', (_event, url) => {
