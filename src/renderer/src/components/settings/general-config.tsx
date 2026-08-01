@@ -468,20 +468,22 @@ const GeneralConfig: React.FC = () => {
             </SettingItem>
           </>
         )}
-        <SettingItem title={t('settings.disableTray')} divider>
-          <Switch
-            size="sm"
-            isSelected={disableTray}
-            onValueChange={async (v) => {
-              await patchAppConfig({ disableTray: v })
-              if (v) {
-                closeTrayIcon()
-              } else {
-                showTrayIcon()
-              }
-            }}
-          />
-        </SettingItem>
+        {showFloating && (
+          <SettingItem title={t('settings.disableTray')} divider>
+            <Switch
+              size="sm"
+              isSelected={disableTray}
+              onValueChange={async (v) => {
+                await patchAppConfig({ disableTray: v })
+                if (v) {
+                  closeTrayIcon()
+                } else {
+                  showTrayIcon()
+                }
+              }}
+            />
+          </SettingItem>
+        )}
         {!disableTray && (
           <>
             <SettingItem title={t('settings.swapTrayClick')} divider>
