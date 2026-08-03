@@ -1,6 +1,7 @@
 import { promisify } from 'util'
-import { exec } from 'child_process'
+import { exec, execFile } from 'child_process'
 import fs from 'fs'
+import path from 'path'
 import { triggerAutoProxy, triggerManualProxy } from 'sysproxy-rs'
 import { net } from 'electron'
 import axios from 'axios'
@@ -8,9 +9,13 @@ import { getAppConfig, getControledMihomoConfig } from '../config'
 import { DEFAULT_MIHOMO_PORTS } from '../../shared/appConfig'
 import { pacPort, startPacServer, stopPacServer } from '../resolve/server'
 import { proxyLogger } from '../utils/logger'
+import { resourcesFilesDir } from '../utils/dirs'
 
 let triggerSysProxyTimer: NodeJS.Timeout | null = null
 const helperSocketPath = '/tmp/mihomo-party-helper.sock'
+const helperPath = '/Library/PrivilegedHelperTools/party.mihomo.helper'
+const helperPlistPath = '/Library/LaunchDaemons/party.mihomo.helper.plist'
+const helperService = 'system/party.mihomo.helper'
 
 const defaultBypass: string[] = (() => {
   switch (process.platform) {
@@ -180,11 +185,39 @@ async function isHelperRunning(): Promise<boolean> {
   }
 }
 
-async function startHelperService(): Promise<void> {
-  const execPromise = promisify(exec)
-  const shell = `launchctl kickstart -k system/party.mihomo.helper`
-  const command = `do shell script "${shell}" with administrator privileges`
-  await execPromise(`osascript -e '${command}'`)
+async function isHelperServiceRegistered(): Promise<boolean> {
+  try {
+    const execPromise = promisify(exec)
+    await execPromise(`/bin/launchctl print ${helperService}`)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, `'"'"'`)}'`
+}
+
+async function startHelperService(forceRepair = false): Promise<void> {
+  const sourceHelper = shellQuote(path.join(resourcesFilesDir(), 'party.mihomo.helper'))
+  const sourcePlist = shellQuote(path.join(resourcesFilesDir(), 'party.mihomo.helper.plist'))
+  const installedHelper = shellQuote(helperPath)
+  const installedPlist = shellQuote(helperPlistPath)
+  const shell =
+    `if ${forceRepair ? 'true' : 'false'} || [ ! -x ${installedHelper} ] || [ ! -f ${installedPlist} ] || ! /bin/launchctl print ${helperService} >/dev/null 2>&1; then ` +
+    `[ -f ${sourceHelper} ] && [ -f ${sourcePlist} ] || exit 1; ` +
+    `/bin/launchctl bootout ${helperService} >/dev/null 2>&1 || true; ` +
+    `/bin/mkdir -p /Library/PrivilegedHelperTools /Library/LaunchDaemons; ` +
+    `/bin/rm -f ${shellQuote(helperSocketPath)}; ` +
+    `/usr/bin/install -o root -g wheel -m 544 ${sourceHelper} ${installedHelper}; ` +
+    `/usr/bin/install -o root -g wheel -m 644 ${sourcePlist} ${installedPlist}; ` +
+    `/bin/launchctl enable ${helperService} >/dev/null 2>&1 || true; ` +
+    `/bin/launchctl bootstrap system ${installedPlist}; ` +
+    `else /bin/launchctl kickstart -k ${helperService}; fi`
+  const command = `do shell script ${JSON.stringify(shell)} with administrator privileges`
+  const execFilePromise = promisify(execFile)
+  await execFilePromise('/usr/bin/osascript', ['-e', command])
   await new Promise((resolve) => setTimeout(resolve, 1500))
 }
 
@@ -224,12 +257,13 @@ async function helperRequest(requestFn: () => Promise<unknown>, maxRetries = 2):
         )
 
         const helperRunning = await isHelperRunning()
+        const helperRegistered = await isHelperServiceRegistered()
         const socketExists = isSocketFileExists()
 
-        if (!helperRunning) {
-          await proxyLogger.info('Helper process not running, starting service...')
+        if (!helperRunning || !helperRegistered || !fs.existsSync(helperPlistPath)) {
+          await proxyLogger.info('Helper service unavailable, repairing...')
           try {
-            await startHelperService()
+            await startHelperService(!helperRunning)
             await proxyLogger.info('Helper service started, retrying...')
             continue
           } catch (startError) {
@@ -243,6 +277,15 @@ async function helperRequest(requestFn: () => Promise<unknown>, maxRetries = 2):
             continue
           } catch (signalError) {
             await proxyLogger.warn('Failed to request socket recreation', signalError)
+          }
+        } else {
+          await proxyLogger.info('Helper socket is unresponsive, restarting service...')
+          try {
+            await startHelperService()
+            await proxyLogger.info('Helper service restarted, retrying...')
+            continue
+          } catch (restartError) {
+            await proxyLogger.warn('Failed to restart helper service', restartError)
           }
         }
       }

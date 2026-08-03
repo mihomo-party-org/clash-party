@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>party.mihomo.helper</string>
+    <key>AssociatedBundleIdentifiers</key>
+    <array>
+        <string>party.mihomo.app</string>
+    </array>
+    <key>KeepAlive</key>
+    <true/>
+    <key>Program</key>
+    <string>/Library/PrivilegedHelperTools/party.mihomo.helper</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/party.mihomo.helper.err</string>
+    <key>StandardOutPath</key>
+    <string>/tmp/party.mihomo.helper.log</string>
+</dict>
+</plist>

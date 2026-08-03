@@ -24,6 +24,7 @@ fi
 
 HELPER_PATH="/Library/PrivilegedHelperTools/party.mihomo.helper"
 LAUNCH_DAEMON="/Library/LaunchDaemons/party.mihomo.helper.plist"
+LAUNCH_DAEMON_SOURCE="$APP_PATH/Contents/Resources/files/party.mihomo.helper.plist"
 
 log "Starting installation..."
 
@@ -74,32 +75,13 @@ fi
 # 创建并配置 LaunchDaemon
 log "Configuring LaunchDaemon..."
 mkdir -p "/Library/LaunchDaemons"
-cat << EOF > "$LAUNCH_DAEMON"
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>party.mihomo.helper</string>
-    <key>AssociatedBundleIdentifiers</key>
-    <array>
-        <string>party.mihomo.app</string>
-    </array>
-    <key>KeepAlive</key>
-    <true/>
-    <key>Program</key>
-    <string>${HELPER_PATH}</string>
-    <key>StandardErrorPath</key>
-    <string>/tmp/party.mihomo.helper.err</string>
-    <key>StandardOutPath</key>
-    <string>/tmp/party.mihomo.helper.log</string>
-</dict>
-</plist>
-EOF
-
-chown root:wheel "$LAUNCH_DAEMON"
-chmod 644 "$LAUNCH_DAEMON"
-log "LaunchDaemon configured"
+if [ -f "$LAUNCH_DAEMON_SOURCE" ]; then
+    /usr/bin/install -o root -g wheel -m 644 "$LAUNCH_DAEMON_SOURCE" "$LAUNCH_DAEMON"
+    log "LaunchDaemon configured"
+else
+    log "Error: LaunchDaemon file not found at $LAUNCH_DAEMON_SOURCE"
+    exit 1
+fi
 
 # 验证关键文件
 log "Verifying installation..."

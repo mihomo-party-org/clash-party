@@ -7,18 +7,6 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-HELPER_PATH="/Library/PrivilegedHelperTools/party.mihomo.helper"
-LAUNCH_DAEMON="/Library/LaunchDaemons/party.mihomo.helper.plist"
-
-# 停止并卸载现有的 LaunchDaemon
-if [ -f "$LAUNCH_DAEMON" ]; then
-    launchctl unload "$LAUNCH_DAEMON" 2>/dev/null || true
-    rm -f "$LAUNCH_DAEMON"
-fi
-
-# 移除 helper 工具
-rm -f "$HELPER_PATH"
-
 # 清理可能存在的旧版本文件
 rm -rf "/Applications/Clash Party.app"
 rm -rf "/Applications/Clash\\ Party.app"
