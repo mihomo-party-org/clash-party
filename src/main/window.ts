@@ -175,7 +175,7 @@ async function createWindowInternal(): Promise<void> {
     titleBarOverlay: useWindowFrame
       ? false
       : {
-          height: 49
+          height: 47
         },
     autoHideMenuBar: true,
     // Win 显式指定 icon，避免异常/恢复路径下任务栏与窗口图标依赖默认 exe

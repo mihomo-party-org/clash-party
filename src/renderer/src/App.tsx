@@ -102,7 +102,7 @@ const App: React.FC = () => {
 
   const setTitlebar = useCallback((): void => {
     if (!useWindowFrame && platform !== 'darwin') {
-      const options = { height: 48 } as TitleBarOverlayOptions
+      const options = { height: 47 } as TitleBarOverlayOptions
       try {
         options.color = window.getComputedStyle(document.documentElement).backgroundColor
         options.symbolColor = window.getComputedStyle(document.documentElement).color
