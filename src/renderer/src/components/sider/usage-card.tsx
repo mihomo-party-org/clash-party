@@ -1,4 +1,5 @@
-import { Button, Card, CardBody, CardFooter, Progress, Switch, Tooltip } from '@heroui/react'
+import { Button, Card, CardBody, CardFooter, Progress, Tooltip } from '@heroui/react'
+import BorderSwitch from '@renderer/components/base/border-swtich'
 import { mihomoProxyProviders } from '@renderer/utils/ipc'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { calcTraffic, calcPercent } from '@renderer/utils/calc'
@@ -55,8 +56,8 @@ const UsageCard: React.FC<Props> = (props) => {
       onPointerDown={(e) => e.stopPropagation()}
     >
       <Tooltip content={t('settings.enableTrafficLogger')} placement="top">
-        <Switch
-          size="sm"
+        <BorderSwitch
+          isShowBorder={match && enableTrafficLogger}
           aria-label={t('settings.enableTrafficLogger')}
           isSelected={enableTrafficLogger}
           onValueChange={(v) => patchAppConfig({ enableTrafficLogger: v })}
@@ -173,7 +174,7 @@ const UsageCard: React.FC<Props> = (props) => {
             >
               {t('sider.cards.traffic')}
             </h3>
-            {loggerSwitch}
+            <div className="-mr-3 -mb-2">{loggerSwitch}</div>
           </CardFooter>
         </Card>
       ) : (
@@ -196,7 +197,7 @@ const UsageCard: React.FC<Props> = (props) => {
                   className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[24px] font-bold`}
                 />
               </Button>
-              <div className="pt-2 pr-2">{loggerSwitch}</div>
+              <div className="pt-2">{loggerSwitch}</div>
             </div>
           </CardBody>
           <CardFooter className="pt-1">
