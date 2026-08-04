@@ -301,6 +301,8 @@ interface IAppConfig {
   pauseSSID?: string[]
   disableDnsOnPauseSSID?: boolean
   controlDnsBeforePause?: boolean
+  ssidProfileMap?: Record<string, string>
+  ssidProfileRestore?: boolean
   mihomoCoreCardStatus?: CardStatus
   overrideCardStatus?: CardStatus
   profileCardStatus?: CardStatus

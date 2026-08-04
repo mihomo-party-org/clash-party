@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { toast } from '@renderer/components/base/toast'
 import { Button, Input, Select, SelectItem, Switch, Tooltip } from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import debounce from '@renderer/utils/debounce'
 import {
   exportGistAgeSecretKey,
@@ -17,9 +18,16 @@ import { useTranslation } from 'react-i18next'
 import SettingItem from '../base/base-setting-item'
 import SettingCard from '../base/base-setting-card'
 
+interface SsidProfileEntry {
+  ssid: string
+  profileId: string
+}
+
 const MihomoConfig: React.FC = () => {
   const { t } = useTranslation()
   const { appConfig, patchAppConfig } = useAppConfig()
+  const { profileConfig } = useProfileConfig()
+  const { items: profileItems = [] } = profileConfig || {}
   const {
     diffWorkDir = false,
     useHotReloadProfile = false,
@@ -39,10 +47,18 @@ const MihomoConfig: React.FC = () => {
     subscriptionTimeout = 30000,
     mihomoCpuPriority = 'PRIORITY_NORMAL',
     coreStartupMode = 'log',
-    proxyCols = 'auto'
+    proxyCols = 'auto',
+    ssidProfileMap = {},
+    ssidProfileRestore = false
   } = appConfig || {}
   const [url, setUrl] = useState(delayTestUrl)
   const [pauseSSIDInput, setPauseSSIDInput] = useState(pauseSSID)
+  const [ssidProfileEntriesInput, setSsidProfileEntriesInput] = useState<SsidProfileEntry[]>(() =>
+    Object.entries(ssidProfileMap).map(([ssid, profileId]) => ({
+      ssid,
+      profileId
+    }))
+  )
   const setUrlDebounce = debounce((v: string) => {
     patchAppConfig({ delayTestUrl: v })
   }, 500)
@@ -85,6 +101,29 @@ const MihomoConfig: React.FC = () => {
     if (!gistAgeSecretKey) return
     await navigator.clipboard.writeText(gistAgeSecretKey)
     toast.success(t('mihomo.gist.copyPrivateKeySuccess'))
+  }
+  const handleSaveSsidProfileMap = (entries: SsidProfileEntry[]): void => {
+    const map: Record<string, string> = {}
+    entries.forEach((entry) => {
+      if (entry.ssid.trim()) {
+        map[entry.ssid.trim()] = entry.profileId
+      }
+    })
+    setSsidProfileEntriesInput(entries)
+    patchAppConfig({ ssidProfileMap: map })
+  }
+
+  const hasSsidProfileChanges = (): boolean => {
+    const currentMap: Record<string, string> = {}
+    ssidProfileEntriesInput.forEach((entry) => {
+      if (entry.ssid.trim()) {
+        currentMap[entry.ssid.trim()] = entry.profileId
+      }
+    })
+    if (Object.keys(currentMap).length !== Object.keys(ssidProfileMap).length) return true
+    return Object.entries(currentMap).some(
+      ([ssid, profileId]) => ssidProfileMap[ssid] !== profileId
+    )
   }
   return (
     <SettingCard>
@@ -478,12 +517,98 @@ const MihomoConfig: React.FC = () => {
           )
         })}
       </div>
-      <SettingItem title={t('mihomo.disableDnsOnPauseSSID')}>
+      <SettingItem title={t('mihomo.disableDnsOnPauseSSID')} divider>
         <Switch
           size="sm"
           isSelected={disableDnsOnPauseSSID}
           onValueChange={(v) => {
             patchAppConfig({ disableDnsOnPauseSSID: v })
+          }}
+        />
+      </SettingItem>
+      <SettingItem title={t('mihomo.ssidProfile.title')}>
+        {hasSsidProfileChanges() && (
+          <Button
+            size="sm"
+            color="primary"
+            onPress={() => handleSaveSsidProfileMap(ssidProfileEntriesInput)}
+          >
+            {t('common.confirm')}
+          </Button>
+        )}
+      </SettingItem>
+      <div className="flex flex-col items-stretch mt-2">
+        {[...ssidProfileEntriesInput, { ssid: '', profileId: '' }].map((entry, index) => {
+          return (
+            <div key={index} className="flex mb-2 gap-2">
+              <Input
+                size="sm"
+                className="flex-1"
+                placeholder="SSID"
+                value={entry.ssid}
+                onValueChange={(v) => {
+                  if (index === ssidProfileEntriesInput.length) {
+                    setSsidProfileEntriesInput([
+                      ...ssidProfileEntriesInput,
+                      { ssid: v, profileId: '' }
+                    ])
+                  } else {
+                    setSsidProfileEntriesInput(
+                      ssidProfileEntriesInput.map((e, i) => (i === index ? { ...e, ssid: v } : e))
+                    )
+                  }
+                }}
+              />
+              <Select
+                classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
+                className="flex-1"
+                size="sm"
+                aria-label={t('mihomo.ssidProfile.selectProfile')}
+                selectedKeys={entry.profileId ? new Set([entry.profileId]) : new Set()}
+                placeholder={t('mihomo.ssidProfile.selectProfile')}
+                disallowEmptySelection
+                onSelectionChange={(v) => {
+                  const profileId = v.currentKey || ''
+                  if (index === ssidProfileEntriesInput.length) {
+                    setSsidProfileEntriesInput([
+                      ...ssidProfileEntriesInput,
+                      { ssid: '', profileId }
+                    ])
+                  } else {
+                    setSsidProfileEntriesInput(
+                      ssidProfileEntriesInput.map((e, i) => (i === index ? { ...e, profileId } : e))
+                    )
+                  }
+                }}
+              >
+                {profileItems.map((item) => (
+                  <SelectItem key={item.id}>{item.name}</SelectItem>
+                ))}
+              </Select>
+              {index < ssidProfileEntriesInput.length && (
+                <Button
+                  size="sm"
+                  variant="flat"
+                  color="warning"
+                  onPress={() =>
+                    setSsidProfileEntriesInput(
+                      ssidProfileEntriesInput.filter((_, i) => i !== index)
+                    )
+                  }
+                >
+                  <MdDeleteForever className="text-lg" />
+                </Button>
+              )}
+            </div>
+          )
+        })}
+      </div>
+      <SettingItem title={t('mihomo.ssidProfile.restore')}>
+        <Switch
+          size="sm"
+          isSelected={ssidProfileRestore}
+          onValueChange={(v) => {
+            patchAppConfig({ ssidProfileRestore: v })
           }}
         />
       </SettingItem>
