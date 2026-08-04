@@ -95,6 +95,7 @@ export async function checkSSID(): Promise<void> {
           profileBeforeSSIDSwitch = current
         }
         await changeCurrentProfile(targetProfileId)
+        mainWindow?.webContents.send('profileConfigUpdated')
         ssidLogger.info(`Auto-switched to profile ${targetProfileId} for SSID ${currentSSID}`)
       } catch (e) {
         ssidLogger.warn(`Failed to switch to profile ${targetProfileId} for SSID ${currentSSID}`, e)
@@ -107,6 +108,7 @@ export async function checkSSID(): Promise<void> {
         const { current } = await getProfileConfig()
         if (profileBeforeSSIDSwitch && current !== profileBeforeSSIDSwitch) {
           await changeCurrentProfile(profileBeforeSSIDSwitch)
+          mainWindow?.webContents.send('profileConfigUpdated')
           ssidLogger.info(
             `Restored profile to ${profileBeforeSSIDSwitch} after leaving mapped SSID`
           )
