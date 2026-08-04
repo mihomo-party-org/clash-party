@@ -1,4 +1,4 @@
-import { exec } from 'child_process'
+import { exec, spawn } from 'child_process'
 import { promisify } from 'util'
 import { ipcMain, net } from 'electron'
 import { getAppConfig, patchAppConfig, patchControledMihomoConfig } from '../config'
@@ -38,9 +38,11 @@ export async function getCurrentSSID(): Promise<string | undefined> {
 
 let lastSSID: string | undefined
 let ssidCheckInterval: NodeJS.Timeout | null = null
+let networkWatcher: ReturnType<typeof spawn> | null = null
+let watcherDebounce: NodeJS.Timeout | null = null
 let profileBeforeSSIDSwitch: string | undefined
 
-export async function checkSSID(): Promise<void> {
+async function handleSSIDChange(): Promise<void> {
   try {
     const {
       pauseSSID = [],
@@ -124,15 +126,65 @@ export async function checkSSID(): Promise<void> {
   }
 }
 
-export async function startSSIDCheck(): Promise<void> {
-  if (ssidCheckInterval) {
-    clearInterval(ssidCheckInterval)
+function startDarwinNetworkWatcher(): void {
+  stopNetworkWatcher()
+
+  let restartBackoff = 0
+  const minRestartInterval = 1000
+
+  function runWatcher(): void {
+    const now = Date.now()
+    if (now - restartBackoff < minRestartInterval) {
+      setTimeout(runWatcher, minRestartInterval)
+      return
+    }
+    restartBackoff = now
+
+    networkWatcher = spawn('scutil', ['-w', 'State:/Network/Global/IPv4'], {
+      stdio: 'ignore'
+    })
+
+    networkWatcher.on('exit', () => {
+      if (watcherDebounce) clearTimeout(watcherDebounce)
+      watcherDebounce = setTimeout(() => {
+        handleSSIDChange()
+      }, 500)
+      runWatcher()
+    })
+
+    networkWatcher.on('error', (err) => {
+      ssidLogger.warn('scutil watcher error, falling back to polling', err)
+      stopNetworkWatcher()
+      ssidCheckInterval = setInterval(handleSSIDChange, 15000)
+    })
   }
-  await checkSSID()
-  ssidCheckInterval = setInterval(checkSSID, 30000)
+
+  runWatcher()
+}
+
+function stopNetworkWatcher(): void {
+  if (networkWatcher) {
+    networkWatcher.kill()
+    networkWatcher = null
+  }
+  if (watcherDebounce) {
+    clearTimeout(watcherDebounce)
+    watcherDebounce = null
+  }
+}
+
+export async function startSSIDCheck(): Promise<void> {
+  stopSSIDCheck()
+  await handleSSIDChange()
+  if (process.platform === 'darwin') {
+    startDarwinNetworkWatcher()
+  } else {
+    ssidCheckInterval = setInterval(handleSSIDChange, 15000)
+  }
 }
 
 export function stopSSIDCheck(): void {
+  stopNetworkWatcher()
   if (ssidCheckInterval) {
     clearInterval(ssidCheckInterval)
     ssidCheckInterval = null
