@@ -1,6 +1,6 @@
 import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
 import { toast } from '@renderer/components/base/toast'
-import BorderSwitch from '@renderer/components/base/border-swtich'
+import BorderSwitch from '@renderer/components/base/border-switch'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { triggerSysProxy, updateTrayIconImmediate } from '@renderer/utils/ipc'

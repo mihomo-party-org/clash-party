@@ -1,5 +1,5 @@
 import { Button, Card, CardBody, CardFooter, Progress, Tooltip } from '@heroui/react'
-import BorderSwitch from '@renderer/components/base/border-swtich'
+import BorderSwitch from '@renderer/components/base/border-switch'
 import { mihomoProxyProviders } from '@renderer/utils/ipc'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { calcTraffic, calcPercent } from '@renderer/utils/calc'
