@@ -88,10 +88,15 @@ linux:
 deb:
   afterInstall: 'build/linux/postinst'
   afterRemove: 'build/linux/postuninst'
+  fpm:
+    - --depends
+    - wl-clipboard
 rpm:
   afterInstall: 'build/linux/postinst'
   afterRemove: 'build/linux/postuninst'
   fpm:
+    - --depends
+    - wl-clipboard
     - '--rpm-rpmbuild-define'
     - '_build_id_links none'
 pacman:
@@ -111,6 +116,7 @@ pacman:
     - at-spi2-core
     - util-linux-libs
     - libsecret
+    - wl-clipboard
   artifactName: clash-party-linux-${version}-${arch}.pkg.tar.zst
 npmRebuild: true
 publish: []

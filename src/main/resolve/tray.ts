@@ -2,7 +2,7 @@ import { execFileSync } from 'child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { extname, join } from 'path'
-import { app, clipboard, ipcMain, Menu, nativeImage, shell, Tray } from 'electron'
+import { app, ipcMain, Menu, nativeImage, shell, Tray } from 'electron'
 import { t } from 'i18next'
 import {
   changeCurrentProfile,
@@ -42,6 +42,7 @@ import {
 } from '../core/manager'
 import { trayLogger } from '../utils/logger'
 import { floatingWindow, triggerFloatingWindow } from './floatingWindow'
+import { writeClipboardText } from '../utils/clipboard'
 
 export let tray: Tray | null = null
 let trayMenu: Menu | null = null
@@ -505,34 +506,31 @@ export async function copyEnv(
   const { host } = sysProxy
   const proxyUrl = `http://${host || '127.0.0.1'}:${mixedPort}`
 
+  let text: string
   switch (type) {
     case 'bash': {
-      clipboard.writeText(
-        `export https_proxy=${proxyUrl} http_proxy=${proxyUrl} all_proxy=${proxyUrl}`
-      )
+      text = `export https_proxy=${proxyUrl} http_proxy=${proxyUrl} all_proxy=${proxyUrl}`
       break
     }
     case 'cmd': {
-      clipboard.writeText(`set http_proxy=${proxyUrl}\r\nset https_proxy=${proxyUrl}`)
+      text = `set http_proxy=${proxyUrl}\r\nset https_proxy=${proxyUrl}`
       break
     }
     case 'powershell': {
-      clipboard.writeText(`$env:HTTP_PROXY="${proxyUrl}"; $env:HTTPS_PROXY="${proxyUrl}"`)
+      text = `$env:HTTP_PROXY="${proxyUrl}"; $env:HTTPS_PROXY="${proxyUrl}"`
       break
     }
     case 'fish': {
-      clipboard.writeText(
-        `set -x http_proxy ${proxyUrl}; set -x https_proxy ${proxyUrl}; set -x all_proxy ${proxyUrl}`
-      )
+      text = `set -x http_proxy ${proxyUrl}; set -x https_proxy ${proxyUrl}; set -x all_proxy ${proxyUrl}`
       break
     }
     case 'nushell': {
-      clipboard.writeText(
-        `$env.HTTP_PROXY = "${proxyUrl}"; $env.HTTPS_PROXY = "${proxyUrl}"; $env.ALL_PROXY = "${proxyUrl}"`
-      )
+      text = `$env.HTTP_PROXY = "${proxyUrl}"; $env.HTTPS_PROXY = "${proxyUrl}"; $env.ALL_PROXY = "${proxyUrl}"`
       break
     }
   }
+
+  await writeClipboardText(text)
 }
 
 export async function showTrayIcon(): Promise<void> {
