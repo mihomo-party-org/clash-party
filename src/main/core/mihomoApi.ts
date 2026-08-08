@@ -49,6 +49,8 @@ const logsStream: MihomoStreamState = {
   generation: 0,
   reconnectTimer: null
 }
+// Renderer demand survives core restarts; page unmount is responsible for clearing it.
+let logsRequestedByRenderer = false
 const connectionsStream: MihomoStreamState = {
   ws: null,
   retry: MAX_RETRY,
@@ -567,6 +569,7 @@ const mihomoMemory = async (): Promise<void> => {
 }
 
 export const startMihomoLogs = async (): Promise<void> => {
+  if (!logsRequestedByRenderer || !hasCoreProcess()) return
   activateStream(logsStream)
   await mihomoLogs()
 }
@@ -575,11 +578,23 @@ export const stopMihomoLogs = (): void => {
   stopStream(logsStream)
 }
 
+export const setMihomoLogsActive = async (active: boolean): Promise<void> => {
+  if (logsRequestedByRenderer === active) return
+
+  logsRequestedByRenderer = active
+  if (active) {
+    await startMihomoLogs()
+  } else {
+    stopMihomoLogs()
+  }
+}
+
 const mihomoLogs = async (): Promise<void> => {
   const generation = beginStreamConnection(logsStream)
   if (generation === null) return
 
   const { 'log-level': logLevel = 'info' } = await getControledMihomoConfig()
+  if (!logsRequestedByRenderer || !isCurrentStream(logsStream, generation)) return
 
   const { ws } = createMihomoWebSocket(`/logs?level=${logLevel}`)
   logsStream.ws = ws

@@ -134,7 +134,7 @@ export async function patchControledMihomoConfig(patch: Partial<IMihomoConfig>):
       )
     }
 
-    // log-level 改变时重连日志 WebSocket，使新等级立刻生效
+    // log-level 改变时重连正在使用的日志 WebSocket，使新等级立刻生效
     if (nextPatch['log-level']) {
       try {
         await startMihomoLogs()

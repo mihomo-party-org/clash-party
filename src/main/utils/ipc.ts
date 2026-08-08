@@ -25,7 +25,8 @@ import {
   patchMihomoConfig,
   mihomoSmartGroupWeights,
   mihomoSmartFlushCache,
-  mihomoRulesDisable
+  mihomoRulesDisable,
+  setMihomoLogsActive
 } from '../core/mihomoApi'
 import { checkAutoRun, disableAutoRun, enableAutoRun } from '../sys/autoRun'
 import {
@@ -252,6 +253,7 @@ const asyncHandlers: Record<string, AsyncFn> = {
   patchMihomoConfig,
   mihomoSmartGroupWeights,
   mihomoSmartFlushCache,
+  setMihomoLogsActive,
   // AutoRun
   checkAutoRun,
   enableAutoRun,

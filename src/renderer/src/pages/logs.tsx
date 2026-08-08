@@ -7,6 +7,7 @@ import { IoLocationSharp } from 'react-icons/io5'
 import { CgTrash } from 'react-icons/cg'
 import { useTranslation } from 'react-i18next'
 import { includesIgnoreCase } from '@renderer/utils/includes'
+import { setMihomoLogsActive } from '@renderer/utils/ipc'
 
 const LOGS_FILTER_KEY = 'logs-filter'
 const MAX_CACHED_LOGS = 500
@@ -35,15 +36,6 @@ const onLog = (_e: unknown, ...args: unknown[]): void => {
     cachedLogs.log.splice(0, cachedLogs.log.length - MAX_CACHED_LOGS)
   }
   cachedLogs.trigger?.(cachedLogs.log)
-}
-
-// Keep a bounded renderer-session history, including while the logs page is hidden.
-window.electron.ipcRenderer.on('mihomoLogs', onLog)
-
-if (import.meta.hot) {
-  import.meta.hot.dispose(() => {
-    window.electron.ipcRenderer.removeListener('mihomoLogs', onLog)
-  })
 }
 
 const Logs: React.FC = () => {
@@ -79,7 +71,12 @@ const Logs: React.FC = () => {
       }, LOG_RENDER_INTERVAL_MS)
     }
 
+    window.electron.ipcRenderer.on('mihomoLogs', onLog)
+    void setMihomoLogsActive(true).catch(() => undefined)
+
     return (): void => {
+      window.electron.ipcRenderer.removeListener('mihomoLogs', onLog)
+      void setMihomoLogsActive(false).catch(() => undefined)
       cachedLogs.trigger = old
       if (renderTimer !== null) {
         clearTimeout(renderTimer)

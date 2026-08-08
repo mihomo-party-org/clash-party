@@ -24,6 +24,7 @@ const validInvokeChannels = [
   'patchMihomoConfig',
   'mihomoSmartGroupWeights',
   'mihomoSmartFlushCache',
+  'setMihomoLogsActive',
   // AutoRun
   'checkAutoRun',
   'enableAutoRun',
