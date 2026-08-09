@@ -319,7 +319,7 @@ const Connections: React.FC = () => {
   }, [])
 
   useEffect(() => {
-    if (!displayIcon || findProcessMode === 'off') return
+    if ((!displayIcon && !displayAppName) || findProcessMode === 'off') return
 
     const visiblePaths = new Set<string>()
     const otherPaths = new Set<string>()
@@ -327,12 +327,14 @@ const Connections: React.FC = () => {
     const visibleConnections = filteredConnectionsRef.current.slice(0, 20)
     visibleConnections.forEach((c) => {
       const path = c.metadata.processPath || ''
+      if (!path) return
       visiblePaths.add(path)
     })
 
     const collectPaths = (connections: IMihomoConnectionDetail[]) => {
       for (const c of connections) {
         const path = c.metadata.processPath || ''
+        if (!path) continue
         if (!visiblePaths.has(path)) {
           otherPaths.add(path)
         }
@@ -366,14 +368,14 @@ const Connections: React.FC = () => {
     }
 
     visiblePaths.forEach((path) => {
-      loadIcon(path, true)
+      if (displayIcon) loadIcon(path, true)
       if (displayAppName) loadAppName(path)
     })
 
     if (otherPaths.size > 0) {
       const loadOtherPaths = () => {
         otherPaths.forEach((path) => {
-          loadIcon(path, false)
+          if (displayIcon) loadIcon(path, false)
           if (displayAppName) loadAppName(path)
         })
       }
@@ -385,7 +387,9 @@ const Connections: React.FC = () => {
     if (processIconIdleCallback.current) cancelIdleCallback(processIconIdleCallback.current)
     if (processAppNameTimer.current) clearTimeout(processAppNameTimer.current)
 
-    processIconTimer.current = setTimeout(processIconQueue, 10)
+    if (displayIcon) {
+      processIconTimer.current = setTimeout(processIconQueue, 10)
+    }
     if (displayAppName) {
       processAppNameTimer.current = setTimeout(processAppNameQueue, 10)
     }
@@ -468,6 +472,7 @@ const Connections: React.FC = () => {
     (i: number, connection: IMihomoConnectionDetail) => {
       const path = connection.metadata.processPath || ''
       const iconUrl = (displayIcon && findProcessMode !== 'off' && iconMap[path]) || ''
+      const shouldDisplayIcon = displayIcon && findProcessMode !== 'off' && Boolean(path)
       const itemKey = i === 0 ? `${connection.id}-${firstItemRefreshTrigger}` : connection.id
       const displayName =
         displayAppName && connection.metadata.processPath
@@ -480,7 +485,7 @@ const Connections: React.FC = () => {
           setIsDetailModalOpen={setIsDetailModalOpen}
           selected={selected}
           iconUrl={iconUrl}
-          displayIcon={displayIcon && findProcessMode !== 'off'}
+          displayIcon={shouldDisplayIcon}
           displayName={displayName}
           close={closeConnection}
           index={i}
