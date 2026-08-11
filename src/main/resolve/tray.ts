@@ -41,8 +41,8 @@ import {
   restartAsAdmin
 } from '../core/manager'
 import { trayLogger } from '../utils/logger'
-import { floatingWindow, triggerFloatingWindow } from './floatingWindow'
 import { writeClipboardText } from '../utils/clipboard'
+import { floatingWindow, triggerFloatingWindow } from './floatingWindow'
 
 export let tray: Tray | null = null
 let trayMenu: Menu | null = null

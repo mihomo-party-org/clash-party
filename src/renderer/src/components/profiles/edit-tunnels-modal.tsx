@@ -14,7 +14,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from '@renderer/components/base/toast'
 import { getProfileStr, setProfileStr } from '@renderer/utils/ipc'
 import { isValidListenAddressFull } from '@renderer/utils/validate'
-import yaml from 'js-yaml'
+import { dump, load } from 'js-yaml'
 import { useTranslation } from 'react-i18next'
 import { IoMdCreate, IoMdTrash, IoMdUndo } from 'react-icons/io'
 
@@ -216,7 +216,7 @@ const EditTunnelsModal: React.FC<Props> = (props) => {
       setLoadFailed(false)
       try {
         const content = await getProfileStr(id)
-        const parsed = yaml.load(content)
+        const parsed = load(content)
         // 解析结果不是 YAML mapping 时（例如 age 密文、根数组或日期），
         // 旧实现静默退化成 {} 且不提示，保存就会把整份订阅写没。
         if (Object.prototype.toString.call(parsed) !== '[object Object]') {
@@ -303,7 +303,7 @@ const EditTunnelsModal: React.FC<Props> = (props) => {
         delete nextProfile.tunnels
       }
 
-      await setProfileStr(id, yaml.dump(nextProfile))
+      await setProfileStr(id, dump(nextProfile))
       onClose()
     } catch (e) {
       toast.error(

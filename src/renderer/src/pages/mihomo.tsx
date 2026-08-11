@@ -470,10 +470,7 @@ const Mihomo: React.FC = () => {
                 disallowEmptySelection={true}
                 onSelectionChange={async (v) => {
                   const selectedCore = v.currentKey as
-                    | 'mihomo'
-                    | 'mihomo-alpha'
-                    | 'mihomo-smart'
-                    | 'mihomo-specific'
+                    'mihomo' | 'mihomo-alpha' | 'mihomo-smart' | 'mihomo-specific'
                   // 如果切换到特定版本但没有设置 specificVersion，则打开选择模态框
                   if (selectedCore === 'mihomo-specific' && !specificVersion) {
                     handleOpenModal()

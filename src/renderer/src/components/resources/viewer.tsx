@@ -1,7 +1,7 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@heroui/react'
 import React, { useEffect, useState, useMemo } from 'react'
 import { getFileStr, setFileStr, convertMrsRuleset, getRuntimeConfig } from '@renderer/utils/ipc'
-import yaml from 'js-yaml'
+import { dump, load } from 'js-yaml'
 import { useTranslation } from 'react-i18next'
 import { BaseEditor } from '../base/base-editor'
 type Language = 'yaml' | 'javascript' | 'css' | 'json' | 'text'
@@ -57,16 +57,19 @@ const Viewer: React.FC<Props> = (props) => {
           fileContent = await getFileStr(path)
         }
         try {
-          const parsedYaml = yaml.load(fileContent)
+          const parsedYaml = load(fileContent) as Record<
+            string,
+            Record<string, { payload: unknown }>
+          >
           if (privderType === 'proxy-providers') {
             setCurrData(
-              yaml.dump({
+              dump({
                 proxies: parsedYaml[privderType][title].payload
               })
             )
           } else {
             setCurrData(
-              yaml.dump({
+              dump({
                 rules: parsedYaml[privderType][title].payload
               })
             )

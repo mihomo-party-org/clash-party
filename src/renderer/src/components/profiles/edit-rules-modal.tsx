@@ -26,7 +26,7 @@ import React, {
 } from 'react'
 import { getProfileStr, setRuleStr, getRuleStr } from '@renderer/utils/ipc'
 import { useTranslation } from 'react-i18next'
-import yaml from 'js-yaml'
+import { dump, load } from 'js-yaml'
 import { Virtuoso } from 'react-virtuoso'
 import { IoMdTrash, IoMdArrowUp, IoMdArrowDown, IoMdUndo } from 'react-icons/io'
 import { MdVerticalAlignTop, MdVerticalAlignBottom } from 'react-icons/md'
@@ -693,7 +693,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
         const content = await getProfileStr(id)
         setProfileContent(content)
 
-        const parsed = yaml.load(content) as Record<string, unknown> | undefined
+        const parsed = load(content) as Record<string, unknown> | undefined
         let initialRules: RuleItem[] = []
 
         if (parsed && parsed.rules && Array.isArray(parsed.rules)) {
@@ -746,7 +746,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
 
         try {
           const ruleContent = await getRuleStr(id)
-          const ruleData = yaml.load(ruleContent) as {
+          const ruleData = load(ruleContent) as {
             prepend?: string[]
             append?: string[]
             delete?: string[]
@@ -902,7 +902,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
       }
 
       // 保存到 YAML 文件
-      const ruleYaml = yaml.dump(ruleData)
+      const ruleYaml = dump(ruleData)
       await setRuleStr(id, ruleYaml)
       onClose()
     } catch (e) {

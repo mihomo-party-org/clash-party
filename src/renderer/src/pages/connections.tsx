@@ -677,11 +677,7 @@ const Connections: React.FC = () => {
                 onSelectionChange={async (v) => {
                   await patchAppConfig({
                     connectionOrderBy: v.currentKey as
-                      | 'time'
-                      | 'upload'
-                      | 'download'
-                      | 'uploadSpeed'
-                      | 'downloadSpeed'
+                      'time' | 'upload' | 'download' | 'uploadSpeed' | 'downloadSpeed'
                   })
                 }}
               >

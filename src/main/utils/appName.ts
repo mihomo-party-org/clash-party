@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { spawnSync } from 'child_process'
-import plist from 'plist'
+import { parse } from 'plist'
 import { findBestAppPath, isIOSApp } from './icon'
 
 export async function getAppName(appPath: string): Promise<string> {
@@ -13,7 +13,7 @@ export async function getAppName(appPath: string): Promise<string> {
       if (isIOSApp(targetPath)) {
         const plistPath = path.join(targetPath, 'Info.plist')
         const xml = fs.readFileSync(plistPath, 'utf-8')
-        const parsed = plist.parse(xml) as Record<string, unknown>
+        const parsed = parse(xml) as Record<string, unknown>
         return (parsed.CFBundleDisplayName as string) || (parsed.CFBundleName as string) || ''
       }
 
@@ -27,7 +27,7 @@ export async function getAppName(appPath: string): Promise<string> {
       const plistPath = path.join(targetPath, 'Contents', 'Info.plist')
       if (fs.existsSync(plistPath)) {
         const xml = fs.readFileSync(plistPath, 'utf-8')
-        const parsed = plist.parse(xml) as Record<string, unknown>
+        const parsed = parse(xml) as Record<string, unknown>
 
         return (parsed.CFBundleDisplayName as string) || (parsed.CFBundleName as string) || ''
       } else {

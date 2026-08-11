@@ -1,0 +1,12 @@
+allowBuilds:
+  '@heroui/shared-utils': true
+  electron: true
+  electron-winstaller: true
+  esbuild: true
+  meta-json-schema: true
+
+publicHoistPattern:
+  - '*@heroui/*'
+
+shamefullyHoist: true
+virtualStoreDirMaxLength: 80
