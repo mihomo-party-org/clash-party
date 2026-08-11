@@ -1,17 +1,16 @@
 const { existsSync } = require('fs')
 const { join, dirname } = require('path')
 const os = require('os')
+const { usesLegacyWindowsBinding } = require('./windows-version')
 
 const { platform, arch } = process
 
 let nativeBinding = null
 let loadError = null
 
-function isWindows7() {
+function isLegacyWindows() {
   if (platform !== 'win32') return false
-  const release = os.release()
-  // Windows 7 is NT 6.1
-  return release.startsWith('6.1')
+  return usesLegacyWindowsBinding(os.release())
 }
 
 function isMusl() {
@@ -31,13 +30,15 @@ function isMusl() {
 }
 
 function getBindingName() {
-  const win7 = isWindows7()
+  const legacyWindows = isLegacyWindows()
   switch (platform) {
     case 'win32':
       if (arch === 'x64')
-        return win7 ? 'sysproxy.win32-x64-msvc-win7.node' : 'sysproxy.win32-x64-msvc.node'
+        return legacyWindows ? 'sysproxy.win32-x64-msvc-win7.node' : 'sysproxy.win32-x64-msvc.node'
       if (arch === 'ia32')
-        return win7 ? 'sysproxy.win32-ia32-msvc-win7.node' : 'sysproxy.win32-ia32-msvc.node'
+        return legacyWindows
+          ? 'sysproxy.win32-ia32-msvc-win7.node'
+          : 'sysproxy.win32-ia32-msvc.node'
       if (arch === 'arm64') return 'sysproxy.win32-arm64-msvc.node'
       break
     case 'darwin':
