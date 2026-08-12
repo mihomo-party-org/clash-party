@@ -121,6 +121,9 @@ jobs:
           GITHUB_EVENT_NAME: workflow_dispatch
         run: node scripts/update-version.mjs
       - name: Prepare
+        env:
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
         run: pnpm prepare --${{ matrix.arch }}
       - name: Build
         env:
@@ -206,6 +209,8 @@ jobs:
         run: node scripts/update-version.mjs
       - name: Prepare
         env:
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
           LEGACY_BUILD: 'true'
         run: pnpm prepare --${{ matrix.arch }}
       - name: Build
@@ -293,6 +298,9 @@ jobs:
           GITHUB_EVENT_NAME: workflow_dispatch
         run: node scripts/update-version.mjs
       - name: Prepare
+        env:
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
         run: pnpm prepare --${{ matrix.arch }}
       - name: Build
         env:
@@ -369,6 +377,9 @@ jobs:
           GITHUB_EVENT_NAME: workflow_dispatch
         run: node scripts/update-version.mjs
       - name: Prepare
+        env:
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
         run: pnpm prepare --${{ matrix.arch }}
       - name: Build
         env:
@@ -467,6 +478,9 @@ jobs:
           GITHUB_EVENT_NAME: workflow_dispatch
         run: node scripts/update-version.mjs
       - name: Prepare
+        env:
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
         run: pnpm prepare --${{ matrix.arch }}
       - name: Build
         env:

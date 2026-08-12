@@ -7,11 +7,24 @@ import { execSync } from 'child_process'
 
 const cwd = process.cwd()
 const TEMP_DIR = path.join(cwd, 'node_modules/.temp')
-let arch = process.arch
 const platform = process.platform
-if (process.argv.slice(2).length !== 0) {
-  arch = process.argv.slice(2)[0].replace('--', '')
+
+// 目标架构解析优先级：命令行参数 > npm_config_arch 环境变量 > 当前进程架构
+// CI 交叉编译（如 ubuntu x64 宿主构建 arm64 包）时，若参数未传递到位，
+// 会误用宿主机的 x64 架构下载 sidecar，导致 arm64 包内混入 x64 二进制
+const SUPPORTED_ARCHS = ['x64', 'ia32', 'arm64']
+function resolveTargetArch() {
+  const args = process.argv.slice(2)
+  if (args.length !== 0) {
+    return args[0].replace('--', '')
+  }
+  const npmArch = process.env.npm_config_arch
+  if (npmArch && SUPPORTED_ARCHS.includes(npmArch)) {
+    return npmArch
+  }
+  return process.arch
 }
+const arch = resolveTargetArch()
 
 /* ======= mihomo alpha======= */
 const MIHOMO_ALPHA_VERSION_URL =
@@ -280,6 +293,11 @@ async function downloadFile(url, path) {
     method: 'GET',
     headers: { 'Content-Type': 'application/octet-stream' }
   })
+  if (!response.ok) {
+    throw new Error(
+      `download failed: ${response.status} ${response.statusText} for "${url}"`
+    )
+  }
   const buffer = await response.arrayBuffer()
   fs.writeFileSync(path, new Uint8Array(buffer))
 
@@ -324,6 +342,33 @@ const resolveEnableLoopback = () =>
 /* ======= sysproxy-rs ======= */
 const SYSPROXY_RS_URL_PREFIX =
   'https://github.com/mihomo-party-org/sysproxy-rs-opti/releases/latest/download'
+
+// ELF e_machine 编号，用于校验下载的 .node 确为目标架构
+const ELF_MACHINE = {
+  x64: 62, // EM_X86_64
+  ia32: 3, // EM_386
+  arm64: 183 // EM_AARCH64
+}
+
+function assertElfMachine(filePath, targetArch) {
+  const fd = fs.openSync(filePath, 'r')
+  const header = Buffer.alloc(20)
+  try {
+    fs.readSync(fd, header, 0, 20, 0)
+  } finally {
+    fs.closeSync(fd)
+  }
+  if (header.toString('ascii', 0, 4) !== '\x7fELF') {
+    throw new Error(`not a valid ELF file: ${filePath}`)
+  }
+  const machine = header.readUInt16LE(18)
+  const expected = ELF_MACHINE[targetArch]
+  if (expected !== undefined && machine !== expected) {
+    throw new Error(
+      `architecture mismatch for "${filePath}": expected ${targetArch} (ELF machine ${expected}), got ${machine}`
+    )
+  }
+}
 
 function getSysproxyNodeName() {
   // 检测是否为 musl 系统（与 src/native/sysproxy/index.js 保持一致）
@@ -385,6 +430,10 @@ const resolveSysproxy = async () => {
   }
 
   await downloadFile(`${SYSPROXY_RS_URL_PREFIX}/${nodeName}`, targetPath)
+  // 校验 .node 确为目标架构 ELF，避免交叉编译时把宿主机架构产物误打进包（仅 Linux）
+  if (platform === 'linux') {
+    assertElfMachine(targetPath, arch)
+  }
   console.log(`[INFO]: ${nodeName} finished`)
 }
 
