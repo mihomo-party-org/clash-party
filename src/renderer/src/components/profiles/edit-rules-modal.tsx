@@ -24,7 +24,13 @@ import React, {
   memo,
   useDeferredValue
 } from 'react'
-import { getProfileStr, setRuleStr, getRuleStr } from '@renderer/utils/ipc'
+import {
+  getProfileStr,
+  setRuleStr,
+  getRuleStr,
+  getProfileConfig,
+  mihomoHotReloadConfig
+} from '@renderer/utils/ipc'
 import { useTranslation } from 'react-i18next'
 import { dump, load } from 'js-yaml'
 import { Virtuoso } from 'react-virtuoso'
@@ -904,6 +910,14 @@ const EditRulesModal: React.FC<Props> = (props) => {
       // 保存到 YAML 文件
       const ruleYaml = dump(ruleData)
       await setRuleStr(id, ruleYaml)
+      // The rule overlay only feeds the generated profile; without a hot
+      // reload the running core keeps matching against the old rules until
+      // it is restarted. Other save paths (override, profile info) already
+      // reload - the rule editor must too. (#2101)
+      const profileConfig = await getProfileConfig()
+      if (profileConfig?.current === id) {
+        await mihomoHotReloadConfig()
+      }
       onClose()
     } catch (e) {
       toast.error(
