@@ -24,7 +24,13 @@ import React, {
   memo,
   useDeferredValue
 } from 'react'
-import { getProfileStr, setRuleStr, getRuleStr } from '@renderer/utils/ipc'
+import {
+  getProfileStr,
+  setRuleStr,
+  getRuleStr,
+  mihomoHotReloadConfig,
+  getProfileConfig
+} from '@renderer/utils/ipc'
 import { useTranslation } from 'react-i18next'
 import { dump, load } from 'js-yaml'
 import { Virtuoso } from 'react-virtuoso'
@@ -904,6 +910,12 @@ const EditRulesModal: React.FC<Props> = (props) => {
       // 保存到 YAML 文件
       const ruleYaml = dump(ruleData)
       await setRuleStr(id, ruleYaml)
+
+      const profileConfig = await getProfileConfig()
+      if (profileConfig?.current === id) {
+        await mihomoHotReloadConfig()
+      }
+
       onClose()
     } catch (e) {
       toast.error(
