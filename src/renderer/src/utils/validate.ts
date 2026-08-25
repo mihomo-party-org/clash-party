@@ -121,10 +121,9 @@ const geositeValidator = (value: string): boolean => {
   return validator.isAlphanumeric(value, 'en-US', { ignore: '-_' }) && value.length > 0
 }
 
-// GEOIP 验证器 - 国家代码验证（ISO 3166-1 alpha-2）
+// GEOIP 验证器 - 国家代码或命名分类验证
 const geoipValidator = (value: string): boolean => {
-  // 支持 2 位国家代码（大小写不敏感）
-  return validator.isAlpha(value) && value.length === 2
+  return geositeValidator(value)
 }
 
 // ASN 验证器 - 自治系统号验证
