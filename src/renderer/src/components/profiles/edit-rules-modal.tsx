@@ -32,7 +32,7 @@ import {
   getProfileConfig
 } from '@renderer/utils/ipc'
 import { useTranslation } from 'react-i18next'
-import { dump, load } from 'js-yaml'
+import { CORE_SCHEMA, dump, load, mergeTag } from 'js-yaml'
 import { Virtuoso } from 'react-virtuoso'
 import { IoMdTrash, IoMdArrowUp, IoMdArrowDown, IoMdUndo } from 'react-icons/io'
 import { MdVerticalAlignTop, MdVerticalAlignBottom } from 'react-icons/md'
@@ -77,6 +77,10 @@ interface RuleItem {
   proxy: string
   additionalParams?: string[]
   offset?: number
+}
+
+const yamlLoadOptions = {
+  schema: CORE_SCHEMA.withTags(mergeTag)
 }
 
 const toStringValue = (value: unknown): string => {
@@ -699,7 +703,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
         const content = await getProfileStr(id)
         setProfileContent(content)
 
-        const parsed = load(content) as Record<string, unknown> | undefined
+        const parsed = load(content, yamlLoadOptions) as Record<string, unknown> | undefined
         let initialRules: RuleItem[] = []
 
         if (parsed && parsed.rules && Array.isArray(parsed.rules)) {
@@ -752,7 +756,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
 
         try {
           const ruleContent = await getRuleStr(id)
-          const ruleData = load(ruleContent) as {
+          const ruleData = load(ruleContent, yamlLoadOptions) as {
             prepend?: string[]
             append?: string[]
             delete?: string[]
@@ -844,7 +848,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
           setDeletedRules(new Set())
         }
       } catch {
-        // 解析配置文件失败，静默处理
+        // ignore
       } finally {
         setIsLoading(false)
       }
