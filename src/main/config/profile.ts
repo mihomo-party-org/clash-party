@@ -423,6 +423,19 @@ async function fetchAndValidateSubscription(options: FetchOptions): Promise<Fetc
   return { data, headers: responseHeaders }
 }
 
+// home 完全由订阅服务器的响应头决定，最终会走到 shell.openExternal，只放行 http/https
+function sanitizeHomeUrl(raw: string | undefined): string | undefined {
+  if (!raw) return undefined
+  const trimmed = raw.trim()
+  try {
+    const { protocol } = new URL(trimmed)
+    if (protocol === 'http:' || protocol === 'https:') return trimmed
+  } catch {
+    // 非法 URL 直接丢弃
+  }
+  return undefined
+}
+
 export async function createProfile(item: Partial<IProfileItem>): Promise<IProfileItem> {
   const id = item.id || new Date().getTime().toString(16)
   const newItem: IProfileItem = {
@@ -439,6 +452,9 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
     authToken: item.authToken,
     userAgent: item.userAgent,
     ageSecretKey: item.ageSecretKey,
+    // 刷新时服务器可能不再返回这两个响应头，先沿用旧值，有新头再覆盖
+    home: sanitizeHomeUrl(item.home),
+    extra: item.extra,
     updated: new Date().getTime(),
     updateTimeout: item.updateTimeout
   }
@@ -516,7 +532,8 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
       newItem.name = parseFilename(headers['content-disposition'])
     }
     if (headers['profile-web-page-url']) {
-      newItem.home = headers['profile-web-page-url']
+      const home = sanitizeHomeUrl(headers['profile-web-page-url'])
+      if (home) newItem.home = home
     }
     if (headers['profile-update-interval'] && !item.allowFixedInterval) {
       const hours = Number(headers['profile-update-interval'])
@@ -637,7 +654,13 @@ function parseFilename(str: string): string {
   if (str.match(/filename\*=.*''/)) {
     const parts = str.split(/filename\*=.*''/)
     if (parts[1]) {
-      return decodeURIComponent(parts[1])
+      const raw = parts[1].trim().replace(/^["']|["']$/g, '')
+      try {
+        return decodeURIComponent(raw)
+      } catch {
+        // 文件名由订阅服务器控制，畸形百分号转义会抛 URIError，不能让它中断整次订阅更新
+        return raw || 'Remote File'
+      }
     }
   }
   const parts = str.split('filename=')
