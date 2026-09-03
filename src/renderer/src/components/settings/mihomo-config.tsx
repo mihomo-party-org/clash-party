@@ -147,7 +147,11 @@ const MihomoConfig: React.FC = () => {
             type="number"
             value={(subscriptionTimeout / 1000)?.toString()}
             onValueChange={async (v: string) => {
-              const num = parseInt(v)
+              // 清空输入框时 parseInt('') 是 NaN，NaN * 1000 仍是 NaN，
+              // 经 IPC 序列化后会以 null 落盘。onBlur 只在失焦时纠正，
+              // 中间这段时间配置里已经是坏值，所以这里直接不写。
+              const num = parseInt(v, 10)
+              if (!Number.isFinite(num)) return
               await patchAppConfig({ subscriptionTimeout: num * 1000 })
             }}
             onBlur={async (e) => {
@@ -180,7 +184,9 @@ const MihomoConfig: React.FC = () => {
           value={delayTestConcurrency?.toString()}
           placeholder={t('mihomo.delayTest.concurrencyPlaceholder')}
           onValueChange={(v) => {
-            patchAppConfig({ delayTestConcurrency: parseInt(v) })
+            const num = parseInt(v, 10)
+            if (!Number.isFinite(num)) return
+            patchAppConfig({ delayTestConcurrency: num })
           }}
         />
       </SettingItem>
@@ -192,7 +198,9 @@ const MihomoConfig: React.FC = () => {
           value={delayTestTimeout?.toString()}
           placeholder={t('mihomo.delayTest.timeoutPlaceholder')}
           onValueChange={(v) => {
-            patchAppConfig({ delayTestTimeout: parseInt(v) })
+            const num = parseInt(v, 10)
+            if (!Number.isFinite(num)) return
+            patchAppConfig({ delayTestTimeout: num })
           }}
         />
       </SettingItem>
