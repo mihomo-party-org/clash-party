@@ -286,7 +286,15 @@ export async function getIconDataURL(appPath: string): Promise<string> {
         if (iconPath) {
           try {
             const iconBuffer = fs.readFileSync(iconPath)
-            return `data:image/png;base64,${iconBuffer.toString('base64')}`
+            // resolveIconPath 也会命中 .svg/.xpm，写死 image/png 会让浏览器解码失败，需按扩展名给出正确 MIME
+            const iconExt = path.extname(iconPath).toLowerCase()
+            const iconMime =
+              iconExt === '.svg'
+                ? 'image/svg+xml'
+                : iconExt === '.xpm'
+                  ? 'image/x-xpixmap'
+                  : 'image/png'
+            return `data:${iconMime};base64,${iconBuffer.toString('base64')}`
           } catch {
             return darwinDefaultIcon
           }
