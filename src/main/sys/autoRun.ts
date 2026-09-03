@@ -4,11 +4,29 @@ import { exec, execFile } from 'child_process'
 import { existsSync } from 'fs'
 import { promisify } from 'util'
 import path from 'path'
+import { app } from 'electron'
 import { exePath, homeDir } from '../utils/dirs'
 import { managerLogger } from '../utils/logger'
 import { checkAdminPrivileges } from '../core/admin'
 
 const appName = 'mihomo-party'
+// 1.x 通过 AppleScript 往 System Events 写登录项，这些旧条目不受 Service Management 管理，
+// 升级后必须单独清理，否则会与新登录项同时生效导致开机启动两次。
+const darwinLegacyLoginItemNames = ['Clash Party', 'Mihomo Party']
+
+// 旧登录项清理属于尽力而为：条目不存在、或系统未授予自动化权限时都直接忽略。
+async function removeDarwinLegacyLoginItems(): Promise<void> {
+  const names = [
+    ...new Set([path.basename(exePath().split('.app')[0]), ...darwinLegacyLoginItemNames])
+  ]
+  const condition = names.map((name) => `name is ${JSON.stringify(name)}`).join(' or ')
+  const script = `tell application "System Events" to delete (every login item where ${condition})`
+  try {
+    await promisify(execFile)('/usr/bin/osascript', ['-e', script])
+  } catch (error) {
+    await managerLogger.info('No legacy macOS login item removed', error)
+  }
+}
 
 function getTaskXml(asAdmin: boolean): string {
   const runLevel = asAdmin ? 'HighestAvailable' : 'LeastPrivilege'
@@ -81,11 +99,7 @@ export async function checkAutoRun(): Promise<boolean> {
   }
 
   if (process.platform === 'darwin') {
-    const execPromise = promisify(exec)
-    const { stdout } = await execPromise(
-      `osascript -e 'tell application "System Events" to get the name of every login item'`
-    )
-    return stdout.includes(exePath().split('.app')[0].replace('/Applications/', ''))
+    return app.getLoginItemSettings().openAtLogin
   }
 
   if (process.platform === 'linux') {
@@ -170,10 +184,12 @@ export async function enableAutoRun(): Promise<void> {
     }
   }
   if (process.platform === 'darwin') {
-    const execPromise = promisify(exec)
-    await execPromise(
-      `osascript -e 'tell application "System Events" to make login item at end with properties {path:"${exePath().split('.app')[0]}.app", hidden:false}'`
-    )
+    await removeDarwinLegacyLoginItems()
+    app.setLoginItemSettings({ openAtLogin: true })
+    const { openAtLogin, status } = app.getLoginItemSettings()
+    if (!openAtLogin) {
+      throw new Error(`Failed to register login item${status ? ` (${status})` : ''}`)
+    }
   }
   if (process.platform === 'linux') {
     let desktop = `
@@ -228,10 +244,8 @@ export async function disableAutoRun(): Promise<void> {
     }
   }
   if (process.platform === 'darwin') {
-    const execPromise = promisify(exec)
-    await execPromise(
-      `osascript -e 'tell application "System Events" to delete login item "${exePath().split('.app')[0].replace('/Applications/', '')}"'`
-    )
+    app.setLoginItemSettings({ openAtLogin: false })
+    await removeDarwinLegacyLoginItems()
   }
   if (process.platform === 'linux') {
     const desktopFilePath = path.join(homeDir, '.config', 'autostart', `${appName}.desktop`)
