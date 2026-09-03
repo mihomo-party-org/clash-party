@@ -1,4 +1,4 @@
-import { exec, execFile } from 'child_process'
+import { exec, execFile, spawn } from 'child_process'
 import { promisify } from 'util'
 import { stat } from 'fs/promises'
 import { existsSync } from 'fs'
@@ -289,12 +289,19 @@ export async function restartAsAdmin(forTun: boolean = true): Promise<void> {
 
   managerLogger.info('Restarting as administrator with command', command)
 
-  // 先启动 PowerShell（它会等待 1 秒），然后立即退出当前进程
-  exec(command, { windowsHide: true }, (error) => {
-    if (error) {
-      managerLogger.error('Failed to start PowerShell for admin restart', error)
-    }
-  })
+  // 启动器必须脱离当前进程的生命周期：exec() 的子进程会随紧随其后的 app.exit(0) 一起消失，
+  // 提权命令根本来不及执行，用户看到的就是「应用直接退出、UAC 不弹、也没有重新启动」。
+  try {
+    spawn(command, {
+      shell: true,
+      windowsHide: true,
+      detached: true,
+      stdio: 'ignore'
+    }).unref()
+  } catch (error) {
+    managerLogger.error('Failed to start PowerShell for admin restart', error)
+    throw error
+  }
   managerLogger.info('PowerShell command started, quitting app immediately')
   app.exit(0)
 }
