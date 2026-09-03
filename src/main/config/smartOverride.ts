@@ -11,8 +11,26 @@ function generateSmartOverrideTemplate(
   useLightGBM: boolean,
   collectData: boolean,
   strategy: string,
-  collectorSize: number
+  collectorSize: number,
+  tolerance: number,
+  preferASN: boolean,
+  sampleRate: number
 ): string {
+  // 三者都只在偏离内核默认值时才写入，保持默认时生成的脚本与之前完全一致，
+  // 也不会覆盖订阅里已有的同名设置。
+  const extraOptions = (indent: string, objectLiteral: boolean): string => {
+    const lines: string[] = []
+    const put = (key: string, value: string): void => {
+      lines.push(
+        objectLiteral ? `${indent}'${key}': ${value},` : `${indent}group['${key}'] = ${value}`
+      )
+    }
+    if (tolerance > 0) put('tolerance', String(tolerance))
+    if (preferASN) put('prefer-asn', 'true')
+    if (sampleRate > 0 && sampleRate < 1) put('sample-rate', String(sampleRate))
+    return lines.length > 0 ? lines.join('\n') + '\n' : ''
+  }
+
   return `
 // 配置会在启用 Smart 内核时自动应用
 
@@ -94,7 +112,7 @@ function main(config) {
             if (group.tolerance) delete group.tolerance
             if (group.lazy) delete group.lazy
             if (group.expected_status) delete group['expected-status']
-          }
+${extraOptions('            ', false)}          }
         }
       }
       
@@ -201,7 +219,7 @@ function main(config) {
         group.uselightgbm = ${useLightGBM}
         group.collectdata = ${collectData}
         group.strategy = '${strategy}'
-        break
+${extraOptions('        ', false)}        break
       }
     }
 
@@ -222,7 +240,7 @@ function main(config) {
           uselightgbm: ${useLightGBM},
           collectdata: ${collectData},
           strategy: '${strategy}',
-          proxies: proxyNames
+${extraOptions('          ', true)}          proxies: proxyNames
         }
         config['proxy-groups'].unshift(smartGroup)
         smartGroupName = 'Smart Group'
@@ -366,7 +384,10 @@ export async function createSmartOverride(): Promise<void> {
       smartCoreUseLightGBM = false,
       smartCoreCollectData = false,
       smartCoreStrategy = 'sticky-sessions',
-      smartCollectorSize = 100
+      smartCollectorSize = 100,
+      smartTolerance = 0,
+      smartPreferASN = false,
+      smartSampleRate = 1
     } = await getAppConfig()
 
     // 生成覆写模板
@@ -374,7 +395,10 @@ export async function createSmartOverride(): Promise<void> {
       smartCoreUseLightGBM,
       smartCoreCollectData,
       smartCoreStrategy,
-      smartCollectorSize
+      smartCollectorSize,
+      smartTolerance,
+      smartPreferASN,
+      smartSampleRate
     )
 
     // 热重载每次生效前都会重新生成覆写，内容未变时跳过写盘，避免无谓的时间戳刷新

@@ -273,6 +273,9 @@ interface IAppConfig {
   smartCoreCollectData: boolean
   smartCoreStrategy: 'sticky-sessions' | 'round-robin'
   smartCollectorSize?: number
+  smartTolerance?: number
+  smartPreferASN?: boolean
+  smartSampleRate?: number
   proxyDisplayMode: 'simple' | 'full'
   proxyDisplayOrder: 'default' | 'delay' | 'name'
   profileDisplayDate?: 'expire' | 'update'

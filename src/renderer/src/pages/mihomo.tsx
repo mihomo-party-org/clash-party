@@ -104,6 +104,9 @@ const Mihomo: React.FC = () => {
     smartCoreCollectData = false,
     smartCoreStrategy = 'sticky-sessions',
     smartCollectorSize = 100,
+    smartTolerance = 0,
+    smartPreferASN = false,
+    smartSampleRate = 1,
     maxLogDays = 7,
     maxLogFileSize = 10,
     disableCoreLog = false,
@@ -546,6 +549,44 @@ const Mihomo: React.FC = () => {
                 <SettingItem
                   title={
                     <div className="flex items-center gap-2">
+                      <span>{t('mihomo.smartSampleRate')}</span>
+                      <Tooltip
+                        content={t('mihomo.smartSampleRateTooltip')}
+                        placement="top"
+                        className="max-w-xs"
+                      >
+                        <IoMdInformationCircleOutline className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 cursor-help" />
+                      </Tooltip>
+                    </div>
+                  }
+                  divider
+                >
+                  <Input
+                    size="sm"
+                    className="w-25"
+                    type="number"
+                    step="0.1"
+                    isDisabled={!smartCoreCollectData}
+                    value={smartSampleRate.toString()}
+                    onValueChange={async (v: string) => {
+                      const num = parseFloat(v)
+                      if (!isNaN(num)) {
+                        await patchAppConfig({ smartSampleRate: num })
+                      }
+                    }}
+                    onBlur={async (e) => {
+                      let num = parseFloat(e.target.value)
+                      if (isNaN(num) || num > 1) num = 1
+                      if (num <= 0) num = 1
+                      await patchAppConfig({ smartSampleRate: num })
+                      await mihomoHotReloadConfig()
+                    }}
+                  />
+                </SettingItem>
+
+                <SettingItem
+                  title={
+                    <div className="flex items-center gap-2">
                       <span>{t('mihomo.smartCollectorSize')}</span>
                       <Tooltip
                         content={t('mihomo.smartCollectorSizeTooltip')}
@@ -580,6 +621,70 @@ const Mihomo: React.FC = () => {
                     />
                     <span className="text-default-500">MB</span>
                   </div>
+                </SettingItem>
+
+                <SettingItem
+                  title={
+                    <div className="flex items-center gap-2">
+                      <span>{t('mihomo.smartTolerance')}</span>
+                      <Tooltip
+                        content={t('mihomo.smartToleranceTooltip')}
+                        placement="top"
+                        className="max-w-xs"
+                      >
+                        <IoMdInformationCircleOutline className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 cursor-help" />
+                      </Tooltip>
+                    </div>
+                  }
+                  divider
+                >
+                  <div className="flex items-center gap-2">
+                    <Input
+                      size="sm"
+                      className="w-25"
+                      type="number"
+                      value={smartTolerance.toString()}
+                      onValueChange={async (v: string) => {
+                        const num = parseInt(v)
+                        if (!isNaN(num)) {
+                          await patchAppConfig({ smartTolerance: num })
+                        }
+                      }}
+                      onBlur={async (e) => {
+                        let num = parseInt(e.target.value)
+                        if (isNaN(num) || num < 0) num = 0
+                        await patchAppConfig({ smartTolerance: num })
+                        await mihomoHotReloadConfig()
+                      }}
+                    />
+                    <span className="text-default-500">ms</span>
+                  </div>
+                </SettingItem>
+
+                <SettingItem
+                  title={
+                    <div className="flex items-center gap-2">
+                      <span>{t('mihomo.smartPreferASN')}</span>
+                      <Tooltip
+                        content={t('mihomo.smartPreferASNTooltip')}
+                        placement="top"
+                        className="max-w-xs"
+                      >
+                        <IoMdInformationCircleOutline className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 cursor-help" />
+                      </Tooltip>
+                    </div>
+                  }
+                  divider
+                >
+                  <Switch
+                    size="sm"
+                    color="primary"
+                    isSelected={smartPreferASN}
+                    onValueChange={async (v) => {
+                      await patchAppConfig({ smartPreferASN: v })
+                      await mihomoHotReloadConfig()
+                    }}
+                  />
                 </SettingItem>
 
                 <SettingItem title={t('mihomo.smartCoreStrategy')}>
