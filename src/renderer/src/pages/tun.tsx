@@ -88,7 +88,9 @@ const Tun: React.FC = () => {
   }
 
   const onSave = async (patch: Partial<IMihomoConfig>): Promise<void> => {
-    const tunPatch = { ...patch.tun }
+    // 内核的 PATCH /configs 里 tun.enable 是非指针 bool：请求体带了 tun 却没带 enable
+    // 就会被解析成 false，ReCreateTun 随即把虚拟网卡拆掉。必须显式带上当前开关状态。
+    const tunPatch = { enable: tun?.enable ?? false, ...patch.tun }
     if (hasInvalidExcludeAddress) {
       // 存在非法条目时不覆盖已保存的排除地址，避免静默丢弃用户数据；其它 TUN 设置照常保存
       delete tunPatch['route-exclude-address']

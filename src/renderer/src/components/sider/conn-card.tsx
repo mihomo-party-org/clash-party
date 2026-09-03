@@ -7,8 +7,9 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { IoLink } from 'react-icons/io5'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { platform } from '@renderer/utils/init'
-import { updateTrayIcon } from '@renderer/utils/ipc'
+import { getTrayTrafficStyle, updateTrayIcon } from '@renderer/utils/ipc'
 import { Line } from 'react-chartjs-2'
 import {
   Chart as ChartJS,
@@ -31,12 +32,16 @@ interface Props {
 const ConnCard: React.FC<Props> = (props) => {
   const { iconOnly } = props
   const { appConfig } = useAppConfig()
+  const { controledMihomoConfig } = useControledMihomoConfig()
   const {
     showTraffic = false,
     connectionCardStatus = 'col-span-2',
     disableAnimations = false,
-    hideConnectionCardWave = false
+    hideConnectionCardWave = false,
+    disableTrayIconColor = false
   } = appConfig || {}
+  const sysProxyEnabled = appConfig?.sysProxy?.enable
+  const tunEnabled = controledMihomoConfig?.tun?.enable
   const location = useLocation()
   const navigate = useNavigate()
   const match = location.pathname.includes('/connections')
@@ -146,7 +151,7 @@ const ConnCard: React.FC<Props> = (props) => {
         currentUploadRef.current = up
         currentDownloadRef.current = down
         const png = renderTrafficIcon(up, down)
-        window.electron.ipcRenderer.send('trayIconUpdate', png, true)
+        window.electron.ipcRenderer.send('trayIconUpdate', png, true, trayIconColored)
       }
     }
   }, [])
@@ -163,17 +168,49 @@ const ConnCard: React.FC<Props> = (props) => {
       currentUploadRef.current = undefined
       currentDownloadRef.current = undefined
       const png = renderTrafficIcon(0, 0)
-      window.electron.ipcRenderer.send('trayIconUpdate', png, true)
+      window.electron.ipcRenderer.send('trayIconUpdate', png, true, trayIconColored)
       hasShowTrafficRef.current = true
     } else if (hasShowTrafficRef.current) {
       // 关闭：先让主进程退出流量图标模式（enabled=false 会清掉它的提前 return），
       // 再请主进程用 resources 里的真实图标重绘一次；只发这条 IPC 的话托盘会一直停在
       // 渲染进程发过去的这张兜底图上，状态色丢失且必须重启才恢复
-      window.electron.ipcRenderer.send('trayIconUpdate', trayIconBase64, false)
+      window.electron.ipcRenderer.send('trayIconUpdate', trayIconBase64, false, false)
       hasShowTrafficRef.current = false
       updateTrayIcon().catch(() => {})
     }
   }, [showTraffic])
+
+  // 网速图标是渲染进程把图标和文字合成一张图交给主进程显示的，主进程无法再往上叠状态色，
+  // 所以系统代理/虚拟网卡的颜色必须在这里一起画进去，否则打开网速显示后颜色就失效（#1143）。
+  useEffect(() => {
+    if (platform !== 'darwin' || !showTraffic) return
+    let cancelled = false
+    const syncTrayStyle = async (): Promise<void> => {
+      const style = await getTrayTrafficStyle()
+      let logo: HTMLImageElement | null = null
+      if (style.icon) {
+        const image = new Image()
+        image.src = style.icon
+        // 先解码再启用，避免这一帧画出一个没有图标的托盘
+        try {
+          await image.decode()
+          logo = image
+        } catch {
+          logo = null
+        }
+      }
+      if (cancelled) return
+      trayLogo = logo
+      trayTextColor = style.textColor
+      trayIconColored = style.colored
+      const png = renderTrafficIcon(currentUploadRef.current ?? 0, currentDownloadRef.current ?? 0)
+      window.electron.ipcRenderer.send('trayIconUpdate', png, true, style.colored)
+    }
+    syncTrayStyle().catch(() => {})
+    return (): void => {
+      cancelled = true
+    }
+  }, [showTraffic, sysProxyEnabled, tunEnabled, disableTrayIconColor])
 
   if (iconOnly) {
     return (
@@ -307,6 +344,12 @@ trafficIcon.onload = () => {
 }
 trafficIcon.src = trayIconBase64
 
+// 主进程下发的托盘样式（见 getTrayTrafficStyle）。拿不到时退回内置图标和黑色文字，
+// 也就是原来的 template image 行为。
+let trayLogo: HTMLImageElement | null = null
+let trayTextColor = 'black'
+let trayIconColored = false
+
 function renderTrafficIcon(upload: number, download: number): string {
   if (!trafficCanvas) {
     trafficCanvas = document.createElement('canvas')
@@ -319,11 +362,12 @@ function renderTrafficIcon(upload: number, download: number): string {
   }
   const ctx = trafficCtx
   ctx.clearRect(0, 0, ICON_W, ICON_H)
-  if (trafficIconLoaded) {
-    ctx.drawImage(trafficIcon, 0, 0, ICON_H, ICON_H)
+  const logo = trayLogo ?? (trafficIconLoaded ? trafficIcon : null)
+  if (logo) {
+    ctx.drawImage(logo, 0, 0, ICON_H, ICON_H)
   }
   ctx.font = 'bold 18px "PingFang SC"'
-  ctx.fillStyle = 'black'
+  ctx.fillStyle = trayTextColor
   ctx.textAlign = 'right'
   ctx.fillText(`${calcTraffic(upload)}/s`, ICON_W, 15)
   ctx.fillText(`${calcTraffic(download)}/s`, ICON_W, 34)

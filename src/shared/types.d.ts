@@ -264,6 +264,16 @@ interface ICustomTrayIcons {
   tun?: string
 }
 
+// macOS 状态栏显示网速时托盘图标由渲染进程合成，这些是主进程告诉它该怎么画的参数
+interface ITrayTrafficStyle {
+  // 当前状态对应的托盘图标，data URL
+  icon: string
+  // 图标带状态色时为 true，主进程据此不再把合成图当作 template image
+  colored: boolean
+  // 文字颜色；template image 由系统自动反色，带色时必须自己跟随系统外观
+  textColor: string
+}
+
 interface IAppConfig {
   core: 'mihomo' | 'mihomo-alpha' | 'mihomo-smart' | 'mihomo-specific'
   specificVersion?: string

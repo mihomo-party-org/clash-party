@@ -1,6 +1,7 @@
 import { join } from 'path'
+import { readFileSync } from 'fs'
 import { is } from '@electron-toolkit/utils'
-import { BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, screen } from 'electron'
 import windowStateKeeper from 'electron-window-state'
 import { getAppConfig, patchAppConfig } from '../config'
 import { floatingWindowLogger } from '../utils/logger'
@@ -9,13 +10,49 @@ import { buildContextMenu, showTrayIcon } from './tray'
 
 export let floatingWindow: BrowserWindow | null = null
 
+const FLOATING_WINDOW_STATE_FILE = 'floating-window-state.json'
+const FLOATING_WINDOW_WIDTH = 135
+const FLOATING_WINDOW_HEIGHT = 42
+
 function logError(message: string, error?: unknown): void {
   floatingWindowLogger.log(`FloatingWindow Error: ${message}`, error).catch(() => {})
 }
 
+// electron-window-state 只在窗口**完整**落在某个显示器内时才恢复坐标，否则整个重置为 (0, 0)。
+// 悬浮窗常被拖到屏幕边缘只露出一部分，于是下次启动就跑到左上角。这里自己读一次状态文件，
+// 把上次的位置夹回最近显示器的工作区，位置本来就合法时结果与原来完全一致。
+function restoreFloatingWindowPosition(): { x?: number; y?: number } {
+  let saved: { x?: unknown; y?: unknown }
+  try {
+    saved = JSON.parse(
+      readFileSync(join(app.getPath('userData'), FLOATING_WINDOW_STATE_FILE), 'utf-8')
+    )
+  } catch {
+    return {}
+  }
+
+  const { x, y } = saved
+  if (!Number.isInteger(x) || !Number.isInteger(y)) return {}
+
+  const { workArea } = screen.getDisplayMatching({
+    x: x as number,
+    y: y as number,
+    width: FLOATING_WINDOW_WIDTH,
+    height: FLOATING_WINDOW_HEIGHT
+  })
+  const maxX = Math.max(workArea.x, workArea.x + workArea.width - FLOATING_WINDOW_WIDTH)
+  const maxY = Math.max(workArea.y, workArea.y + workArea.height - FLOATING_WINDOW_HEIGHT)
+
+  return {
+    x: Math.min(Math.max(x as number, workArea.x), maxX),
+    y: Math.min(Math.max(y as number, workArea.y), maxY)
+  }
+}
+
 async function createFloatingWindow(): Promise<void> {
   try {
-    const floatingWindowState = windowStateKeeper({ file: 'floating-window-state.json' })
+    const restoredPosition = restoreFloatingWindowPosition()
+    const floatingWindowState = windowStateKeeper({ file: FLOATING_WINDOW_STATE_FILE })
     const { customTheme = 'default.css', floatingWindowCompatMode = true } = await getAppConfig()
 
     const safeMode = process.env.FLOATING_SAFE_MODE === 'true'
@@ -23,10 +60,10 @@ async function createFloatingWindow(): Promise<void> {
       floatingWindowCompatMode || process.env.FLOATING_COMPAT_MODE === 'true' || safeMode
 
     const windowOptions: Electron.BrowserWindowConstructorOptions = {
-      width: 135,
-      height: 42,
-      x: floatingWindowState.x,
-      y: floatingWindowState.y,
+      width: FLOATING_WINDOW_WIDTH,
+      height: FLOATING_WINDOW_HEIGHT,
+      x: restoredPosition.x,
+      y: restoredPosition.y,
       show: false,
       frame: safeMode,
       alwaysOnTop: !safeMode,
@@ -66,6 +103,7 @@ async function createFloatingWindow(): Promise<void> {
       if (!win.isDestroyed()) {
         win.destroy()
       }
+      void restoreTrayIcon()
     })
 
     // 窗口销毁后必须清掉引用，否则 isVisible() 之类的调用会作用在已销毁窗口上抛错；
@@ -111,6 +149,17 @@ async function createFloatingWindow(): Promise<void> {
   }
 }
 
+// 只有在悬浮窗顶上时才允许关掉托盘图标（见 general-config.tsx）。悬浮窗一旦没了，
+// 必须把托盘找回来：否则主窗口一关就再没有任何入口，用户只能去任务管理器杀进程（#2046）。
+async function restoreTrayIcon(): Promise<void> {
+  try {
+    await showTrayIcon()
+    await patchAppConfig({ disableTray: false })
+  } catch (error) {
+    logError('Failed to restore tray icon', error)
+  }
+}
+
 export async function showFloatingWindow(): Promise<void> {
   try {
     if (floatingWindow && !floatingWindow.isDestroyed()) {
@@ -128,6 +177,8 @@ export async function showFloatingWindow(): Promise<void> {
     } else {
       await patchAppConfig({ floatingWindowCompatMode: true })
     }
+    // 这次没建起来，本次会话就没有悬浮窗可用了
+    await restoreTrayIcon()
     throw error
   }
 }
@@ -148,8 +199,7 @@ export async function closeFloatingWindow(): Promise<void> {
     floatingWindow.destroy()
     floatingWindow = null
   }
-  await showTrayIcon()
-  await patchAppConfig({ disableTray: false })
+  await restoreTrayIcon()
 }
 
 export async function showContextMenu(): Promise<void> {

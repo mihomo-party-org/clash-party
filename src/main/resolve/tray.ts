@@ -2,7 +2,7 @@ import { execFileSync } from 'child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { extname, join } from 'path'
-import { app, ipcMain, Menu, nativeImage, shell, Tray } from 'electron'
+import { app, ipcMain, Menu, nativeImage, shell, systemPreferences, Tray } from 'electron'
 import { t } from 'i18next'
 import {
   changeCurrentProfile,
@@ -427,7 +427,7 @@ export async function createTray(): Promise<void> {
     }
     // 移除旧监听器防止累积
     ipcMain.removeAllListeners('trayIconUpdate')
-    ipcMain.on('trayIconUpdate', async (_, png: string, enabled: boolean) => {
+    ipcMain.on('trayIconUpdate', async (_, png: string, enabled: boolean, colored = false) => {
       macTrafficIconEnabled = enabled
       const appConfig = await getAppConfig()
       const status = await getTrayIconStatus()
@@ -438,7 +438,8 @@ export async function createTray(): Promise<void> {
         return
       }
       const image = nativeImage.createFromDataURL(png).resize({ height: 16 })
-      image.setTemplateImage(true)
+      // 带状态色的图不能当 template image，否则 macOS 只取 alpha 通道，颜色会被丢掉（#1143）
+      image.setTemplateImage(!colored)
       tray?.setImage(image)
       await updateTrayToolTip(undefined, undefined, false)
     })
@@ -547,16 +548,49 @@ export async function closeTrayIcon(): Promise<void> {
   trayMenu = null
 }
 
+// macOS 的 Dock 图标显隐都是异步生效的，而且 Electron 的 Browser::DockHide 会在上一次 DockShow
+// 之后 1 秒内直接 return（规避 TransformProcessType 留下多个 Dock 图标的系统 bug）。
+// 快速点击托盘时 show/hide 交替出现，hide 被静默丢弃，Dock 图标就留在原地不再隐藏（#1867）。
+// 这里把显隐串行化，并在 Electron 的抑制窗口内推迟 hide，同时用期望状态做合并，避免过期操作生效。
+const DOCK_HIDE_SUPPRESSION = 1100
+let dockIconChain: Promise<void> = Promise.resolve()
+let desiredDockVisible: boolean | null = null
+let lastDockShowAt = 0
+
+function setDockIconVisible(visible: boolean): Promise<void> {
+  const dock = app.dock
+  if (process.platform !== 'darwin' || !dock) return Promise.resolve()
+
+  desiredDockVisible = visible
+  dockIconChain = dockIconChain
+    .then(async () => {
+      // 排队期间期望状态被改写，说明这次操作已经过期
+      if (desiredDockVisible !== visible) return
+      if (visible) {
+        if (dock.isVisible()) return
+        lastDockShowAt = Date.now()
+        await dock.show()
+        return
+      }
+      const suppressed = DOCK_HIDE_SUPPRESSION - (Date.now() - lastDockShowAt)
+      if (suppressed > 0) {
+        await new Promise((resolve) => setTimeout(resolve, suppressed))
+        if (desiredDockVisible !== visible) return
+      }
+      // 不能用 isVisible() 提前返回：hide 被抑制时激活策略仍是 regular，必须真的再调一次
+      dock.hide()
+    })
+    .catch(() => {})
+
+  return dockIconChain
+}
+
 export async function showDockIcon(): Promise<void> {
-  if (process.platform === 'darwin' && app.dock && !app.dock.isVisible()) {
-    await app.dock.show()
-  }
+  await setDockIconVisible(true)
 }
 
 export async function hideDockIcon(): Promise<void> {
-  if (process.platform === 'darwin' && app.dock && app.dock.isVisible()) {
-    app.dock.hide()
-  }
+  await setDockIconVisible(false)
 }
 
 const getIconPaths = (): Record<TrayIconStatus, string> => {
@@ -574,6 +608,33 @@ const getIconPaths = (): Record<TrayIconStatus, string> => {
       green: pngIconGreen,
       red: pngIconRed
     }
+  }
+}
+
+// macOS 打开“在状态栏显示网速”后，托盘图标改由渲染进程把图标和文字合成一张图，主进程只负责显示。
+// 合成图此前一律按 template image 处理，macOS 只取 alpha 通道，系统代理/虚拟网卡的状态色全部丢失，
+// 也就是“显示网速时图标颜色无效”（#1143）。这里把该用哪张图、文字用什么颜色告诉渲染进程，
+// 由它连状态色一起画进去；不带状态色时保持原样，继续走 template image。
+export async function getTrayTrafficStyle(): Promise<ITrayTrafficStyle> {
+  const { disableTrayIconColor = false } = await getAppConfig()
+  const status = await getTrayIconStatus()
+  const colored = !disableTrayIconColor && status !== 'white'
+  const source = nativeImage.createFromPath(colored ? getIconPaths()[status] : templateIcon)
+  // 只缩不放：状态图标是 512px，直接丢给渲染进程既浪费又要一次性缩到 36px；模板图标本身只有 64px
+  const icon =
+    source.getSize().height > customTrayIconSize * 8
+      ? source.resize({ height: customTrayIconSize * 8, quality: 'best' })
+      : source
+  // template image 由系统按菜单栏外观自动反色，自己上色时只能跟随系统外观。
+  // 这里读系统级设置而不是 nativeTheme：后者会被应用内的浅色/深色主题覆盖，而菜单栏跟的是系统。
+  const systemDark =
+    process.platform === 'darwin' &&
+    systemPreferences.getUserDefault('AppleInterfaceStyle', 'string') === 'Dark'
+
+  return {
+    icon: icon.isEmpty() ? '' : icon.toDataURL(),
+    colored,
+    textColor: colored && systemDark ? '#ffffff' : '#000000'
   }
 }
 
