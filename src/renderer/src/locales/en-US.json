@@ -509,6 +509,8 @@
   "tun.excludeAddress.notSaved": "The exclude list won't be saved while it contains invalid networks — fix or remove them first.",
   "tun.notifications.coreAuthSuccess": "Core Authorization Successful",
   "tun.notifications.firewallResetSuccess": "Firewall Reset Successful",
+  "tun.error.tunPermissionDenied": "Failed to start the TUN interface, try granting the core permissions manually",
+  "tun.error.tunStartFailed": "Failed to start the TUN interface, it has been turned off",
   "tun.permissions.title": "Administrator Privileges Required",
   "tun.permissions.message": "TUN mode requires administrator privileges. Restart the application now to get permissions?",
   "tun.permissions.failed": "Permission authorization failed",

@@ -7,7 +7,7 @@ import path from 'path'
 import os from 'os'
 import { existsSync, watch, type FSWatcher as NodeFSWatcher } from 'fs'
 import chokidar, { type FSWatcher as ChokidarWatcher } from 'chokidar'
-import { app, ipcMain } from 'electron'
+import { app, dialog, ipcMain } from 'electron'
 import { mainWindow } from '../window'
 import {
   getAppConfig,
@@ -84,6 +84,8 @@ const ctlParam = process.platform === 'win32' ? '-ext-ctl-pipe' : '-ext-ctl-unix
 const coreHookTimeout = 30000
 const automaticRestartDelay = 750
 const coreShutdownTimeout = 500
+// 同一次失败内核可能连打多行，10 秒内只提示一次，避免弹窗刷屏
+const tunFailureReportInterval = 10000
 const coreProcessNames = ['mihomo', 'mihomo-alpha', 'mihomo-smart'] as const
 
 // 核心进程状态
@@ -644,15 +646,46 @@ function setupCoreListeners(
     }
   })
 
+  let lastTunFailureAt = 0
+
   proc.stdout?.on('data', async (data) => {
     const str = data.toString()
 
     // TUN 权限错误
     if (str.includes('configure tun interface: operation not permitted')) {
+      lastTunFailureAt = Date.now()
       patchControledMihomoConfig({ tun: { enable: false } })
       mainWindow?.webContents.send('controledMihomoConfigUpdated')
       ipcMain.emit('updateTrayMenu')
       rejectStartup(i18next.t('tun.error.tunPermissionDenied'))
+      return
+    }
+
+    // 其它虚拟网卡创建失败：内核只打印 "Start TUN listening error" 并在 ReCreateTun 的 defer 里
+    // 把 tun.enable 置回 false，自身继续运行，界面却仍显示虚拟网卡已开启，
+    // 用户只能看到"开了没效果"。把内核原始错误反馈出来，并同步关掉开关。
+    const tunListenErrorLine = str
+      .split('\n')
+      .find((line: string) => line.includes('Start TUN listening error'))
+    if (tunListenErrorLine && Date.now() - lastTunFailureAt > tunFailureReportInterval) {
+      lastTunFailureAt = Date.now()
+      managerLogger.error('TUN listening error detected:', tunListenErrorLine.trim())
+      try {
+        await patchControledMihomoConfig({ tun: { enable: false } })
+      } catch (error) {
+        managerLogger.warn('Failed to disable TUN after listening error', error)
+      }
+      mainWindow?.webContents.send('controledMihomoConfigUpdated')
+      ipcMain.emit('updateTrayMenu')
+      // 不能用 showErrorBox/showMessageBoxSync：模态框会卡住主进程，内核 stdout 写满后会一起卡死
+      dialog
+        .showMessageBox({
+          type: 'error',
+          title: i18next.t('tun.error.tunStartFailed'),
+          message: i18next.t('tun.error.tunStartFailed'),
+          detail: tunListenErrorLine.trim()
+        })
+        .catch(() => {})
       return
     }
 
@@ -809,23 +842,29 @@ async function stopCoreInternal(force = false, cancelStartup = true): Promise<vo
   await cleanupStoppedCoreResources()
 }
 
-function stopCoreProcessAndStreams(cancelStartup = true): void {
+function stopCoreProcessAndStreams(
+  cancelStartup = true,
+  keepWatchdog = false
+): ChildProcess | null {
   if (cancelStartup) {
     cancelActiveStartup?.(new Error('Core startup was cancelled by a stop request'))
     cancelActiveStartup = null
   }
+  const stoppedChild = child
   if (child) {
     child.removeAllListeners()
     child.kill('SIGINT')
     child = null
   }
 
-  stopCoreProcessWatchdog()
+  if (!keepWatchdog) stopCoreProcessWatchdog()
 
   stopMihomoTraffic()
   stopMihomoConnections()
   stopMihomoLogs()
   stopMihomoMemory()
+
+  return stoppedChild
 }
 
 async function cleanupStoppedCoreResources(): Promise<void> {
@@ -846,13 +885,19 @@ export async function stopCore(force = false): Promise<void> {
 }
 
 // 退出不排队等待启动/重启完成：先同步终止子进程，再做有界清理。
+// SIGINT 之后必须确认核心真的退出：core.pid 只在轻量模式写入，普通运行时
+// stopPidFileCore 是空操作，没有任何 SIGKILL 兜底。核心若在退出预算内没走完
+// （例如 TUN 拆除慢），主进程 app.exit() 后它就成了孤儿进程。
+// Linux watchdog 也要留到确认退出之后再撤，否则最后一道兜底先于核心消失。
 export async function stopCoreForExit(): Promise<void> {
   coreOperationPhase = 'shutting-down'
   cancelAutomaticRestart()
-  stopCoreProcessAndStreams()
+  const stoppedChild = stopCoreProcessAndStreams(true, true)
   await Promise.allSettled([
     recoverDNS({ force: true, timeout: 750 }),
-    cleanupStoppedCoreResources()
+    cleanupStoppedCoreResources(),
+    // 确认退出后才撤 watchdog；确认失败时留着它，让它在主进程退出时补 kill -9。
+    ensureCoreProcessExited(stoppedChild).then(() => stopCoreProcessWatchdog(stoppedChild?.pid))
   ])
 }
 
@@ -995,7 +1040,15 @@ export async function checkProfileConfig(
 
       if (errorLines.length === 0) {
         const allLines = stdout.split('\n').filter((line) => line.trim().length > 0)
-        throw new Error(`${i18next.t('mihomo.error.profileCheckFailed')}:\n${allLines.join('\n')}`)
+        // 内核根本没能启动时（动态链接失败、缺符号、架构不匹配）只有 stderr 有内容，
+        // stdout 为空，此前拼出来的是一句没有任何原因的“配置检查失败”。
+        const detailLines =
+          allLines.length > 0
+            ? allLines
+            : (stderr ?? '').split('\n').filter((line) => line.trim().length > 0)
+        throw new Error(
+          `${i18next.t('mihomo.error.profileCheckFailed')}:\n${detailLines.join('\n')}`
+        )
       } else {
         throw new Error(
           `${i18next.t('mihomo.error.profileCheckFailed')}:\n${errorLines.join('\n')}`
