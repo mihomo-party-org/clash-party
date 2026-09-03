@@ -1,10 +1,12 @@
-import { exec } from 'child_process'
+import { exec, execFile } from 'child_process'
 import { promisify } from 'util'
 import { net } from 'electron'
 import axios from 'axios'
 import { getAppConfig, patchAppConfig } from '../config'
+import { managerLogger } from '../utils/logger'
 
 const execPromise = promisify(exec)
+const execFilePromise = promisify(execFile)
 const helperSocketPath = '/tmp/mihomo-party-helper.sock'
 
 let setPublicDNSTimer: NodeJS.Timeout | null = null
@@ -61,14 +63,22 @@ async function setDNS(dns: string, timeout?: number): Promise<void> {
     // 退出清理使用有界 helper 请求；此时不能再弹授权框或启动无界的 osascript fallback。
     if (timeout !== undefined) throw error
     // fallback to osascript if helper not available
-    const shell = `networksetup -setdnsservers "${service}" ${dns}`
+    // 服务名要嵌进 AppleScript 字符串字面量里，双引号/反斜杠不转义会让 osascript 编译期直接语法错误；
+    // 再用 execFile 直接传参，省掉 `osascript -e '...'` 那层 shell 单引号拼接。
+    const escapedService = service.replace(/\\/g, '\\\\\\\\').replace(/"/g, '\\\\\\"')
+    const shell = `networksetup -setdnsservers \\"${escapedService}\\" ${dns}`
     const command = `do shell script "${shell}" with administrator privileges`
-    await execPromise(`osascript -e '${command}'`)
+    await execFilePromise('osascript', ['-e', command])
   }
 }
 
 export async function setPublicDNS(): Promise<void> {
   if (process.platform !== 'darwin') return
+  // 两条重试链必须互斥，否则设置与恢复会互相覆盖
+  if (recoverDNSTimer) {
+    clearTimeout(recoverDNSTimer)
+    recoverDNSTimer = null
+  }
   if (net.isOnline()) {
     const { originDNS } = await getAppConfig()
     if (!originDNS) {
@@ -77,13 +87,19 @@ export async function setPublicDNS(): Promise<void> {
     }
   } else {
     if (setPublicDNSTimer) clearTimeout(setPublicDNSTimer)
-    setPublicDNSTimer = setTimeout(() => setPublicDNS(), 5000)
+    // 定时器回调里的 Promise 无人接管，不 catch 会变成主进程未捕获异常
+    setPublicDNSTimer = setTimeout(() => {
+      void setPublicDNS().catch((e) => {
+        managerLogger.error('retry setPublicDNS failed', e)
+      })
+    }, 5000)
   }
 }
 
 export async function recoverDNS(options: DNSOperationOptions = {}): Promise<void> {
   if (process.platform !== 'darwin') return
-  if (options.force && setPublicDNSTimer) {
+  // 无条件取消待执行的 setPublicDNS 重试：内核已停止，再排下去会在没有内核的情况下把系统 DNS 改掉且无人恢复
+  if (setPublicDNSTimer) {
     clearTimeout(setPublicDNSTimer)
     setPublicDNSTimer = null
   }
@@ -95,6 +111,11 @@ export async function recoverDNS(options: DNSOperationOptions = {}): Promise<voi
     }
   } else {
     if (recoverDNSTimer) clearTimeout(recoverDNSTimer)
-    recoverDNSTimer = setTimeout(() => recoverDNS(options), 5000)
+    // 定时器回调里的 Promise 无人接管，不 catch 会变成主进程未捕获异常
+    recoverDNSTimer = setTimeout(() => {
+      void recoverDNS(options).catch((e) => {
+        managerLogger.error('retry recoverDNS failed', e)
+      })
+    }, 5000)
   }
 }
