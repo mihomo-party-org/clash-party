@@ -503,12 +503,13 @@ const Connections: React.FC = () => {
       })
     }
 
+    let unsubscribe: (() => void) | null = null
     if (!isPaused) {
-      window.electron.ipcRenderer.on('mihomoConnections', handler)
+      unsubscribe = window.electron.ipcRenderer.on('mihomoConnections', handler)
     }
 
     return (): void => {
-      window.electron.ipcRenderer.removeListener('mihomoConnections', handler)
+      unsubscribe?.()
       if (frameId !== undefined) window.cancelAnimationFrame(frameId)
       pendingInfo = undefined
     }

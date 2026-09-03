@@ -19,10 +19,7 @@ export const RulesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const handler = (): void => {
       mutate()
     }
-    window.electron.ipcRenderer.on('rulesUpdated', handler)
-    return (): void => {
-      window.electron.ipcRenderer.removeListener('rulesUpdated', handler)
-    }
+    return window.electron.ipcRenderer.on('rulesUpdated', handler)
   }, [mutate])
 
   return <RulesContext.Provider value={{ rules, mutate }}>{children}</RulesContext.Provider>

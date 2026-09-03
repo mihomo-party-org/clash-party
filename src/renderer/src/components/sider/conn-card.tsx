@@ -152,10 +152,7 @@ const ConnCard: React.FC<Props> = (props) => {
   }, [])
 
   useEffect(() => {
-    window.electron.ipcRenderer.on('mihomoTraffic', handleTraffic)
-    return (): void => {
-      window.electron.ipcRenderer.removeListener('mihomoTraffic', handleTraffic)
-    }
+    return window.electron.ipcRenderer.on('mihomoTraffic', handleTraffic)
   }, [handleTraffic])
 
   // showTraffic 开关切换时统一管理托盘图标

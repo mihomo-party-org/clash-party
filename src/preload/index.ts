@@ -199,6 +199,13 @@ type ListenChannel = (typeof validListenChannels)[number]
 type SendChannel = (typeof validSendChannels)[number]
 
 type IpcListener = (event: Electron.IpcRendererEvent, ...args: unknown[]) => void
+type IpcUnsubscribe = () => void
+
+// contextBridge 每次把渲染层函数传进 preload 世界时都会生成一个新的代理包装，
+// on() 与 removeListener() 收到的包装对象并不相同，跨调用按引用匹配永远无法移除监听器。
+// 监听器残留后组件卸载仍在消费 IPC 消息（连接页每秒收到全量连接列表），
+// 对已卸载组件持续 dispatch，update 挂在 React 内部队列上无人消费，内存无界增长。
+// 因此 on() 返回一个取消闭包，闭包捕获本次实际注册进 ipcRenderer 的代理，跨调用移除可靠。
 const listenerMap = new Map<ListenChannel, Set<IpcListener>>()
 
 // 安全的 IPC API，只暴露白名单内的 channels
@@ -215,19 +222,31 @@ const electronAPI = {
         ipcRenderer.send(channel, ...args)
       }
     },
-    on: (channel: ListenChannel, listener: IpcListener): void => {
+    on: (channel: ListenChannel, listener: IpcListener): IpcUnsubscribe => {
       if (validListenChannels.includes(channel)) {
-        if (!listenerMap.has(channel)) {
-          listenerMap.set(channel, new Set())
-        }
-        listenerMap.get(channel)?.add(listener)
         ipcRenderer.on(channel, listener)
+        let byChannel = listenerMap.get(channel)
+        if (!byChannel) {
+          byChannel = new Set()
+          listenerMap.set(channel, byChannel)
+        }
+        byChannel.add(listener)
+        return () => {
+          ipcRenderer.removeListener(channel, listener)
+          byChannel.delete(listener)
+          if (byChannel.size === 0) {
+            listenerMap.delete(channel)
+          }
+        }
       }
+      return () => {}
     },
     removeListener: (channel: ListenChannel, listener: IpcListener): void => {
       if (validListenChannels.includes(channel)) {
-        listenerMap.get(channel)?.delete(listener)
+        // 仅移除同一次调用注册的监听器。跨调用场景请使用 on() 返回的取消闭包，
+        // 因为 contextBridge 每次传函数都会生成新代理，这里无法匹配旧代理。
         ipcRenderer.removeListener(channel, listener)
+        listenerMap.get(channel)?.delete(listener)
       }
     },
     removeAllListeners: (channel: ListenChannel): void => {

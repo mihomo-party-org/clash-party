@@ -26,10 +26,7 @@ export function createConfigContext<T>(options: CreateConfigContextOptions<T>) {
       const handler = (): void => {
         mutate()
       }
-      window.electron.ipcRenderer.on(ipcEvent, handler)
-      return () => {
-        window.electron.ipcRenderer.removeListener(ipcEvent, handler)
-      }
+      return window.electron.ipcRenderer.on(ipcEvent, handler)
     }, [mutate])
 
     return <Context.Provider value={{ config, mutate }}>{children}</Context.Provider>

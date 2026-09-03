@@ -48,10 +48,10 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
       const info = args[0] as IMihomoMemoryInfo
       setMem(info.inuse)
     }
-    window.electron.ipcRenderer.on('mihomoMemory', onMemory)
+    const unsubscribeMemory = window.electron.ipcRenderer.on('mihomoMemory', onMemory)
     return (): void => {
       PubSub.unsubscribe(token)
-      window.electron.ipcRenderer.removeListener('mihomoMemory', onMemory)
+      unsubscribeMemory()
     }
   }, [mutate])
 

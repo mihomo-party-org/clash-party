@@ -265,10 +265,7 @@ const NetworkTopologyCard: React.FC = () => {
       const info = args[0] as IMihomoConnectionsInfo
       setConnections(info.connections ?? [])
     }
-    window.electron.ipcRenderer.on('mihomoConnections', handler)
-    return () => {
-      window.electron.ipcRenderer.removeListener('mihomoConnections', handler)
-    }
+    return window.electron.ipcRenderer.on('mihomoConnections', handler)
   }, [isPaused])
 
   const currentConnections = isPaused && frozenRef.current ? frozenRef.current : connections

@@ -32,10 +32,7 @@ const UpdaterModal: React.FC<Props> = (props) => {
     const handler = (_e: Electron.IpcRendererEvent, ...args: unknown[]): void => {
       setProgress(args[0] as { status: 'downloading' | 'verifying'; percent?: number })
     }
-    window.electron.ipcRenderer.on('updateDownloadProgress', handler)
-    return () => {
-      window.electron.ipcRenderer.removeListener('updateDownloadProgress', handler)
-    }
+    return window.electron.ipcRenderer.on('updateDownloadProgress', handler)
   }, [])
 
   return (

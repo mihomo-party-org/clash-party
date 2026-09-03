@@ -55,10 +55,8 @@ const FloatingApp: React.FC = () => {
   }, [])
 
   useEffect(() => {
-    window.electron.ipcRenderer.on('mihomoTraffic', handleTraffic)
-    return (): void => {
-      window.electron.ipcRenderer.removeListener('mihomoTraffic', handleTraffic)
-    }
+    const unsubscribe = window.electron.ipcRenderer.on('mihomoTraffic', handleTraffic)
+    return unsubscribe
   }, [handleTraffic])
 
   return (

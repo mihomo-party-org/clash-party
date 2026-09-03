@@ -40,11 +40,11 @@ const onLog = (_e: unknown, ...args: unknown[]): void => {
 // Keep streaming while this page is hidden so returning users can see intervening logs.
 // The session cache is bounded by MAX_CACHED_LOGS, so stopping on unmount hurts UX
 // without providing meaningful memory savings.
-window.electron.ipcRenderer.on('mihomoLogs', onLog)
+const unsubscribeLogs = window.electron.ipcRenderer.on('mihomoLogs', onLog)
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
-    window.electron.ipcRenderer.removeListener('mihomoLogs', onLog)
+    unsubscribeLogs()
   })
 }
 

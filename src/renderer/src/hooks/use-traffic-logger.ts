@@ -78,12 +78,12 @@ export function useTrafficLogger(enabled = true): void {
     void legacyTrafficUsageDatabase
       .migrateLegacyLogs()
       .catch((error) => console.error('[TrafficLogger] migration failed', error))
-    window.electron.ipcRenderer.on('mihomoConnections', handler)
+    const unsubscribe = window.electron.ipcRenderer.on('mihomoConnections', handler)
 
     return (): void => {
       disposed = true
       clearFlushTimer()
-      window.electron.ipcRenderer.removeListener('mihomoConnections', handler)
+      unsubscribe()
       accumulator.setEnabled(false)
     }
   }, [enabled])
