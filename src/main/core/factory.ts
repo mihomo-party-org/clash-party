@@ -161,8 +161,20 @@ export async function generateProfile(
   if (!controlSniff) {
     delete controledMihomoConfig.sniffer
   }
+  // 关闭「自定义 hosts」开关时必须不再下发 hosts：内核的 use-hosts 只关掉 DNS 服务的 hosts
+  // 中间件，顶层 hosts 依然会被写进 resolver.DefaultHosts 并在连接解析时命中，
+  // 单靠 use-hosts: false 关不掉
+  if (controledMihomoConfig.dns && !controledMihomoConfig.dns['use-hosts']) {
+    delete controledMihomoConfig.hosts
+  }
   if (!useNameserverPolicy) {
     delete controledMihomoConfig?.dns?.['nameserver-policy']
+  }
+  // 空的 TUN 排除地址表示「界面上没有设置」，不能让它覆盖掉配置文件或覆写里已有的
+  // route-exclude-address（与下面清理空 lan-allowed-ips 同理）
+  if (controledMihomoConfig.tun && !controledMihomoConfig.tun['route-exclude-address']?.length) {
+    controledMihomoConfig.tun = { ...controledMihomoConfig.tun }
+    delete controledMihomoConfig.tun['route-exclude-address']
   }
 
   const profile = deepMerge(currentProfile, controledMihomoConfig)
