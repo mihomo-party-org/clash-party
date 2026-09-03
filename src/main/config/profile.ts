@@ -425,11 +425,15 @@ async function fetchAndValidateSubscription(options: FetchOptions): Promise<Fetc
 
 export async function createProfile(item: Partial<IProfileItem>): Promise<IProfileItem> {
   const id = item.id || new Date().getTime().toString(16)
+  // 手输的订阅链接常带上首尾空白（中文输入法下还可能是全角空格），
+  // 这类字符不会被 URL 解析器忽略，会让请求直接以 Invalid URL 失败，
+  // 并且原样存进配置，之后每次自动更新都失败。存之前统一去掉。
+  const url = typeof item.url === 'string' ? item.url.trim() : item.url
   const newItem: IProfileItem = {
     id,
     name: item.name || (item.type === 'remote' ? 'Remote File' : 'Local File'),
     type: item.type || 'local',
-    url: item.url,
+    url,
     substore: item.substore || false,
     interval: item.interval || 0,
     override: item.override || [],
@@ -450,9 +454,9 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
   }
 
   // Remote
-  if (!item.url) throw new Error('Empty URL')
+  if (!url) throw new Error('Empty URL')
 
-  const profileUrl = item.url
+  const profileUrl = url
   await profileLogger.info(
     `Creating/updating remote profile id=${id} name=${newItem.name} url=${redactSubscriptionUrl(
       profileUrl
@@ -578,6 +582,20 @@ export async function getProfileStr(id: string | undefined): Promise<string> {
 export async function setProfileStr(id: string, content: string): Promise<void> {
   // 读取最新的配置
   const { current } = await getProfileConfig(true)
+  // 内容没变就不要热重载：内核的 ApplyConfig 会 OnSuspend 整条隧道、重载 DNS 与外部资源、
+  // 最后 ResetConnection，代价是一次真实的断流。订阅定时刷新经常拉回一模一样的文件
+  // （机场用 profile-update-interval 头指定间隔，半小时的很常见），
+  // 那种情况下重载纯属白白断网一次。
+  if (existsSync(profilePath(id))) {
+    try {
+      if ((await readFile(profilePath(id), 'utf-8')) === content) {
+        profileLogger.info(`Profile ${id} unchanged, skipping reload`)
+        return
+      }
+    } catch (error) {
+      profileLogger.warn(`Failed to compare profile ${id} with the stored one`, error)
+    }
+  }
   await atomicWriteFile(profilePath(id), content, { encoding: 'utf8' })
   if (current === id) {
     try {
@@ -609,12 +627,11 @@ export async function parseProfileContent(
 ): Promise<IMihomoConfig> {
   const profile = await decryptAgeContent(content, ageSecretKey, `profile "${id || 'default'}"`)
 
-  // 检测是否为 HTML 内容（订阅返回错误页面）
+  // 检测是否为 HTML 内容（订阅返回错误页面）；HTML 标签大小写不敏感，逐个大小写变体列不完
   const trimmed = profile.trim()
   if (
-    trimmed.startsWith('<!DOCTYPE') ||
-    trimmed.startsWith('<html') ||
-    trimmed.startsWith('<HTML') ||
+    /^<!doctype/i.test(trimmed) ||
+    /^<html/i.test(trimmed) ||
     /<style[^>]*>/i.test(trimmed.slice(0, 500))
   ) {
     throw new Error(
