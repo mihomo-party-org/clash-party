@@ -281,21 +281,43 @@ export async function restartAsAdmin(forTun: boolean = true): Promise<void> {
   const escapedExePath = exePath.replace(/'/g, "''")
   const argsString = restartArgs.map((arg) => arg.replace(/'/g, "''")).join("', '")
 
-  // 使用 Start-Sleep 延迟启动，确保旧进程完全退出后再启动新进程
-  const command =
+  const startProcess =
     restartArgs.length > 0
-      ? `powershell -NoProfile -Command "Start-Sleep -Milliseconds 1000; Start-Process -FilePath '${escapedExePath}' -ArgumentList '${argsString}' -Verb RunAs"`
-      : `powershell -NoProfile -Command "Start-Sleep -Milliseconds 1000; Start-Process -FilePath '${escapedExePath}' -Verb RunAs"`
+      ? `Start-Process -FilePath '${escapedExePath}' -ArgumentList '${argsString}' -Verb RunAs`
+      : `Start-Process -FilePath '${escapedExePath}' -Verb RunAs`
+  // 用户取消 UAC 时 Start-Process 只写非终止错误，这里强制成终止错误并返回非零退出码，才能捕获失败
+  const command = `$ErrorActionPreference='Stop'; try { ${startProcess} } catch { exit 1 }`
 
   managerLogger.info('Restarting as administrator with command', command)
 
-  // 先启动 PowerShell（它会等待 1 秒），然后立即退出当前进程
-  exec(command, { windowsHide: true }, (error) => {
-    if (error) {
-      managerLogger.error('Failed to start PowerShell for admin restart', error)
+  // UAC 同意框只会为前台进程链切到安全桌面。旧实现让 PowerShell 延迟 1 秒后才提权、
+  // 本进程却已退出，提权由一个后台进程发起，弹窗只会在任务栏闪烁甚至被压制；
+  // 因此必须在本进程仍在前台时同步发起提权，成功后再退出。
+  try {
+    const { mainWindow } = await import('../index')
+    mainWindow?.focus()
+  } catch {
+    // ignore
+  }
+
+  try {
+    await execFilePromise('powershell', ['-NoProfile', '-Command', command], {
+      windowsHide: true,
+      timeout: 180000
+    })
+  } catch (error) {
+    managerLogger.error('Failed to restart as administrator', error)
+    // 提权被取消或失败时应用不再退出，把前面停掉的内核恢复回去，避免用户断网
+    try {
+      const { restartCore } = await import('./manager')
+      await restartCore(true)
+    } catch (recoverError) {
+      managerLogger.error('Failed to recover core after admin restart failure', recoverError)
     }
-  })
-  managerLogger.info('PowerShell command started, quitting app immediately')
+    throw new Error(`Failed to restart as administrator: ${error}`)
+  }
+
+  managerLogger.info('Elevated instance launched, quitting app')
   app.exit(0)
 }
 
