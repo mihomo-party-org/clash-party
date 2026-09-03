@@ -127,3 +127,56 @@ describe('remote profile candidate validation', () => {
     expect(mocks.hotReload).toHaveBeenCalledOnce()
   })
 })
+
+describe('profile-update-interval header', () => {
+  const withInterval = (hours: string): void => {
+    mocks.axiosGet.mockResolvedValue({
+      status: 200,
+      data: newProfile,
+      headers: { 'content-type': 'text/yaml', 'profile-update-interval': hours }
+    })
+  }
+
+  it('enables auto update on first import when the server sends an interval', async () => {
+    withInterval('24')
+
+    const item = await createProfile({
+      type: 'remote',
+      name: 'Remote',
+      url: 'https://example.test'
+    })
+
+    expect(item.interval).toBe(24 * 60)
+    expect(item.autoUpdate).toBe(true)
+  })
+
+  it('keeps auto update disabled when the user turned it off', async () => {
+    withInterval('24')
+
+    const item = await createProfile({
+      id: 'remote',
+      type: 'remote',
+      name: 'Remote',
+      url: 'https://example.test',
+      autoUpdate: false
+    })
+
+    expect(item.interval).toBe(24 * 60)
+    expect(item.autoUpdate).toBe(false)
+  })
+
+  it('leaves auto update untouched when allowFixedInterval is set', async () => {
+    withInterval('24')
+
+    const item = await createProfile({
+      type: 'remote',
+      name: 'Remote',
+      url: 'https://example.test',
+      interval: 60,
+      allowFixedInterval: true
+    })
+
+    expect(item.interval).toBe(60)
+    expect(item.autoUpdate).toBe(false)
+  })
+})

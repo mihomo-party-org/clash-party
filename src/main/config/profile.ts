@@ -522,6 +522,12 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
       const hours = Number(headers['profile-update-interval'])
       if (Number.isFinite(hours) && hours > 0) {
         newItem.interval = Math.min(Math.ceil(hours * 60), MAX_PROFILE_INTERVAL_MINUTES)
+        // 首次导入时，服务端下发了更新周期即视为要求自动更新，与 v1.9.0 之前的行为一致。
+        // 仅在新建时生效：item.id 只有首次导入才缺省，后续定时刷新传入的是带 id 的完整条目，
+        // 因此用户之后在编辑弹窗里关闭自动更新的选择不会被覆盖。
+        if (!item.id) {
+          newItem.autoUpdate = true
+        }
       }
     }
     if (headers['subscription-userinfo']) {
