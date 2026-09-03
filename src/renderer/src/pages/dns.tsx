@@ -60,8 +60,9 @@ const DNS: React.FC = () => {
     proxyServerNameserver,
     directNameserver,
     fallback,
-    fallbackGeoip: (fallbackFilter?.geoip ||
-      DEFAULT_MIHOMO_DNS_CONFIG['fallback-filter']?.geoip ||
+    // 用 ?? 而非 ||：geoip 是允许显式关闭的开关，用 || 会把存下来的 false 当成"没配"再退回默认的 true
+    fallbackGeoip: (fallbackFilter?.geoip ??
+      DEFAULT_MIHOMO_DNS_CONFIG['fallback-filter']?.geoip ??
       true) as string | true | string[],
     fallbackGeoipCode:
       fallbackFilter?.['geoip-code'] ||
@@ -200,7 +201,8 @@ const DNS: React.FC = () => {
                 'direct-nameserver': values.directNameserver,
                 fallback: values.fallback,
                 'fallback-filter': {
-                  ...(values.fallbackGeoip ? { geoip: values.fallbackGeoip } : {}),
+                  // geoip 必须无条件写出：主进程只合并补丁里出现的 key，省略它等于保留旧的 true，开关就永远关不掉
+                  geoip: values.fallbackGeoip,
                   'geoip-code': values.fallbackGeoipCode,
                   ipcidr: values.fallbackIpcidr,
                   domain: values.fallbackDomain
