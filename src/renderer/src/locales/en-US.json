@@ -31,6 +31,7 @@
   "common.notification.globalMode": "Global Mode",
   "common.notification.directMode": "Direct Mode",
   "common.error.appCrash": "Application crashed :( Please submit the following information to the developer to troubleshoot",
+  "common.error.reload": "Reload",
   "common.error.copyErrorMessage": "Copy Error Message",
   "common.error.invalidCron": "Invalid Cron expression",
   "common.error.getBackupListFailed": "Failed to get backup list: {{error}}",

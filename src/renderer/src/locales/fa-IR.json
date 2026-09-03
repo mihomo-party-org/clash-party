@@ -31,6 +31,7 @@
   "common.notification.globalMode": "حالت جهانی",
   "common.notification.directMode": "حالت مستقیم",
   "common.error.appCrash": "برنامه دچار خطا شد :( لطفا اطلاعات زیر را برای رفع مشکل به توسعه‌دهنده ارسال کنید",
+  "common.error.reload": "بارگذاری مجدد",
   "common.error.copyErrorMessage": "کپی پیام خطا",
   "common.error.invalidCron": "عبارت Cron نامعتبر است",
   "common.error.getBackupListFailed": "دریافت لیست پشتیبان با خطا مواجه شد: {{error}}",

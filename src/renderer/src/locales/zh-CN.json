@@ -31,6 +31,7 @@
   "common.notification.globalMode": "全局模式",
   "common.notification.directMode": "直连模式",
   "common.error.appCrash": "应用崩溃了 :( 请将以下信息提交给开发者以排查错误",
+  "common.error.reload": "重新加载",
   "common.error.copyErrorMessage": "复制报错信息",
   "common.error.invalidCron": "无效的 Cron 表达式",
   "common.error.getBackupListFailed": "获取备份列表失败：{{error}}",

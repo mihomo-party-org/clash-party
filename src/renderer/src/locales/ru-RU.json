@@ -31,6 +31,7 @@
   "common.notification.globalMode": "Глобальный",
   "common.notification.directMode": "Прямой",
   "common.error.appCrash": "Приложение завершилось аварийно :( Пожалуйста, отправьте следующую информацию разработчику для устранения проблемы",
+  "common.error.reload": "Перезагрузить",
   "common.error.copyErrorMessage": "Копировать сообщение об ошибке",
   "common.error.invalidCron": "Неверное выражение Cron",
   "common.error.getBackupListFailed": "Не удалось получить список резервных копий: {{error}}",
