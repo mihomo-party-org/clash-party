@@ -150,8 +150,18 @@ export async function readVault(id: string): Promise<VaultReadResult> {
   // Linux 的内存兜底只适用于本次会话新建的 vault；已有密文在后端恢复前不可读取。
   if (mode === 'memory' || mode === 'unavailable') return { kind: 'unavailable' }
 
+  // 读文件单独 try：文件系统瞬时错误（EBUSY/EPERM/EMFILE 等，Windows 上杀软或索引服务
+  // 短暂锁住刚写完的文件很常见）不代表密文损坏，按“暂时不可用”走退避重试；
+  // 若归为 invalid，调用方会把健康插件永久标成 needs-reauth，用户被迫重走 OAuth 并占用设备额度。
+  let encrypted: Buffer
   try {
-    const encrypted = await readFile(path)
+    encrypted = await readFile(path)
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { kind: 'missing' }
+    return { kind: 'unavailable' }
+  }
+
+  try {
     const { result, shouldReEncrypt } =
       mode === 'persistent-async'
         ? await safeStorage.decryptStringAsync(encrypted)

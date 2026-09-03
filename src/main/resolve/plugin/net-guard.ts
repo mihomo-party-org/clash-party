@@ -10,7 +10,9 @@ function isPrivateIpv4(ip: string): boolean {
   if (a === 127) return true
   if (a === 169 && b === 254) return true // link-local + cloud metadata
   if (a === 172 && b >= 16 && b <= 31) return true
-  if (a === 192 && b === 0) return true // IETF protocol assignments
+  // 特殊用途只有 192.0.0.0/24，写成 /16 会把 192.0.32.x（ICANN）、192.0.78.x（WordPress.com）
+  // 这些正常公网地址误判为私网，导致机场网关直接连不上
+  if (a === 192 && b === 0 && parts[2] === 0) return true // IETF protocol assignments
   if (a === 192 && b === 0 && parts[2] === 2) return true // TEST-NET-1
   if (a === 192 && b === 168) return true
   if (a === 100 && b >= 64 && b <= 127) return true // CGNAT

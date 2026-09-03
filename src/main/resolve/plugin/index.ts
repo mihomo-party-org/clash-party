@@ -45,6 +45,10 @@ async function netOpts(item?: IPluginItem): Promise<NetOpts> {
   if (!useProxy) return { timeout: subscriptionTimeout }
   const { getControledMihomoConfig } = await import('../../config/controledMihomo')
   const { 'mixed-port': port = 7890 } = await getControledMihomoConfig()
+  // 用户关掉混合端口时该字段是 0（不是 undefined，解构默认值兜不住）。此时若仍拼出
+  // 127.0.0.1:0 会真的去连端口 0，稳定 ECONNREFUSED 并被误判成网关退役而进入长退避；
+  // 与 profile.ts 的普通订阅一致：端口未启用就直连，不走代理。
+  if (!port) return { timeout: subscriptionTimeout }
   return { timeout: subscriptionTimeout, proxy: { host: '127.0.0.1', port } }
 }
 
@@ -98,19 +102,30 @@ export async function installRemotePlugin(url: string): Promise<IPluginItem> {
 
 // 写订阅 profile + 回填 profileId + 置 active + 清失败状态（首次登录与复用设备登录共用）
 async function finishLogin(id: string, record: IPluginItem, content: string): Promise<void> {
-  const profileId = record.profileId ?? randomUUID()
+  // 浏览器登录可能耗时数分钟，期间用户可能已删除该插件、或改过 useProxy 等设置。
+  // 必须以最新记录为准：用登录开始时的快照写回会把已删除的 profile 和定时器“复活”，
+  // 也会覆盖掉用户中途的修改。
+  const latest = await getPluginItem(id)
+  if (!latest) {
+    // 记录已被删除：回收本次 enroll 的设备并清掉重新写出的 vault，
+    // 否则服务端设备额度被永久占用（没有记录就再也无法 revoke），磁盘上也留下孤儿密文。
+    await revokePluginDevice(id)
+    await removeVault(id)
+    return
+  }
+  const profileId = latest.profileId ?? record.profileId ?? randomUUID()
   await upsertPluginProfile(
     {
       profileId,
       pluginId: id,
-      name: record.name,
-      interval: record.interval ?? DEFAULT_PLUGIN_INTERVAL_MIN,
-      autoUpdate: record.autoUpdate ?? true
+      name: latest.name,
+      interval: latest.interval ?? DEFAULT_PLUGIN_INTERVAL_MIN,
+      autoUpdate: latest.autoUpdate ?? true
     },
     content
   )
   await updatePluginItem({
-    ...record,
+    ...latest,
     profileId,
     status: 'active',
     updated: Date.now(),
@@ -294,18 +309,21 @@ export async function updatePluginProfile(id: string, force = false): Promise<vo
   const net = await netOpts(record)
   try {
     const content = await fetchWithRediscovery(id, record, vault, net)
+    // 拉取期间插件可能已被删除：用陈旧快照写回会重建 profile 文件和更新定时器
+    const latest = await getPluginItem(id)
+    if (!latest?.profileId) return
     await upsertPluginProfile(
       {
-        profileId: record.profileId!,
+        profileId: latest.profileId,
         pluginId: id,
-        name: record.name,
-        interval: record.interval ?? DEFAULT_PLUGIN_INTERVAL_MIN,
-        autoUpdate: record.autoUpdate ?? true
+        name: latest.name,
+        interval: latest.interval ?? DEFAULT_PLUGIN_INTERVAL_MIN,
+        autoUpdate: latest.autoUpdate ?? true
       },
       content
     )
     await updatePluginItem({
-      ...record,
+      ...latest,
       status: 'active',
       updated: Date.now(),
       failureCount: 0,
@@ -315,16 +333,19 @@ export async function updatePluginProfile(id: string, force = false): Promise<vo
     })
   } catch (e) {
     const now = Date.now()
+    // 同上：失败分支也要确认记录还在，否则 updatePluginItem 会抛 'Plugin not found'
+    const latest = await getPluginItem(id)
+    if (!latest) return
     if (e instanceof GatewayError && e.kind === 'revoked') {
       await updatePluginItem({
-        ...record,
+        ...latest,
         status: 'needs-reauth',
         lastUpdateErrorType: 'auth',
         lastUpdateErrorAt: now,
         nextRetryAt: undefined
       })
     } else {
-      await recordTransientUpdateFailure(record)
+      await recordTransientUpdateFailure(latest)
     }
   }
   notifyRenderer()
