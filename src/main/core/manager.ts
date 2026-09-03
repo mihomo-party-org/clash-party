@@ -939,10 +939,27 @@ export async function keepCoreAlive(): Promise<boolean> {
   }
 }
 
+// PAC 脚本由主进程内的 HTTP 服务提供，轻量模式下主进程退出后该服务随之消失，
+// 而系统代理仍指向已经失效的 PAC URL，结果就是一进轻量模式就断网。
+// 退出前把系统代理改写成等价的手动代理，直接指向仍在后台运行的内核端口。
+// 下次正常启动时 init() 会按配置里的 auto 模式重新拉起 PAC 服务并写回 PAC 地址。
+async function keepSysProxyUsableWithoutMainProcess(): Promise<void> {
+  try {
+    const { sysProxy } = await getAppConfig()
+    if (!sysProxy?.enable || (sysProxy.mode ?? 'manual') !== 'auto') return
+    const { triggerSysProxy } = await import('../sys/sysproxy')
+    await triggerSysProxy(true, { force: true, forceManual: true })
+    managerLogger.info('Rewrote PAC system proxy to manual before entering lightweight mode')
+  } catch (error) {
+    managerLogger.warn('Failed to rewrite PAC system proxy before lightweight mode', error)
+  }
+}
+
 // 退出但保持核心运行
 export async function quitWithoutCore(): Promise<void> {
   managerLogger.info(`Starting lightweight mode on platform: ${process.platform}`)
   if (!(await keepCoreAlive())) return
+  await keepSysProxyUsableWithoutMainProcess()
   await startMonitor(true)
   managerLogger.info('Exiting main process, core will continue running in background')
   app.exit()
