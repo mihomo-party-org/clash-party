@@ -88,10 +88,9 @@ function main(config) {
             group.collectdata = ${collectData}
             group.strategy = '${strategy}'
             
-            // 移除 url-test 和 load-balance 特有的配置
+            // 移除 url-test 和 load-balance 特有的配置（tolerance 是 Smart 也支持的选项，保留）
             if (group.url) delete group.url
             if (group.interval) delete group.interval
-            if (group.tolerance) delete group.tolerance
             if (group.lazy) delete group.lazy
             if (group.expected_status) delete group['expected-status']
           }
