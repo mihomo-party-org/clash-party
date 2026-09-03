@@ -688,27 +688,30 @@ function setupCoreListeners(
       (process.platform === 'win32' && str.includes('RESTful API pipe listening at'))
 
     if (isApiReady) {
+      // API 就绪即完成启动收尾（与 post-up 模式一致）。此前要等内核打出
+      // 'start initial compatible provider default' 才发 groupsUpdated，该行出现得很晚、
+      // 甚至可能不出现，导致切换订阅后代理组只能靠 30 秒轮询才刷新。
       resolveStartup([
-        new Promise((innerResolve) => {
-          proc.stdout?.on('data', async (innerData) => {
-            if (
-              innerData
-                .toString()
-                .toLowerCase()
-                .includes('start initial compatible provider default')
-            ) {
-              completeCoreStartup()
-                .then(() => innerResolve())
-                .catch((error) => {
-                  managerLogger.warn('Failed to complete core startup', error)
-                  innerResolve()
-                })
-            }
+        startMihomoApiStreams()
+          .then(() => completeCoreStartup())
+          .catch((error) => {
+            managerLogger.warn('Failed to complete core startup', error)
           })
-        })
       ])
 
-      await startMihomoApiStreams()
+      // 内核装载完 provider 后再补发一次：API 端口先于代理组装载就绪，
+      // 上面那次刷新可能取到尚未更新的代理组。
+      const notifyProvidersReady = (innerData: Buffer): void => {
+        if (
+          !innerData.toString().toLowerCase().includes('start initial compatible provider default')
+        ) {
+          return
+        }
+        proc.stdout?.off('data', notifyProvidersReady)
+        mainWindow?.webContents.send('groupsUpdated')
+        mainWindow?.webContents.send('rulesUpdated')
+      }
+      proc.stdout?.on('data', notifyProvidersReady)
     }
   })
 
