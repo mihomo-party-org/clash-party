@@ -547,16 +547,34 @@ export async function closeTrayIcon(): Promise<void> {
   trayMenu = null
 }
 
+// app.dock.show() 是异步的，快速点击托盘时 hide 会撞上尚未完成的 show：
+// 此时 isVisible() 仍是 false，隐藏被跳过，Dock 图标就永久留在那里（#1867）。
+// 改为「期望状态 + 串行队列」，保证最后一次意图一定生效。
+let desiredDockVisible = true
+let dockQueue: Promise<void> = Promise.resolve()
+
+function setDockVisible(visible: boolean): Promise<void> {
+  if (process.platform !== 'darwin' || !app.dock) return Promise.resolve()
+  desiredDockVisible = visible
+  dockQueue = dockQueue
+    .catch(() => {})
+    .then(async () => {
+      // 队列里的任务统一按最新的期望状态执行，重复调用 show/hide 本身是安全的
+      if (desiredDockVisible) {
+        await app.dock?.show()
+      } else {
+        app.dock?.hide()
+      }
+    })
+  return dockQueue
+}
+
 export async function showDockIcon(): Promise<void> {
-  if (process.platform === 'darwin' && app.dock && !app.dock.isVisible()) {
-    await app.dock.show()
-  }
+  await setDockVisible(true)
 }
 
 export async function hideDockIcon(): Promise<void> {
-  if (process.platform === 'darwin' && app.dock && app.dock.isVisible()) {
-    app.dock.hide()
-  }
+  await setDockVisible(false)
 }
 
 const getIconPaths = (): Record<TrayIconStatus, string> => {
