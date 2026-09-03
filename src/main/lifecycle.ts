@@ -152,6 +152,10 @@ export function setupAppLifecycle(): void {
     app.exit()
   })
 
+  // 唤醒后的恢复统一由 sys/resume.ts 的 initResumeRecovery() 处理：等网络回来后
+  // 按实际故障分别处置（内核失联则重启、TUN 网卡消失则重建、其余情况热重载配置），
+  // 并重新下发系统代理。此处不再单独注册监听器，否则多个 resume 处理器会互相叠加。
+
   app.on('will-quit', () => {
     if (!sysProxyDisabled) {
       disableSysProxySync()
