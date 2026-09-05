@@ -92,6 +92,7 @@ import {
 } from '../sys/misc'
 import { getRuntimeConfig, getRuntimeConfigStr } from '../core/factory'
 import { setControlDns, takeDnsOverrideAutoDisabledNotice } from '../core/dnsOverrideGuard'
+import { getSmartModelStatus, downloadSmartModel } from '../core/smartModel'
 import {
   listWebdavBackups,
   webdavBackup,
@@ -308,6 +309,8 @@ const asyncHandlers: Record<string, AsyncFn> = {
   readTextFile,
   // Core
   restartCore,
+  getSmartModelStatus,
+  downloadSmartModel,
   mihomoHotReloadConfig,
   startMonitor,
   quitWithoutCore,
