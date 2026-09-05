@@ -529,6 +529,9 @@ interface IMihomoConfig {
   'geodata-mode'?: boolean
   'geo-auto-update'?: boolean
   'geo-update-interval'?: number
+  'lgbm-auto-update'?: boolean
+  'lgbm-update-interval'?: number
+  'lgbm-url'?: string
   'geox-url'?: {
     geoip?: string
     geosite?: string

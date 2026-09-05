@@ -117,6 +117,11 @@ export const defaultControledMihomoConfig: Partial<IMihomoConfig> = {
   },
   'geo-auto-update': false,
   'geo-update-interval': 24,
+  // Smart 内核自带的 LightGBM 模型更新器，默认值与内核一致（关闭 / 72 小时 /
+  // 空地址即用内核内置地址）。非 Smart 内核会忽略这几个键。
+  'lgbm-auto-update': false,
+  'lgbm-update-interval': 72,
+  'lgbm-url': '',
   'geodata-mode': false,
   'geox-url': {
     geoip: 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip-lite.dat',
