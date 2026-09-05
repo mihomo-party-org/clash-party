@@ -91,6 +91,7 @@ import {
   setupFirewall
 } from '../sys/misc'
 import { getRuntimeConfig, getRuntimeConfigStr } from '../core/factory'
+import { getSmartModelStatus, downloadSmartModel } from '../core/smartModel'
 import {
   listWebdavBackups,
   webdavBackup,
@@ -305,6 +306,8 @@ const asyncHandlers: Record<string, AsyncFn> = {
   readTextFile,
   // Core
   restartCore,
+  getSmartModelStatus,
+  downloadSmartModel,
   mihomoHotReloadConfig,
   startMonitor,
   quitWithoutCore,

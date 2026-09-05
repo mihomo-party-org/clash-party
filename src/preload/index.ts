@@ -75,6 +75,8 @@ const validInvokeChannels = [
   'openFile',
   // Core
   'restartCore',
+  'getSmartModelStatus',
+  'downloadSmartModel',
   'mihomoHotReloadConfig',
   'startMonitor',
   'quitWithoutCore',

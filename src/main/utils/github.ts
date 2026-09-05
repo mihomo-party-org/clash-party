@@ -135,7 +135,7 @@ export function clearVersionCache(owner: string, repo: string): void {
  * @param url 下载 URL
  * @param outputPath 输出路径
  */
-async function downloadGitHubAsset(url: string, outputPath: string): Promise<void> {
+export async function downloadGitHubAsset(url: string, outputPath: string): Promise<void> {
   const { githubProxy = '' } = await getAppConfig()
   const urls = buildDownloadUrls(url, githubProxy)
   let lastError: unknown
