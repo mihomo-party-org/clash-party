@@ -102,7 +102,6 @@ const Mihomo: React.FC = () => {
     enableSmartOverride = true,
     smartCoreUseLightGBM = false,
     smartCoreCollectData = false,
-    smartCoreStrategy = 'sticky-sessions',
     smartCollectorSize = 100,
     maxLogDays = 7,
     maxLogFileSize = 10,
@@ -556,7 +555,6 @@ const Mihomo: React.FC = () => {
                       </Tooltip>
                     </div>
                   }
-                  divider
                 >
                   <div className="flex items-center gap-2">
                     <Input
@@ -580,31 +578,6 @@ const Mihomo: React.FC = () => {
                     />
                     <span className="text-default-500">MB</span>
                   </div>
-                </SettingItem>
-
-                <SettingItem title={t('mihomo.smartCoreStrategy')}>
-                  <Select
-                    classNames={{
-                      trigger: 'data-[hover=true]:bg-blue-100 dark:data-[hover=true]:bg-blue-900/50'
-                    }}
-                    className="w-37.5"
-                    size="sm"
-                    aria-label={t('mihomo.smartCoreStrategy')}
-                    selectedKeys={new Set([smartCoreStrategy])}
-                    disallowEmptySelection={true}
-                    onSelectionChange={async (v) => {
-                      const strategy = v.currentKey as 'sticky-sessions' | 'round-robin'
-                      await patchAppConfig({ smartCoreStrategy: strategy })
-                      await mihomoHotReloadConfig()
-                    }}
-                  >
-                    <SelectItem key="sticky-sessions">
-                      {t('mihomo.smartCoreStrategyStickySession')}
-                    </SelectItem>
-                    <SelectItem key="round-robin">
-                      {t('mihomo.smartCoreStrategyRoundRobin')}
-                    </SelectItem>
-                  </Select>
                 </SettingItem>
               </>
             )}

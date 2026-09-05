@@ -271,7 +271,6 @@ interface IAppConfig {
   enableSmartOverride: boolean
   smartCoreUseLightGBM: boolean
   smartCoreCollectData: boolean
-  smartCoreStrategy: 'sticky-sessions' | 'round-robin'
   smartCollectorSize?: number
   proxyDisplayMode: 'simple' | 'full'
   proxyDisplayOrder: 'default' | 'delay' | 'name'

@@ -22,7 +22,6 @@ export const defaultConfig: IAppConfig = {
   enableSmartOverride: true,
   smartCoreUseLightGBM: false,
   smartCoreCollectData: false,
-  smartCoreStrategy: 'sticky-sessions',
   silentStart: false,
   appTheme: 'system',
   useWindowFrame: false,
