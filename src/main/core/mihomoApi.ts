@@ -20,6 +20,9 @@ let currentIpcPath: string = ''
 
 const MAX_RETRY = 10
 const RECONNECT_INTERVAL_MS = 1000
+// 快速重试用完后改成慢速重试，但只要流还是活的就永不放弃
+const SLOW_RECONNECT_INTERVAL_MS = 15000
+const API_TIMEOUT = 15000
 
 interface MihomoStreamState {
   ws: WebSocket | null
@@ -120,16 +123,20 @@ function scheduleStreamReconnect(
   generation: number,
   connect: () => Promise<void>
 ): void {
-  if (!isCurrentStream(stream, generation) || stream.retry <= 0) return
+  if (!isCurrentStream(stream, generation)) return
 
-  stream.retry--
+  // 流被显式停止时 active 会置 false（内核停止/重启都会走 stopStream），所以这里只要
+  // 还是活的就继续重连。以前重试 10 次就永久放弃，内核明明还活着，流量/连接/内存/日志
+  // 却再也不会恢复，只能重启内核或整个应用。
+  const interval = stream.retry > 0 ? RECONNECT_INTERVAL_MS : SLOW_RECONNECT_INTERVAL_MS
+  if (stream.retry > 0) stream.retry--
   clearStreamReconnect(stream)
   stream.reconnectTimer = setTimeout(() => {
     stream.reconnectTimer = null
     if (isCurrentStream(stream, generation)) {
       void connect()
     }
-  }, RECONNECT_INTERVAL_MS)
+  }, interval)
 }
 
 function closeErroredStreamSocket(
@@ -178,7 +185,7 @@ export const getAxios = async (force: boolean = false): Promise<AxiosInstance> =
   axiosIns = axios.create({
     baseURL: `http://localhost`,
     socketPath: dynamicIpcPath,
-    timeout: 15000
+    timeout: API_TIMEOUT
   })
 
   axiosIns.interceptors.response.use(
@@ -387,6 +394,11 @@ export const mihomoUpgradeGeo = async (): Promise<void> => {
   return await instance.post('/configs/geo')
 }
 
+// 内核最多会等 delayTestTimeout 才回包，HTTP 层必须比它更晚超时，否则用户把
+// 「延迟测试超时」调到 API_TIMEOUT 以上时 axios 会先掐断请求，全部节点都报超时。
+const delayRequestTimeout = (testTimeout: number): number =>
+  Math.max(API_TIMEOUT, testTimeout + API_TIMEOUT)
+
 export const mihomoProxyDelay = async (
   proxy: string,
   url?: string,
@@ -394,6 +406,7 @@ export const mihomoProxyDelay = async (
 ): Promise<IMihomoDelay> => {
   const appConfig = await getAppConfig()
   const { delayTestUrl, delayTestTimeout } = appConfig
+  const testTimeout = delayTestTimeout || 5000
   const instance = await getAxios()
   const path = provider
     ? `/providers/proxies/${encodeURIComponent(provider)}/${encodeURIComponent(proxy)}/healthcheck`
@@ -401,20 +414,23 @@ export const mihomoProxyDelay = async (
   return await instance.get(path, {
     params: {
       url: delayTestUrl || url || 'https://www.gstatic.com/generate_204',
-      timeout: delayTestTimeout || 5000
-    }
+      timeout: testTimeout
+    },
+    timeout: delayRequestTimeout(testTimeout)
   })
 }
 
 export const mihomoGroupDelay = async (group: string, url?: string): Promise<IMihomoGroupDelay> => {
   const appConfig = await getAppConfig()
   const { delayTestUrl, delayTestTimeout } = appConfig
+  const testTimeout = delayTestTimeout || 5000
   const instance = await getAxios()
   return await instance.get(`/group/${encodeURIComponent(group)}/delay`, {
     params: {
       url: delayTestUrl || url || 'https://www.gstatic.com/generate_204',
-      timeout: delayTestTimeout || 5000
-    }
+      timeout: testTimeout
+    },
+    timeout: delayRequestTimeout(testTimeout)
   })
 }
 
@@ -452,6 +468,10 @@ export const mihomoHotReloadConfig = async (): Promise<void> => {
     return
   }
   mihomoApiLogger.info('hot reload config completed')
+  // 热重载会整体换掉内核里的代理组与规则，必须像 restartCore 那样通知渲染层，
+  // 否则代理组/规则页面只能等 SWR 的 30 秒轮询，切换订阅后仍显示上一个订阅的分组。
+  mainWindow?.webContents.send('groupsUpdated')
+  mainWindow?.webContents.send('rulesUpdated')
   try {
     const { scheduleRuntimeConfigUpload } = await import('../resolve/gistApi')
     scheduleRuntimeConfigUpload()
