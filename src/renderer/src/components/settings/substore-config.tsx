@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useMemo, useRef, useState } from 'react'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import { toast } from '@renderer/components/base/toast'
 import SettingItem from '@renderer/components/base/base-setting-item'
@@ -30,9 +30,16 @@ const SubStoreConfig: React.FC = () => {
   } = appConfig || {}
 
   const [customSubStoreUrlValue, setCustomSubStoreUrlValue] = useState(customSubStoreUrl)
-  const setCustomSubStoreUrl = debounce(async (v: string) => {
-    await patchAppConfig({ customSubStoreUrl: v })
-  }, 500)
+  // 防抖实例必须跨渲染复用，否则每次按键都会拿到新实例、清不掉上一次的定时器
+  const patchAppConfigRef = useRef(patchAppConfig)
+  patchAppConfigRef.current = patchAppConfig
+  const setCustomSubStoreUrl = useMemo(
+    () =>
+      debounce((v: string) => {
+        void patchAppConfigRef.current({ customSubStoreUrl: v })
+      }, 500),
+    []
+  )
   const [subStoreBackendSyncCronValue, setSubStoreBackendSyncCronValue] =
     useState(subStoreBackendSyncCron)
   const [subStoreBackendDownloadCronValue, setSubStoreBackendDownloadCronValue] = useState(

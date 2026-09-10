@@ -73,6 +73,18 @@ const Sniffer: React.FC = () => {
       }
     })
   }
+  // 端口输入是受控的，编辑中途必须保留空项（否则刚敲的逗号会被立刻抹掉），
+  // 所以只在保存时剔除空端口：[''] 写进 mihomo.yaml 会让内核解析失败、无法启动
+  const buildSniffPayload = (): IMihomoSnifferConfig['sniff'] => {
+    const cleanPorts = (ports?: (number | string)[]): (number | string)[] =>
+      (ports ?? []).filter((port) => String(port).trim() !== '')
+    return {
+      ...values.sniff,
+      HTTP: { ...values.sniff.HTTP, ports: cleanPorts(values.sniff.HTTP?.ports) },
+      TLS: { ...values.sniff.TLS, ports: cleanPorts(values.sniff.TLS?.ports) },
+      QUIC: { ...values.sniff.QUIC, ports: cleanPorts(values.sniff.QUIC?.ports) }
+    }
+  }
   const handleListChange = (type: string, value: string, index: number): void => {
     const list = [...values[type]]
     if (value.trim()) {
@@ -130,7 +142,7 @@ const Sniffer: React.FC = () => {
                   'parse-pure-ip': values.parsePureIP,
                   'force-dns-mapping': values.forceDNSMapping,
                   'override-destination': values.overrideDestination,
-                  sniff: values.sniff,
+                  sniff: buildSniffPayload(),
                   'skip-domain': values.skipDomain,
                   'force-domain': values.forceDomain,
                   'skip-dst-address': values.skipDstAddress,

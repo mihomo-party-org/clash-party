@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useMemo, useRef, useState } from 'react'
 import { toast } from '@renderer/components/base/toast'
 import { Button, Input, Select, SelectItem, Switch, Tooltip } from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
@@ -59,13 +59,24 @@ const MihomoConfig: React.FC = () => {
       profileId
     }))
   )
-  const setUrlDebounce = debounce((v: string) => {
-    patchAppConfig({ delayTestUrl: v })
-  }, 500)
   const [ua, setUa] = useState(userAgent)
-  const setUaDebounce = debounce((v: string) => {
-    patchAppConfig({ userAgent: v })
-  }, 500)
+  // 防抖实例必须跨渲染复用，否则每次按键都会拿到新实例、清不掉上一次的定时器
+  const patchAppConfigRef = useRef(patchAppConfig)
+  patchAppConfigRef.current = patchAppConfig
+  const setUrlDebounce = useMemo(
+    () =>
+      debounce((v: string) => {
+        patchAppConfigRef.current({ delayTestUrl: v })
+      }, 500),
+    []
+  )
+  const setUaDebounce = useMemo(
+    () =>
+      debounce((v: string) => {
+        patchAppConfigRef.current({ userAgent: v })
+      }, 500),
+    []
+  )
   const [isGeneratingGistAgeKey, setIsGeneratingGistAgeKey] = useState(false)
   const [isExportingGistAgeKey, setIsExportingGistAgeKey] = useState(false)
   const handleGenerateGistAgeKeyPair = async (): Promise<void> => {

@@ -318,9 +318,17 @@ const IPPage: React.FC = () => {
     [cardOrder, patchAppConfig]
   )
 
-  const customLatencyTargets = useMemo(
-    () => normalizeLatencyTargets(appConfig?.networkLatencyTargets),
+  // 每次 patchAppConfig 后 appConfig 都是重新反序列化出来的新对象，networkLatencyTargets
+  // 即使内容没变也是新数组引用；直接拿它当依赖会让下面整条 useMemo/useCallback 链失效，
+  // 进而触发自动测速 effect 重跑。这里用序列化结果做稳定依赖，内容真变了才重新计算。
+  const latencyTargetsKey = useMemo(
+    () => JSON.stringify(normalizeLatencyTargets(appConfig?.networkLatencyTargets)),
     [appConfig?.networkLatencyTargets]
+  )
+
+  const customLatencyTargets = useMemo(
+    () => JSON.parse(latencyTargetsKey) as INetworkLatencyTarget[],
+    [latencyTargetsKey]
   )
 
   const latencyTargets = useMemo(() => {
