@@ -6,7 +6,7 @@ import { createGunzip } from 'zlib'
 import AdmZip from 'adm-zip'
 import { stopCore } from '../core/manager'
 import { getAppConfig } from '../config'
-import { mihomoCoreDir } from './dirs'
+import { mihomoSpecificCoreDir } from './dirs'
 import * as chromeRequest from './chromeRequest'
 import { createLogger } from './logger'
 
@@ -188,7 +188,7 @@ export async function installMihomoCore(version: string): Promise<void> {
     const urlExt = isWin ? 'zip' : 'gz'
     const downloadURL = `https://github.com/MetaCubeX/mihomo/releases/download/${version}/${name}-${version}.${urlExt}`
 
-    const coreDir = mihomoCoreDir()
+    const coreDir = mihomoSpecificCoreDir()
     const tempZip = join(coreDir, `temp-core.${urlExt}`)
     const exeFile = `${name}${isWin ? '.exe' : ''}`
     const targetFile = `mihomo-specific${isWin ? '.exe' : ''}`
@@ -274,8 +274,8 @@ export async function installMihomoCore(version: string): Promise<void> {
     log.info(`Successfully installed mihomo core version ${version}`)
   } catch (error) {
     // 解压失败时下载的压缩包会一直留在内核目录里，每次重试再落一份
-    cleanupTempFile(join(mihomoCoreDir(), `temp-core.zip`))
-    cleanupTempFile(join(mihomoCoreDir(), `temp-core.gz`))
+    cleanupTempFile(join(mihomoSpecificCoreDir(), `temp-core.zip`))
+    cleanupTempFile(join(mihomoSpecificCoreDir(), `temp-core.gz`))
     log.error('Failed to install mihomo core', error)
     throw new Error(
       `Failed to install core: ${error instanceof Error ? error.message : String(error)}`
