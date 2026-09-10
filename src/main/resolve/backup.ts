@@ -60,9 +60,13 @@ async function getWebDAVClient(): Promise<WebDAVContext> {
     webdavIgnoreCert = false
   } = await getAppConfig()
 
-  const clientOptions: Parameters<typeof createClient>[1] = {
-    username: webdavUsername,
-    password: webdavPassword
+  const clientOptions: Parameters<typeof createClient>[1] = {}
+
+  // webdav 库内部用 base-64 包做 Basic 认证编码，只接受 Latin1 字符，
+  // 中文用户名/密码会直接抛 InvalidCharacterError，所以这里自行用 UTF-8 编码认证头
+  if (webdavUsername || webdavPassword) {
+    const auth = Buffer.from(`${webdavUsername}:${webdavPassword}`, 'utf8').toString('base64')
+    clientOptions.headers = { Authorization: `Basic ${auth}` }
   }
 
   if (webdavIgnoreCert) {
