@@ -399,11 +399,14 @@ export function showMainWindow(): void {
     return
   }
 
-  void createWindow().then(() => {
-    clearQuitTimeout()
-    mainWindow?.show()
-    mainWindow?.focusOnWebView()
-  })
+  // createWindow 重试耗尽后会 throw，缺 catch 会变成主进程未捕获异常弹窗。
+  void createWindow()
+    .then(() => {
+      clearQuitTimeout()
+      mainWindow?.show()
+      mainWindow?.focusOnWebView()
+    })
+    .catch((error) => mainWindowLogger.error('Failed to show main window', error))
 }
 
 export function closeMainWindow(): void {
