@@ -43,6 +43,7 @@ import {
   stopMihomoLogs,
   stopMihomoMemory,
   patchMihomoConfig,
+  mihomoHotReloadConfig,
   getAxios
 } from './mihomoApi'
 import { generateProfile } from './factory'
@@ -84,6 +85,7 @@ const ctlParam = process.platform === 'win32' ? '-ext-ctl-pipe' : '-ext-ctl-unix
 const coreHookTimeout = 30000
 const automaticRestartDelay = 750
 const coreShutdownTimeout = 500
+const resumeReloadDelay = 5000
 const coreProcessNames = ['mihomo', 'mihomo-alpha', 'mihomo-smart'] as const
 
 // 核心进程状态
@@ -100,6 +102,7 @@ let coreOperationTail: Promise<void> = Promise.resolve()
 let pendingRestart: Promise<void> | null = null
 let cancelActiveStartup: ((reason: Error) => void) | null = null
 let automaticRestartController: AbortController | null = null
+let resumeReloadTimer: NodeJS.Timeout | null = null
 
 // 文件监听器
 let coreWatcher: ChokidarWatcher | null = null
@@ -923,6 +926,39 @@ async function restartCoreAfterUnexpectedExit(): Promise<void> {
 export function restartCore(forceStop = false): Promise<void> {
   ensureCoreOperationAllowed()
   return trackCoreRestart(() => restartCoreOnce(forceStop))
+}
+
+// 系统挂起会带走 TUN 网卡上的路由和 DNS 劫持规则：唤醒后内核进程还在、HTTP 代理端口
+// 也还在，但 TUN 的 DNS 劫持已经不响应（#1231 报告者用 dig 复现过），于是浏览器拿到真实
+// 解析结果，表现为「挂久了就没网」（#159）。用户的手动解法是去 DNS 设置里存一次，
+// 那条路径走的就是 mihomoHotReloadConfig ——内核侧 executor.ApplyConfig 会重跑
+// updateDNS / updateTun / updateIPTables 并 resolver.ResetConnection()，规则随之重建。
+// 这里在 resume 后自动做同一件事，省去用户手动开关。
+async function reloadCoreAfterResume(): Promise<void> {
+  if (!hasCoreProcess()) return
+  const { tun } = await getControledMihomoConfig()
+  if (!tun?.enable) return
+
+  await mihomoHotReloadConfig()
+  managerLogger.info('Reloaded core config after system resume')
+}
+
+export function handleSystemResume(): void {
+  if (resumeReloadTimer) clearTimeout(resumeReloadTimer)
+  // 唤醒瞬间物理网卡通常还没重新连上，auto-detect-interface 会认到错误的出口，
+  // 等一小会儿再重载。
+  resumeReloadTimer = setTimeout(() => {
+    resumeReloadTimer = null
+    reloadCoreAfterResume().catch((error) => {
+      managerLogger.warn('Failed to reload core config after system resume', error)
+    })
+  }, resumeReloadDelay)
+}
+
+export function cancelSystemResumeReload(): void {
+  if (!resumeReloadTimer) return
+  clearTimeout(resumeReloadTimer)
+  resumeReloadTimer = null
 }
 
 // 保持核心运行

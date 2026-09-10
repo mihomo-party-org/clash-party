@@ -19,6 +19,7 @@ import {
   patchControledMihomoConfig
 } from '../config'
 import { startSSIDCheck } from '../sys/ssid'
+import { initResumeRecovery } from '../sys/resume'
 import i18next, { resources } from '../../shared/i18n'
 import {
   DEFAULT_MIHOMO_LAN_ALLOWED_IPS,
@@ -466,6 +467,8 @@ export async function ensureRuntimeFiles(): Promise<void> {
 
 export async function init(): Promise<void> {
   const { sysProxy } = await getAppConfig()
+
+  initResumeRecovery()
 
   const initTasks: Promise<void>[] = [ensureRuntimeFiles(), startSSIDCheck()]
 
