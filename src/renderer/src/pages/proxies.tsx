@@ -344,14 +344,20 @@ const Proxies: React.FC = () => {
 
   const onGroupDelay = useCallback(
     async (index: number): Promise<void> => {
-      if (allProxies[index].length === 0) {
+      // 折叠时 allProxies[index] 恒为空数组，而 setIsOpen 要等下一次渲染才生效，
+      // 本次调用必须直接取分组原始节点，否则点一下只会展开、一个节点都测不到
+      const isCollapsed = !isOpen[index]
+      if (isCollapsed) {
         setIsOpen((prev) => {
           const newOpen = [...prev]
           newOpen[index] = true
           return newOpen
         })
       }
-      const proxyNames = allProxies[index].map((p) => p.name)
+      const targetProxies = isCollapsed
+        ? groups[index].all.filter((proxy) => !!proxy)
+        : allProxies[index]
+      const proxyNames = targetProxies.map((p) => p.name)
       setDelaying((prev) => {
         const next = [...prev]
         next[index] = new Set(proxyNames)
@@ -361,7 +367,7 @@ const Proxies: React.FC = () => {
       // 限制并发数量
       const result: Promise<void>[] = []
       const runningList: Promise<void>[] = []
-      for (const proxy of allProxies[index]) {
+      for (const proxy of targetProxies) {
         const promise = Promise.resolve().then(async () => {
           let res: IMihomoDelay | undefined
           try {
@@ -404,6 +410,7 @@ const Proxies: React.FC = () => {
     [
       allProxies,
       groups,
+      isOpen,
       delayTestConcurrency,
       scheduleFlushDelayResults,
       flushDelayResults,
@@ -536,10 +543,14 @@ const Proxies: React.FC = () => {
                         for (let j = 0; j < index; j++) {
                           i += groupCounts[j]
                         }
-                        i += Math.floor(
-                          allProxies[index].findIndex((proxy) => proxy.name === groups[index].now) /
-                            cols
+                        const pos = allProxies[index].findIndex(
+                          (proxy) => proxy.name === groups[index].now
                         )
+                        // 当前节点被搜索/过滤掉或分组还没展开时 findIndex 为 -1，
+                        // Math.floor(-1/cols) 会变成 -1 把列表滚到上一组末尾，这里只滚到组头
+                        if (pos >= 0) {
+                          i += Math.floor(pos / cols)
+                        }
                         virtuosoRef.current?.scrollToIndex({
                           index: Math.floor(i),
                           align: 'start'

@@ -1261,7 +1261,10 @@ const Mihomo: React.FC = () => {
           </SettingItem>
           <div className="flex flex-col items-stretch mt-2">
             {[...authenticationInput, ''].map((auth, index) => {
-              const [user, pass] = auth.split(':')
+              // 密码本身允许含冒号，只按第一个冒号切分，否则编辑后回写会丢掉冒号之后的部分
+              const sepIndex = auth.indexOf(':')
+              const user = sepIndex < 0 ? auth : auth.slice(0, sepIndex)
+              const pass = sepIndex < 0 ? '' : auth.slice(sepIndex + 1)
               return (
                 <div key={index} className="flex mb-2">
                   <div className="flex-4">
