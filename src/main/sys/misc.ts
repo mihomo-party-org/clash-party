@@ -119,11 +119,13 @@ export function resetAppConfig(): void {
       }
     ).unref()
   } else {
+    // 可执行文件路径与参数可能含空格（如 macOS 的 "Clash Party.app"），不加引号会被 sh 拆成多个词导致重启失败
+    const relaunchCommand = process.argv.map((arg) => `'${arg.replace(/'/g, `'\\''`)}'`).join(' ')
     const script = `while kill -0 ${process.pid} 2>/dev/null; do
   sleep 0.1
 done
   rm -rf '${dataDir()}'
-  ${process.argv.join(' ')} & disown
+  ${relaunchCommand} & disown
 exit
 `
     spawn('sh', ['-c', `"${script}"`], {
