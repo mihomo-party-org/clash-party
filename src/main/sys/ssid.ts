@@ -1,4 +1,5 @@
 import { exec, spawn } from 'child_process'
+import { networkInterfaces } from 'os'
 import { promisify } from 'util'
 import { ipcMain, net } from 'electron'
 import { getAppConfig, patchAppConfig, patchControledMihomoConfig } from '../config'
@@ -41,6 +42,28 @@ let ssidCheckInterval: NodeJS.Timeout | null = null
 let networkWatcher: ReturnType<typeof spawn> | null = null
 let watcherDebounce: NodeJS.Timeout | null = null
 let profileBeforeSSIDSwitch: string | undefined
+let lastNetworkFingerprint: string | undefined
+let lastSSIDProbeAt = 0
+
+// 读不到 SSID 时的兜底重试间隔
+const unknownSSIDRetryInterval = 300000
+
+// Windows 11 把 SSID 当作位置信息：每次 `netsh wlan show interfaces` 都会让
+// 「网络命令外壳」向系统申请一次定位，托盘上因此每个轮询周期闪一次定位图标。
+// 网卡地址没变时 SSID 不可能变，先用这个免费的指纹过一道，只有网络真的动过才去问 netsh。
+function networkFingerprint(): string {
+  const interfaces = networkInterfaces()
+  return Object.keys(interfaces)
+    .sort()
+    .map((name) => {
+      const addresses = (interfaces[name] ?? [])
+        .map((address) => `${address.address}/${address.mac}`)
+        .sort()
+        .join(',')
+      return `${name}=${addresses}`
+    })
+    .join(';')
+}
 
 async function handleSSIDChange(): Promise<void> {
   try {
@@ -52,6 +75,17 @@ async function handleSSIDChange(): Promise<void> {
       ssidProfileRestore = false
     } = await getAppConfig()
     if (pauseSSID.length === 0 && Object.keys(ssidProfileMap).length === 0) return
+    const fingerprint = networkFingerprint()
+    const now = Date.now()
+    // 指纹没变就跳过；上次没读到 SSID（无线还没连上、没有无线网卡）时留一条慢速兜底重试
+    if (
+      fingerprint === lastNetworkFingerprint &&
+      (lastSSID !== undefined || now - lastSSIDProbeAt < unknownSSIDRetryInterval)
+    ) {
+      return
+    }
+    lastNetworkFingerprint = fingerprint
+    lastSSIDProbeAt = now
     const currentSSID = await getCurrentSSID()
     if (currentSSID === lastSSID) return
     const previousSSID = lastSSID
@@ -184,6 +218,8 @@ export async function startSSIDCheck(): Promise<void> {
 }
 
 export function stopSSIDCheck(): void {
+  lastNetworkFingerprint = undefined
+  lastSSIDProbeAt = 0
   stopNetworkWatcher()
   if (ssidCheckInterval) {
     clearInterval(ssidCheckInterval)

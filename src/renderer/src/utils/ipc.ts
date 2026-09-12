@@ -164,6 +164,7 @@ interface IpcApi {
   showTrayIcon: () => Promise<void>
   closeTrayIcon: () => Promise<void>
   updateTrayIcon: () => Promise<void>
+  getTrayTrafficStyle: () => Promise<ITrayTrafficStyle>
   // Window
   showMainWindow: () => Promise<void>
   closeMainWindow: () => Promise<void>
@@ -336,6 +337,7 @@ export const {
   showTrayIcon,
   closeTrayIcon,
   updateTrayIcon,
+  getTrayTrafficStyle,
   // Window
   showMainWindow,
   closeMainWindow,

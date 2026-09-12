@@ -50,7 +50,7 @@ function getWebDAVBackupPrefix(): string {
 }
 
 async function getWebDAVClient(): Promise<WebDAVContext> {
-  const { createClient } = await import('webdav/dist/node/index.js')
+  const { createClient, AuthType } = await import('webdav/dist/node/index.js')
   const {
     webdavUrl = '',
     webdavUsername = '',
@@ -60,10 +60,18 @@ async function getWebDAVClient(): Promise<WebDAVContext> {
     webdavIgnoreCert = false
   } = await getAppConfig()
 
-  const clientOptions: Parameters<typeof createClient>[1] = {
-    username: webdavUsername,
-    password: webdavPassword
-  }
+  // webdav 自带的 Basic 认证走 base-64 包，只接受 Latin1 字符，非 ASCII 用户名/密码
+  // 会直接抛 InvalidCharacterError（#323）。按 RFC 7617 先用 UTF-8 编码再 base64，
+  // 自己拼 Authorization 头，并关掉库内的认证以免被覆盖。
+  const clientOptions: Parameters<typeof createClient>[1] =
+    webdavUsername || webdavPassword
+      ? {
+          authType: AuthType.None,
+          headers: {
+            Authorization: `Basic ${Buffer.from(`${webdavUsername}:${webdavPassword}`, 'utf-8').toString('base64')}`
+          }
+        }
+      : {}
 
   if (webdavIgnoreCert) {
     clientOptions.httpsAgent = new https.Agent({

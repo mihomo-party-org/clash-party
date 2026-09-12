@@ -505,7 +505,10 @@ const Proxies: React.FC = () => {
                   >
                     {proxyDisplayMode === 'full' && (
                       <Chip size="sm" className="my-1 mr-2">
-                        {groups[index].all.length}
+                        {/* 搜索时显示过滤后的节点数，显示总数会让人以为筛选没生效（#332） */}
+                        {searchValue[index] && isOpen[index]
+                          ? (allProxies[index]?.length ?? 0)
+                          : groups[index].all.length}
                       </Chip>
                     )}
                     <CollapseInput
@@ -517,6 +520,10 @@ const Proxies: React.FC = () => {
                           newSearchValue[index] = v
                           return newSearchValue
                         })
+                        // 过滤会改变列表总高度。不把正在筛选的分组标题钉回顶部的话，
+                        // 它会被滚出渲染窗口而卸载，搜索框随之消失、焦点丢失，
+                        // 中文输入法的组词也被打断（#332、#1621）。
+                        virtuosoRef.current?.scrollToIndex({ groupIndex: index, align: 'start' })
                       }}
                     />
                     <Button
