@@ -499,6 +499,7 @@
   "tun.notifications.coreAuthSuccess": "مجوزدهی به هسته با موفقیت انجام شد",
   "tun.notifications.firewallResetSuccess": "بازنشانی دیوار آتش با موفقیت انجام شد",
   "tun.error.tunPermissionDenied": "راه‌اندازی رابط TUN با شکست مواجه شد، لطفا به صورت دستی به هسته مجوز دهید",
+  "tun.error.tunStartFailed": "راه‌اندازی رابط TUN ناموفق بود و خاموش شد",
   "dns.title": "تنظیمات DNS",
   "dns.enable": "فعال‌سازی DNS",
   "dns.enhancedMode.title": "حالت نگاشت دامنه",

@@ -509,6 +509,8 @@
   "tun.excludeAddress.notSaved": "含有無效網段時該排除列表不會被儲存，請先修正或刪除。",
   "tun.notifications.coreAuthSuccess": "內核授權成功",
   "tun.notifications.firewallResetSuccess": "防火牆重設成功",
+  "tun.error.tunPermissionDenied": "虛擬網卡啟動失敗，請嘗試手動授權核心",
+  "tun.error.tunStartFailed": "虛擬網卡啟動失敗，已自動關閉",
   "tun.permissions.title": "需要系統管理員權限",
   "tun.permissions.message": "啟用 TUN 模式需要系統管理員權限，是否現在重啟應用獲取權限？",
   "tun.permissions.failed": "權限授權失敗",

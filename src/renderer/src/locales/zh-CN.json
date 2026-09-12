@@ -509,6 +509,8 @@
   "tun.excludeAddress.notSaved": "含有无效网段时该排除列表不会被保存，请先修正或删除。",
   "tun.notifications.coreAuthSuccess": "内核授权成功",
   "tun.notifications.firewallResetSuccess": "防火墙重设成功",
+  "tun.error.tunPermissionDenied": "虚拟网卡启动失败，请尝试手动授权内核",
+  "tun.error.tunStartFailed": "虚拟网卡启动失败，已自动关闭",
   "tun.permissions.title": "需要管理员权限",
   "tun.permissions.message": "启用 TUN 模式需要管理员权限，是否现在重启应用获取权限？",
   "tun.permissions.failed": "权限授权失败",

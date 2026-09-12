@@ -501,6 +501,7 @@
   "tun.notifications.coreAuthSuccess": "Авторизация ядра успешна",
   "tun.notifications.firewallResetSuccess": "Брандмауэр успешно сброшен",
   "tun.error.tunPermissionDenied": "Ошибка запуска TUN, попробуйте вручную предоставить разрешения ядру",
+  "tun.error.tunStartFailed": "Не удалось запустить интерфейс TUN, он был отключён",
   "dns.title": "Настройки DNS",
   "dns.enable": "Включить DNS",
   "dns.enhancedMode.title": "Режим маппинга доменов",
