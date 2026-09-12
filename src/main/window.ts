@@ -312,7 +312,7 @@ function setupWindowEvents(window: BrowserWindow): void {
       useDockIcon = true
     } = await getAppConfig()
 
-    if (!useDockIcon) {
+    if (!useDockIcon && !window.isVisible()) {
       hideDockIcon()
     }
 
