@@ -119,9 +119,15 @@ export function setupAppLifecycle(): void {
         )
       }
 
+      // Give core teardown enough headroom to actually kill the child. On
+      // macOS releasing utun inside the kernel routinely takes 1-2s, and
+      // stopCoreForExit now waits for the core to exit (SIGINT then SIGKILL
+      // after coreShutdownTimeout=3s) before returning. A 1.2s window here
+      // would race that path and leave orphan mihomo processes behind, which
+      // is the root cause of the "multiple cores" symptom on macOS.
       await withTimeout(
         Promise.allSettled(cleanupTasks).then(() => {}),
-        1200
+        5000
       )
     })()
 

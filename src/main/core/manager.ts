@@ -84,7 +84,11 @@ const execFilePromise = promisify(execFile)
 const ctlParam = process.platform === 'win32' ? '-ext-ctl-pipe' : '-ext-ctl-unix'
 const coreHookTimeout = 30000
 const automaticRestartDelay = 750
-const coreShutdownTimeout = 500
+// Time we wait for a core process to exit after SIGINT before escalating to
+// SIGKILL. On macOS the utun release path inside the kernel routinely takes
+// 1-2s (the next core spawn would otherwise hit "resource busy"), so 500ms
+// was too tight. 3s covers the observed worst case with plenty of margin.
+const coreShutdownTimeout = 3000
 const coreProcessNames = ['mihomo', 'mihomo-alpha', 'mihomo-smart'] as const
 
 // 核心进程状态
@@ -810,20 +814,45 @@ async function stopCoreInternal(force = false, cancelStartup = true): Promise<vo
     }
   }
 
-  stopCoreProcessAndStreams(cancelStartup)
+  await stopCoreProcessAndStreams(cancelStartup)
 
   await cleanupStoppedCoreResources()
 }
 
-function stopCoreProcessAndStreams(cancelStartup = true): void {
+async function stopCoreProcessAndStreams(cancelStartup = true): Promise<void> {
   if (cancelStartup) {
     cancelActiveStartup?.(new Error('Core startup was cancelled by a stop request'))
     cancelActiveStartup = null
   }
-  if (child) {
-    child.removeAllListeners()
-    child.kill('SIGINT')
-    child = null
+
+  // Detach the current child from the module-level slot BEFORE waiting on it,
+  // so an overlapping start operation can install a fresh handle without
+  // racing with this teardown. We still keep the reference locally so we can
+  // wait for its actual exit (and SIGKILL it if SIGINT is not honored).
+  const dying = child
+  child = null
+  if (dying) {
+    dying.removeAllListeners()
+    try {
+      dying.kill('SIGINT')
+    } catch (error) {
+      managerLogger.warn(`Failed to send SIGINT to core PID ${dying.pid ?? 'unknown'}`, error)
+    }
+    // ensureCoreProcessExited waits up to coreShutdownTimeout, then escalates
+    // to SIGKILL. This is the ONLY path that guarantees the core is actually
+    // gone before we hand the utun device off to the next spawn. Without it
+    // the new core races the old core's TUN release and silently ends up in
+    // a "resource busy" state: API works, but the old core still owns utun,
+    // so UI proxy switches take effect on the new core while traffic keeps
+    // flowing through the old one.
+    try {
+      await ensureCoreProcessExited(dying)
+    } catch (error) {
+      managerLogger.error(
+        `Core PID ${dying.pid ?? 'unknown'} refused to die within ${coreShutdownTimeout}ms`,
+        error
+      )
+    }
   }
 
   stopCoreProcessWatchdog()
@@ -852,11 +881,15 @@ export async function stopCore(force = false): Promise<void> {
 }
 
 // 退出不排队等待启动/重启完成：先同步终止子进程，再做有界清理。
+// stopCoreProcessAndStreams now waits for the core to actually exit (up to
+// coreShutdownTimeout) and SIGKILLs it if SIGINT is ignored, so the parent
+// window will not exit while leaving an orphan mihomo behind. Callers wrap
+// this in their own upper-bound timeout (see lifecycle.ts).
 export async function stopCoreForExit(): Promise<void> {
   coreOperationPhase = 'shutting-down'
   cancelAutomaticRestart()
-  stopCoreProcessAndStreams()
   await Promise.allSettled([
+    stopCoreProcessAndStreams(),
     recoverDNS({ force: true, timeout: 750 }),
     cleanupStoppedCoreResources()
   ])
