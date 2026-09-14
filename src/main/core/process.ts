@@ -2,6 +2,7 @@ import { exec, execFile } from 'child_process'
 import { promisify } from 'util'
 import { rm } from 'fs/promises'
 import { existsSync } from 'fs'
+import path from 'path'
 import { managerLogger } from '../utils/logger'
 import { getAxios } from './mihomoApi'
 
@@ -205,7 +206,8 @@ export async function verifyProcessOwner(
       processName = stdout.trim().split(/\r?\n/, 1)[0] || ''
     }
 
-    const normalizedName = normalizeProcessName(processName)
+    // macOS/BSD 的 `ps -o comm=` 输出的是可执行文件全路径，取 basename 后短名与全路径都能匹配
+    const normalizedName = normalizeProcessName(path.basename(processName))
     return expectedNames.some((name) => normalizeProcessName(name) === normalizedName)
   } catch {
     return false

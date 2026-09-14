@@ -702,8 +702,25 @@ function setupCoreListeners(
 
     if (isApiReady) {
       try {
-        await startMihomoApiStreams()
-        resolveStartup([completeCoreStartup()])
+        const startupCompletion = startMihomoApiStreams().then(() => completeCoreStartup())
+        resolveStartup([startupCompletion])
+
+        // 内核装载完 provider 后再补发一次：API 端口先于代理组装载就绪，
+        // 上面的刷新可能取到尚未更新的代理组。
+        const notifyProvidersReady = (innerData: Buffer): void => {
+          if (
+            !innerData
+              .toString()
+              .toLowerCase()
+              .includes('start initial compatible provider default')
+          ) {
+            return
+          }
+          proc.stdout?.off('data', notifyProvidersReady)
+          mainWindow?.webContents.send('groupsUpdated')
+          mainWindow?.webContents.send('rulesUpdated')
+        }
+        proc.stdout?.on('data', notifyProvidersReady)
       } catch (error) {
         rejectStartup(error)
       }
