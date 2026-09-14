@@ -48,6 +48,11 @@ export let tray: Tray | null = null
 let trayMenu: Menu | null = null
 // macOS 流量显示状态，避免异步读取配置导致的时序问题
 let macTrafficIconEnabled = false
+// 避免异步显示 Dock 图标覆盖后续的隐藏请求
+let dockIconShouldBeVisible = true
+let dockHideTimeout: NodeJS.Timeout | null = null
+let lastDockHideTime = 0
+const dockHideInterval = 1100
 type TrayIconStatus = 'white' | 'blue' | 'green' | 'red'
 type TrayImage = Electron.NativeImage | string
 type CustomTrayIconKey = keyof ICustomTrayIcons
@@ -548,14 +553,44 @@ export async function closeTrayIcon(): Promise<void> {
 }
 
 export async function showDockIcon(): Promise<void> {
-  if (process.platform === 'darwin' && app.dock && !app.dock.isVisible()) {
-    await app.dock.show()
+  if (process.platform === 'darwin' && app.dock) {
+    dockIconShouldBeVisible = true
+    if (dockHideTimeout) {
+      clearTimeout(dockHideTimeout)
+      dockHideTimeout = null
+    }
+    if (!app.dock.isVisible()) {
+      await app.dock.show()
+    }
+    if (!dockIconShouldBeVisible) {
+      hideDockIcon()
+    }
   }
 }
 
 export async function hideDockIcon(): Promise<void> {
-  if (process.platform === 'darwin' && app.dock && app.dock.isVisible()) {
-    app.dock.hide()
+  if (process.platform === 'darwin' && app.dock) {
+    dockIconShouldBeVisible = false
+    if (dockHideTimeout) {
+      clearTimeout(dockHideTimeout)
+      dockHideTimeout = null
+    }
+    if (!app.dock.isVisible()) return
+
+    const delay = dockHideInterval - (Date.now() - lastDockHideTime)
+    if (delay <= 0) {
+      lastDockHideTime = Date.now()
+      app.dock.hide()
+      return
+    }
+
+    dockHideTimeout = setTimeout(() => {
+      dockHideTimeout = null
+      if (!dockIconShouldBeVisible && app.dock?.isVisible()) {
+        lastDockHideTime = Date.now()
+        app.dock.hide()
+      }
+    }, delay)
   }
 }
 
