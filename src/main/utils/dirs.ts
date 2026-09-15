@@ -85,11 +85,31 @@ export function mihomoCoreDir(): string {
   return path.join(resourcesDir(), 'sidecar')
 }
 
+// 用户手动下载的指定版本内核。不能放进应用包：macOS 的 /Applications 与 Windows 的
+// Program Files 都由安装器以管理员身份写入，应用自身没有写权限，下载会直接 EACCES。
+export function mihomoSpecificCoreDir(): string {
+  const dir = path.join(dataDir(), 'cores')
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true })
+  }
+  return dir
+}
+
 export function mihomoCorePath(core: string): string {
   const isWin = process.platform === 'win32'
   // 处理 Smart 内核
   if (core === 'mihomo-smart') {
     return path.join(mihomoCoreDir(), `mihomo-smart${isWin ? '.exe' : ''}`)
+  }
+  if (core === 'mihomo-specific') {
+    const fileName = `mihomo-specific${isWin ? '.exe' : ''}`
+    const legacyPath = path.join(mihomoCoreDir(), fileName)
+    const userPath = path.join(mihomoSpecificCoreDir(), fileName)
+    // 旧版本把它下载到了应用包内，升级后继续沿用已有文件，避免用户的内核凭空消失
+    if (!existsSync(userPath) && existsSync(legacyPath)) {
+      return legacyPath
+    }
+    return userPath
   }
   return path.join(mihomoCoreDir(), `${core}${isWin ? '.exe' : ''}`)
 }
