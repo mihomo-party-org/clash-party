@@ -120,21 +120,22 @@ launchctl bootout system "$LAUNCH_DAEMON" 2>/dev/null || true
 launchctl unload "$LAUNCH_DAEMON" 2>/dev/null || true
 
 # 加载服务
+# 注意：加载失败不能让整个安装失败。用户在「系统设置 - 登录项与扩展 - 允许在后台」里
+# 关掉本服务后，launchctl 会返回 "Load failed: 5: Input/output error"，此时中止安装会让
+# 用户连应用都装不上；而应用在首次用到 helper 时会自行重装并重新加载它。
 log "Loading service..."
 if [ "$macos_major" -ge 11 ]; then
     # macOS Big Sur 及更新版本使用 bootstrap
     if ! launchctl bootstrap system "$LAUNCH_DAEMON"; then
         log "Bootstrap failed, trying legacy load..."
         if ! launchctl load "$LAUNCH_DAEMON"; then
-            log "Error: Failed to load service with both methods"
-            exit 1
+            log "Warning: Failed to load service with both methods, the app will retry on demand"
         fi
     fi
 else
     # 旧版本使用 load
     if ! launchctl load "$LAUNCH_DAEMON"; then
-        log "Error: Failed to load service"
-        exit 1
+        log "Warning: Failed to load service, the app will retry on demand"
     fi
 fi
 
