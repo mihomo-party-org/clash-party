@@ -66,6 +66,9 @@ const defaultBypass: string[] = (() => {
 interface TriggerSysProxyOptions {
   helperTimeout?: number
   force?: boolean
+  // PAC 脚本由主进程内的 HTTP 服务提供，主进程退出后该服务就消失了。
+  // 需要在没有主进程的情况下继续代理时，用等价的手动代理替代 PAC。
+  forceManual?: boolean
 }
 
 function helperAxiosOptions(helperTimeout?: number): { socketPath: string; timeout?: number } {
@@ -86,10 +89,12 @@ export async function triggerSysProxy(
   }
 
   const operation = triggerSysProxyQueue.then(async () => {
-    if (net.isOnline() || options.force) {
+    // 关闭系统代理是纯本地操作，不需要联网。离线时推迟只会把用户继续困在一个
+    // 已经无法工作的代理后面，正是他最想关掉它的时候。
+    if (!enable || net.isOnline() || options.force) {
       if (enable) {
         await disableSysProxy(options.helperTimeout)
-        await enableSysProxy(options.helperTimeout)
+        await enableSysProxy(options.helperTimeout, options.forceManual)
       } else {
         await disableSysProxy(options.helperTimeout)
       }
@@ -110,10 +115,15 @@ export async function triggerSysProxy(
   return operation
 }
 
-async function enableSysProxy(helperTimeout?: number): Promise<void> {
-  await startPacServer()
+async function enableSysProxy(helperTimeout?: number, forceManual = false): Promise<void> {
+  if (forceManual) {
+    await stopPacServer()
+  } else {
+    await startPacServer()
+  }
   const { sysProxy } = await getAppConfig()
   const { mode, host, bypass = defaultBypass } = sysProxy
+  const effectiveMode = forceManual ? 'manual' : mode
   const { 'mixed-port': port = DEFAULT_MIHOMO_PORTS.mixed } = await getControledMihomoConfig()
   const proxyHost = host || '127.0.0.1'
   const formattedBypass = bypass
@@ -123,7 +133,7 @@ async function enableSysProxy(helperTimeout?: number): Promise<void> {
 
   if (process.platform === 'darwin') {
     // macOS 需要 helper 提权
-    if (mode === 'auto') {
+    if (effectiveMode === 'auto') {
       await helperRequest(() =>
         axios.post(
           'http://localhost/pac',
@@ -143,7 +153,7 @@ async function enableSysProxy(helperTimeout?: number): Promise<void> {
   } else {
     // Windows / Linux 直接使用 sysproxy-rs
     try {
-      if (mode === 'auto') {
+      if (effectiveMode === 'auto') {
         triggerAutoProxy(true, `http://${proxyHost}:${pacPort}/pac`)
       } else {
         triggerManualProxy(true, proxyHost, port, formattedBypass)
