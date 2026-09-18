@@ -290,6 +290,9 @@ interface IAppConfig {
   smartCoreUseLightGBM: boolean
   smartCoreCollectData: boolean
   smartCollectorSize?: number
+  smartTolerance?: number
+  smartPreferASN?: boolean
+  smartSampleRate?: number
   proxyDisplayMode: 'simple' | 'full'
   proxyDisplayOrder: 'default' | 'delay' | 'name'
   profileDisplayDate?: 'expire' | 'update'
