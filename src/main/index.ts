@@ -1,4 +1,5 @@
 import { execFile } from 'child_process'
+import { existsSync, readFileSync } from 'fs'
 import { promisify } from 'util'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { app, dialog, ipcMain } from 'electron'
@@ -41,8 +42,9 @@ import {
   setupAppLifecycle,
   getSystemLanguage
 } from './lifecycle'
-import { configureAppPaths } from './utils/dirs'
+import { appConfigPath, configureAppPaths } from './utils/dirs'
 import { setTrafficUsageEnabled } from './traffic/recorder'
+import { parse } from './utils/yaml'
 
 async function getWindowsPowerShellMajorVersion(): Promise<number | null> {
   // 仅 PS 3.0+ 写入 \3\ 键（\1\ 键恒为 2.0，不可用）。
@@ -110,11 +112,15 @@ initApp().catch((e) => {
 
 setupPlatformSpecifics()
 
-async function initHardwareAcceleration(): Promise<void> {
+// app.disableHardwareAcceleration() 只能在 ready 之前调用，之后调用会直接抛错。
+// 旧实现先 await initBasic()（建目录、读写配置、跑迁移），那串磁盘 IO 必然晚于 ready
+// 完成，于是这里恒定抛 "can only be called before app is ready" 并被 catch 吞掉——
+// 「禁用硬件加速」开关从未真正生效（#446）。改为同步读一次 config.yaml。
+function initHardwareAcceleration(): void {
   try {
-    await initBasic()
-    const { disableHardwareAcceleration = false } = await getAppConfig()
-    if (disableHardwareAcceleration) {
+    if (!existsSync(appConfigPath())) return
+    const config = parse<Partial<IAppConfig>>(readFileSync(appConfigPath(), 'utf-8'))
+    if (config?.disableHardwareAcceleration) {
       app.disableHardwareAcceleration()
     }
   } catch (e) {
@@ -315,6 +321,14 @@ app
       throw error
     }
 
+    // macOS 点击 Dock/启动台图标只会触发 activate。这里必须在首窗创建完成后立刻注册：
+    // 放到启动流程末尾的话，内核启动慢、卡住或弹出模态错误框时监听器一直没装上，
+    // 用户点应用图标毫无反应，表现为“只有小黑点没有界面”（#1459）。
+    // 注册点在 createWindow() 之后，静默启动的首次 activate 已经过去，不会破坏静默启动。
+    app.on('activate', () => {
+      showMainWindow()
+    })
+
     // loadURL/loadFile 成功后才开始兜底计时；加载重试不会提前耗尽首屏预算。
     rendererFirstContentWaiter.startTimeout()
     await rendererFirstContentWaiter.promise
@@ -422,10 +436,6 @@ app
     if (coreStarted) {
       mainWindow?.webContents.send('core-started')
     }
-
-    app.on('activate', () => {
-      showMainWindow()
-    })
   })
   .catch((error) => {
     mainLogger.error('Application startup failed', error)
