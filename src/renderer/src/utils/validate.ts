@@ -27,6 +27,8 @@ const WINDOWS_PATH_PATTERN = /^[a-zA-Z]:[\\/].+/
 const UNIX_PATH_PATTERN = /^\/.+/
 const ANDROID_PACKAGE_PATTERN = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/i
 const PROCESS_NAME_PATTERN = /^[a-zA-Z0-9._-]+$/
+// Windows 上常见的前缀通配写法，如 *\chrome.exe：不是绝对路径，替换通配符后仍不匹配
+const PREFIX_WILDCARD_PATH_PATTERN = /^[*?][^\\/]*[\\/].+/
 
 const isValidRegex: BooleanValidator = (value) => {
   try {
@@ -151,7 +153,8 @@ export const processPathValidator: BooleanValidator = (value) =>
   ANDROID_PACKAGE_PATTERN.test(value)
 
 export const processPathWildcardValidator: BooleanValidator = (value) =>
-  value.length > 0 && processPathValidator(replaceWildcards(value))
+  value.length > 0 &&
+  (processPathValidator(replaceWildcards(value)) || PREFIX_WILDCARD_PATH_PATTERN.test(value))
 
 export const processPathRegexValidator = isValidRegex
 

@@ -35,7 +35,8 @@ export function calcPercent(
   download: number | undefined,
   total: number | undefined
 ): number {
-  if (upload === undefined || download === undefined || total === undefined) {
+  // total 为 0 是机场表示「不限量」的合法值，直接相除会得到 Infinity / NaN
+  if (upload === undefined || download === undefined || !total || total <= 0) {
     return 100
   }
   return Math.round(((upload + download) / total) * 100)
