@@ -500,7 +500,7 @@ const resolveFont = async () => {
     return
   }
   await downloadFile(
-    'https://github.com/googlefonts/noto-emoji/raw/main/fonts/NotoColorEmoji.ttf',
+    'https://github.com/googlefonts/noto-emoji/raw/main/2D/fonts/NotoColorEmoji.ttf',
     targetPath
   )
 
