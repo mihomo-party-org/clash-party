@@ -2,7 +2,12 @@ import { exec, spawn } from 'child_process'
 import { networkInterfaces } from 'os'
 import { promisify } from 'util'
 import { ipcMain, net } from 'electron'
-import { getAppConfig, patchAppConfig, patchControledMihomoConfig } from '../config'
+import {
+  getAppConfig,
+  getControledMihomoConfig,
+  patchAppConfig,
+  patchControledMihomoConfig
+} from '../config'
 import { changeCurrentProfile, getProfileConfig } from '../config/profile'
 import { patchMihomoConfig } from '../core/mihomoApi'
 import { mainWindow } from '../window'
@@ -65,6 +70,12 @@ function networkFingerprint(): string {
     .join(';')
 }
 
+// Whether we are the ones who forced direct mode for a paused SSID, and which
+// mode the user had selected before that, so that leaving the SSID restores
+// what they actually chose instead of assuming rule.
+let pausedBySSID = false
+let modeBeforePause: OutboundMode | undefined
+
 async function handleSSIDChange(): Promise<void> {
   try {
     const {
@@ -92,6 +103,16 @@ async function handleSSIDChange(): Promise<void> {
     lastSSID = currentSSID
 
     if (currentSSID && pauseSSID.includes(currentSSID)) {
+      // Moving straight from one paused SSID to another must not run this
+      // again: it would record the already-paused values as the "before"
+      // state, so controlDnsBeforePause becomes false and the user's DNS
+      // takeover setting is lost for good.
+      if (pausedBySSID) return
+
+      const { mode } = await getControledMihomoConfig()
+      modeBeforePause = mode
+      pausedBySSID = true
+
       if (disableDnsOnPauseSSID) {
         await patchAppConfig({ controlDnsBeforePause: controlDns, controlDns: false })
       }
@@ -109,8 +130,14 @@ async function handleSSIDChange(): Promise<void> {
       pauseSSID.includes(previousSSID) &&
       (!currentSSID || !pauseSSID.includes(currentSSID))
     ) {
-      await patchControledMihomoConfig({ mode: 'rule' })
-      await patchMihomoConfig({ mode: 'rule' })
+      // Restore whatever the user had selected before we paused, not a
+      // hardcoded 'rule' — someone running in global mode should not silently
+      // end up on rule after passing a paused network.
+      const restoredMode = modeBeforePause ?? 'rule'
+      pausedBySSID = false
+      modeBeforePause = undefined
+      await patchControledMihomoConfig({ mode: restoredMode })
+      await patchMihomoConfig({ mode: restoredMode })
       mainWindow?.webContents.send('controledMihomoConfigUpdated')
       mainWindow?.webContents.send('appConfigUpdated')
       ipcMain.emit('updateTrayMenu')
@@ -226,6 +253,10 @@ export function stopSSIDCheck(): void {
     ssidCheckInterval = null
   }
 }
+
+// Exposed for tests: drives one SSID transition without starting the watcher
+// or the polling interval.
+export const checkSSIDForTest = handleSSIDChange
 
 async function getSSIDByAirport(): Promise<string | undefined> {
   const execPromise = promisify(exec)
