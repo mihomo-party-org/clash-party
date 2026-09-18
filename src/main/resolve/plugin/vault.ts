@@ -292,8 +292,18 @@ async function readVaultUnlocked(id: string, signal?: AbortSignal): Promise<Vaul
   // Linux 的内存兜底只适用于本次会话新建的 vault；已有密文在后端恢复前不可读取。
   if (mode === 'memory' || mode === 'unavailable') return { kind: 'unavailable' }
 
+  // 读文件单独 try：文件系统瞬时错误（EBUSY/EPERM/EMFILE 等，Windows 上杀软或索引服务
+  // 短暂锁住刚写完的文件很常见）不代表密文损坏，按“暂时不可用”走退避重试；
+  // 若归为 invalid，调用方会把健康插件永久标成 needs-reauth，用户被迫重走 OAuth 并占用设备额度。
+  let encrypted: Buffer
   try {
-    const encrypted = await readFile(path)
+    encrypted = await readFile(path)
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { kind: 'missing' }
+    return { kind: 'unavailable' }
+  }
+
+  try {
     // 同步兼容 API（旧 Electron）会阻塞主线程直到返回，任何代码都无法中途打断它——能做的只有
     // 预算已耗尽时不去启动；异步 API 的迟到结果由 readVault 的 abortable 交给调用方之外处理
     if (mode === 'persistent-sync' && signal?.aborted) return { kind: 'unavailable' }
