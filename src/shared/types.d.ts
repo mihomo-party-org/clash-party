@@ -53,7 +53,7 @@ type MihomoProxyType =
   | 'Sudoku'
   | 'Masque'
   | 'TrustTunnel'
-type TunStack = 'gvisor' | 'mixed' | 'system'
+type TunStack = 'gvisor' | 'mixed' | 'system' | 'mips'
 type FindProcessMode = 'off' | 'strict' | 'always'
 type DnsMode = 'normal' | 'fake-ip' | 'redir-host' | 'hosts'
 type FilterMode = 'blacklist' | 'whitelist' | 'rule'
