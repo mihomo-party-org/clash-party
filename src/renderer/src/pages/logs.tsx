@@ -28,9 +28,12 @@ const cachedLogs: {
 }
 
 const onLog = (_e: unknown, ...args: unknown[]): void => {
-  const log = args[0] as IMihomoLogInfo
-  log.time = new Date().toLocaleString()
-  cachedLogs.log.push(log)
+  const logs = args[0] as IMihomoLogInfo[]
+  const time = new Date().toLocaleString()
+  for (const log of logs) {
+    log.time = time
+    cachedLogs.log.push(log)
+  }
   if (cachedLogs.log.length > MAX_CACHED_LOGS) {
     cachedLogs.log.splice(0, cachedLogs.log.length - MAX_CACHED_LOGS)
   }
@@ -40,7 +43,7 @@ const onLog = (_e: unknown, ...args: unknown[]): void => {
 // Keep streaming while this page is hidden so returning users can see intervening logs.
 // The session cache is bounded by MAX_CACHED_LOGS, so stopping on unmount hurts UX
 // without providing meaningful memory savings.
-const unsubscribeLogs = window.electron.ipcRenderer.on('mihomoLogs', onLog)
+const unsubscribeLogs = window.electron.ipcRenderer.on('mihomoLogsBatch', onLog)
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {

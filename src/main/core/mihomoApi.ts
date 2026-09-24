@@ -13,8 +13,10 @@ import { mihomoWorkConfigPath } from '../utils/dirs'
 import { generateProfile, getRuntimeConfig } from './factory'
 import { syncControlDnsAfterApply } from './dnsOverrideGuard'
 import { getMihomoIpcPath, hasCoreProcess, restartCore } from './manager'
+import { createLogBatcher } from './logBatcher'
 
 const mihomoApiLogger = createLogger('MihomoApi')
+let logsBatcher: ReturnType<typeof createLogBatcher> | undefined
 
 let axiosIns: AxiosInstance | null = null
 let currentIpcPath: string = ''
@@ -583,31 +585,38 @@ export const startMihomoLogs = async (): Promise<void> => {
 }
 
 export const stopMihomoLogs = (): void => {
+  logsBatcher?.dispose()
+  logsBatcher = undefined
   stopStream(logsStream)
 }
 
 const mihomoLogs = async (): Promise<void> => {
   const generation = beginStreamConnection(logsStream)
   if (generation === null) return
+  logsBatcher?.dispose()
+  logsBatcher = undefined
 
   const { 'log-level': logLevel = 'info' } = await getControledMihomoConfig()
+  if (!isCurrentStream(logsStream, generation)) return
 
   const { ws } = createMihomoWebSocket(`/logs?level=${logLevel}`)
   logsStream.ws = ws
+  const batcher = createLogBatcher((logs) => {
+    if (!isCurrentStream(logsStream, generation) || mainWindow?.isDestroyed()) return
+    mainWindow?.webContents.send('mihomoLogsBatch', logs)
+  })
+  logsBatcher = batcher
 
   ws.onmessage = (e): void => {
     if (!isCurrentStream(logsStream, generation)) return
 
     const data = e.data as string
     logsStream.retry = MAX_RETRY
-    try {
-      mainWindow?.webContents.send('mihomoLogs', JSON.parse(data) as IMihomoLogInfo)
-    } catch {
-      // ignore
-    }
+    batcher.push(data)
   }
 
   ws.onclose = (): void => {
+    batcher.dispose()
     if (!isCurrentStream(logsStream, generation)) return
     logsStream.ws = null
     scheduleStreamReconnect(logsStream, generation, mihomoLogs)
