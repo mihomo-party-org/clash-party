@@ -1,6 +1,7 @@
 import {
   DEFAULT_CONTROL_DNS,
   DEFAULT_CONTROL_SNIFF,
+  DEFAULT_CONTROL_TUN,
   DEFAULT_ENABLE_TRAFFIC_LOGGER,
   DEFAULT_MIHOMO_DNS_CONFIG,
   DEFAULT_MIHOMO_LAN_ALLOWED_IPS,
@@ -59,6 +60,7 @@ export const defaultConfig: IAppConfig = {
   useNameserverPolicy: DEFAULT_USE_NAMESERVER_POLICY,
   controlDns: DEFAULT_CONTROL_DNS,
   controlSniff: DEFAULT_CONTROL_SNIFF,
+  controlTun: DEFAULT_CONTROL_TUN,
   floatingWindowCompatMode: true,
   disableHardwareAcceleration: false,
   hideConnectionCardWave: false,

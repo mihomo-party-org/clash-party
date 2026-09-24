@@ -10,6 +10,11 @@ import { managerLogger } from '../utils/logger'
 import { checkAdminPrivileges } from '../core/admin'
 
 const appName = 'mihomo-party'
+const winSchtasksPath = path.join(
+  process.env.SystemRoot || 'C:\\Windows',
+  'System32',
+  'schtasks.exe'
+)
 // 1.x 通过 AppleScript 往 System Events 写登录项，这些旧条目不受 Service Management 管理，
 // 升级后必须单独清理，否则会与新登录项同时生效导致开机启动两次。
 const darwinLegacyLoginItemNames = ['Clash Party', 'Mihomo Party']
@@ -74,13 +79,10 @@ function getTaskXml(asAdmin: boolean): string {
 
 export async function checkAutoRun(): Promise<boolean> {
   if (process.platform === 'win32') {
-    const execPromise = promisify(exec)
     const execFilePromise = promisify(execFile)
     // 先检查任务计划程序
     try {
-      const { stdout } = await execPromise(
-        `chcp 437 && %SystemRoot%\\System32\\schtasks.exe /query /tn "${appName}"`
-      )
+      const { stdout } = await execFilePromise(winSchtasksPath, ['/query', '/tn', appName])
       if (stdout.includes(appName)) {
         return true
       }
@@ -127,37 +129,58 @@ export async function enableAutoRun(): Promise<void> {
 
     if (isAdmin) {
       try {
-        await execPromise(
-          `%SystemRoot%\\System32\\schtasks.exe /create /tn "${appName}" /xml "${taskFilePath}" /f`
-        )
+        await execFilePromise(winSchtasksPath, [
+          '/create',
+          '/tn',
+          appName,
+          '/xml',
+          taskFilePath,
+          '/f'
+        ])
         taskCreated = true
       } catch (error) {
         await managerLogger.warn('Failed to create scheduled task as admin:', error)
       }
     } else {
+      // 非管理员：LeastPrivilege 任务通常可直接创建，避免无谓 UAC（#1208）
       try {
-        await execPromise(
-          `powershell -NoProfile -Command "Start-Process schtasks -Verb RunAs -ArgumentList '/create', '/tn', '${appName}', '/xml', '${taskFilePath}', '/f' -WindowStyle Hidden -Wait"`
-        )
-        // 验证任务是否创建成功
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+        await execFilePromise(winSchtasksPath, [
+          '/create',
+          '/tn',
+          appName,
+          '/xml',
+          taskFilePath,
+          '/f'
+        ])
+        taskCreated = true
       } catch {
-        await managerLogger.info('Scheduled task creation failed, trying registry fallback')
+        await managerLogger.info('Direct schtasks create failed, trying UAC elevation')
       }
-    }
 
-    if (!taskCreated) {
-      try {
-        const { stdout } = await execPromise(
-          `chcp 437 && %SystemRoot%\\System32\\schtasks.exe /query /tn "${appName}"`
-        )
-        const created = stdout.includes(appName)
-        taskCreated = created
-        if (!created) {
-          await managerLogger.warn('Scheduled task creation may have failed or been rejected')
+      if (!taskCreated) {
+        // 必须用 schtasks 全路径：bare `Start-Process schtasks -Verb RunAs` 在 Win10 常找不到可执行文件，
+        // UAC 点“是”后静默失败且 exit 0，开关回读仍为关（#1208，同族 #1737）
+        const psCommand = `Start-Process -FilePath '${winSchtasksPath.replace(/'/g, "''")}' -Verb RunAs -ArgumentList '/create', '/tn', '${appName}', '/xml', '${taskFilePath.replace(/'/g, "''")}', '/f' -WindowStyle Hidden -Wait`
+        try {
+          const { stdout } = await execPromise(
+            `powershell -NoProfile -NonInteractive -Command "${psCommand.replace(/"/g, '\\"')}"`
+          )
+          void stdout
+          // Start-Process 即使子进程非零退出也常 exit 0：以 query 复核为准
+          await new Promise((resolve) => setTimeout(resolve, 300))
+        } catch (error) {
+          await managerLogger.info(
+            'Scheduled task UAC elevation failed, trying registry fallback',
+            error
+          )
         }
-      } catch {
-        // ignore
+
+        try {
+          const { stdout } = await execFilePromise(winSchtasksPath, ['/query', '/tn', appName])
+          taskCreated = stdout.includes(appName)
+        } catch {
+          taskCreated = false
+        }
       }
     }
 
@@ -222,14 +245,19 @@ export async function disableAutoRun(): Promise<void> {
     const execFilePromise = promisify(execFile)
     const isAdmin = await checkAdminPrivileges()
 
-    // 删除任务计划程序中的任务
+    // 删除任务计划程序中的任务（管理员直删；非管理员优先直删，失败再 UAC，避免无谓弹窗）
     try {
       if (isAdmin) {
-        await execPromise(`%SystemRoot%\\System32\\schtasks.exe /delete /tn "${appName}" /f`)
+        await execFilePromise(winSchtasksPath, ['/delete', '/tn', appName, '/f'])
       } else {
-        await execPromise(
-          `powershell -NoProfile -Command "Start-Process schtasks -Verb RunAs -ArgumentList '/delete', '/tn', '${appName}', '/f' -WindowStyle Hidden -Wait"`
-        )
+        try {
+          await execFilePromise(winSchtasksPath, ['/delete', '/tn', appName, '/f'])
+        } catch {
+          const psCommand = `Start-Process -FilePath '${winSchtasksPath.replace(/'/g, "''")}' -Verb RunAs -ArgumentList '/delete', '/tn', '${appName}', '/f' -WindowStyle Hidden -Wait`
+          await execPromise(
+            `powershell -NoProfile -NonInteractive -Command "${psCommand.replace(/"/g, '\\"')}"`
+          )
+        }
       }
     } catch {
       // 任务可能不存在，忽略错误

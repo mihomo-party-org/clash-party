@@ -1,0 +1,185 @@
+name: QA
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qa-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: Unit tests (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --ignore-scripts
+      - name: Test
+        run: pnpm test
+
+  regression:
+    name: Regression probes (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --ignore-scripts
+      - name: Run regression probes
+        run: node scripts/probes/run-all.mjs
+      - name: Upload probe evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: probe-evidence-${{ matrix.os }}
+          path: probe-artifacts/
+          if-no-files-found: ignore
+
+  build:
+    name: Build out/ (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --ignore-scripts
+      - name: Prepare sidecar
+        run: node scripts/prepare.mjs
+      - name: Build
+        run: pnpm exec electron-vite build
+      - name: SHA256 of build outputs
+        shell: bash
+        run: |
+          mkdir -p dist
+          (cd out && find . -type f -print0 | sort -z | xargs -0 sha256sum) > dist/out-SHA256SUMS.txt
+          cat dist/out-SHA256SUMS.txt
+      - name: Upload build outputs
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-out-${{ matrix.os }}
+          path: |
+            out/
+            dist/out-SHA256SUMS.txt
+
+  gui-smoke:
+    name: GUI window smoke (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --ignore-scripts
+      - name: Install Electron binary
+        run: node node_modules/electron/install.js
+      - name: Prepare sidecar
+        run: node scripts/prepare.mjs
+      - name: Build
+        run: pnpm exec electron-vite build
+      - name: Fix chrome-sandbox permissions (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          SANDBOX=$(find node_modules -name chrome-sandbox -path '*electron*' | head -1)
+          echo "sandbox helper: $SANDBOX"
+          sudo chown root:root "$SANDBOX"
+          sudo chmod 4755 "$SANDBOX"
+      - name: GUI smoke (silent start)
+        if: runner.os == 'Linux'
+        continue-on-error: true
+        env:
+          PROBE_GUI_SCENARIO: silent
+        run: xvfb-run -a node_modules/.bin/electron scripts/probes/gui-window-smoke.mjs
+      - name: GUI smoke (control)
+        if: runner.os == 'Linux'
+        continue-on-error: true
+        env:
+          PROBE_GUI_SCENARIO: normal
+        run: xvfb-run -a node_modules/.bin/electron scripts/probes/gui-window-smoke.mjs
+      - name: GUI smoke (silent start)
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        env:
+          PROBE_GUI_SCENARIO: silent
+        run: node_modules\.bin\electron.cmd scripts\probes\gui-window-smoke.mjs
+      - name: GUI smoke (control)
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        env:
+          PROBE_GUI_SCENARIO: normal
+        run: node_modules\.bin\electron.cmd scripts\probes\gui-window-smoke.mjs
+      - name: GUI smoke (silent start, macOS)
+        if: runner.os == 'macOS'
+        continue-on-error: true
+        env:
+          PROBE_GUI_SCENARIO: silent
+        run: node_modules/.bin/electron scripts/probes/gui-window-smoke.mjs
+      - name: GUI smoke (control, macOS)
+        if: runner.os == 'macOS'
+        continue-on-error: true
+        env:
+          PROBE_GUI_SCENARIO: normal
+        run: node_modules/.bin/electron scripts/probes/gui-window-smoke.mjs
+      - name: Assert verdicts
+        shell: bash
+        run: |
+          ls -la probe-artifacts/
+          jq -e '.ok == true' probe-artifacts/gui-silent-verdict.json
+          jq -e '.ok == true' probe-artifacts/gui-normal-verdict.json
+          echo '--- silent ---' && cat probe-artifacts/gui-silent-verdict.json
+          echo '--- normal ---' && cat probe-artifacts/gui-normal-verdict.json
+      - name: Upload GUI evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: gui-evidence-${{ matrix.os }}
+          path: probe-artifacts/

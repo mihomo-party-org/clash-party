@@ -37,11 +37,12 @@ const CollapseInput: React.FC<CollapseInputProps> = (props) => {
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const newValue = e.target.value
+      // 组词期间不写受控 localValue：百毒五笔等 IME 会因受控 value 中途变更
+      // 与 composition 缓冲打架，把键名提交两遍（#1543 Q2）。
+      // 组合文本由 input DOM 自管，compositionend 再落最终值。
+      if (isComposingRef.current) return
       setLocalValue(newValue)
-      // 只在非组合输入时触发外部更新
-      if (!isComposingRef.current) {
-        onValueChange?.(newValue)
-      }
+      onValueChange?.(newValue)
     },
     [onValueChange]
   )
@@ -53,8 +54,9 @@ const CollapseInput: React.FC<CollapseInputProps> = (props) => {
   const handleCompositionEnd = useCallback(
     (e: React.CompositionEvent<HTMLInputElement>) => {
       isComposingRef.current = false
-      // 组合输入结束后，触发一次更新
-      onValueChange?.(e.currentTarget.value)
+      const finalValue = e.currentTarget.value
+      setLocalValue(finalValue)
+      onValueChange?.(finalValue)
     },
     [onValueChange]
   )

@@ -91,7 +91,7 @@ const coreShutdownTimeout = 3000
 const resumeReloadDelay = 5000
 // 同一次失败内核可能连打多行，10 秒内只提示一次，避免弹窗刷屏
 const tunFailureReportInterval = 10000
-const coreProcessNames = ['mihomo', 'mihomo-alpha', 'mihomo-smart'] as const
+const coreProcessNames = ['mihomo', 'mihomo-alpha', 'mihomo-smart', 'mihomo-specific'] as const
 
 // 核心进程状态
 interface CoreProcessWatchdog {
@@ -488,8 +488,16 @@ async function prepareCore(detached: boolean, skipStop = false): Promise<CoreCon
   }
   await cleanupSocketFile()
 
-  // 设置 DNS
-  if (tun?.enable && autoSetDNS) {
+  // 设置 DNS（#2176）：仅当 DNS 劫持真实生效且 DNS 模块启用时才允许把系统 DNS 写成
+  // 公共 DNS。关闭“启用 DNS”或配置未指定 DNS（工厂会清空 dns-hijack）时必须保留
+  // 系统默认 DNS，否则 Helper 每次启动都会把 macOS 系统 DNS 固定成 223.5.5.5。
+  const generatedConfig = await getRuntimeConfig()
+  const generatedDnsHijack = generatedConfig.tun?.['dns-hijack']
+  const hijackActive = Array.isArray(generatedDnsHijack)
+    ? generatedDnsHijack.length > 0
+    : Boolean(generatedDnsHijack)
+  const dnsModuleEnabled = generatedConfig.dns?.enable !== false
+  if (tun?.enable && autoSetDNS && hijackActive && dnsModuleEnabled) {
     ensureNotShuttingDown()
     try {
       await setPublicDNS()
@@ -745,27 +753,33 @@ function setupCoreListeners(
       (process.platform === 'win32' && str.includes('RESTful API pipe listening at'))
 
     if (isApiReady) {
-      resolveStartup([
-        new Promise((innerResolve) => {
-          proc.stdout?.on('data', async (innerData) => {
-            if (
-              innerData
-                .toString()
-                .toLowerCase()
-                .includes('start initial compatible provider default')
-            ) {
-              completeCoreStartup()
-                .then(() => innerResolve())
-                .catch((error) => {
-                  managerLogger.warn('Failed to complete core startup', error)
-                  innerResolve()
-                })
-            }
-          })
-        })
-      ])
+      try {
+        // API 就绪即完成启动通知：以前必须等到日志行
+        // "start initial compatible provider default"，无 compatible provider 或
+        // log-level 过低时该行永不出现 → groupsUpdated/rulesUpdated 永不发送，
+        // 渲染层只能靠 30s 轮询 + keepPreviousData 挂着旧订阅组（#1198）
+        const startupCompletion = startMihomoApiStreams().then(() => completeCoreStartup())
+        resolveStartup([startupCompletion])
 
-      await startMihomoApiStreams()
+        // 内核装载完 provider 后再补发一次：API 端口先于代理组装载就绪，
+        // 上面的刷新可能取到尚未更新的代理组。
+        const notifyProvidersReady = (innerData: Buffer): void => {
+          if (
+            !innerData
+              .toString()
+              .toLowerCase()
+              .includes('start initial compatible provider default')
+          ) {
+            return
+          }
+          proc.stdout?.off('data', notifyProvidersReady)
+          mainWindow?.webContents.send('groupsUpdated')
+          mainWindow?.webContents.send('rulesUpdated')
+        }
+        proc.stdout?.on('data', notifyProvidersReady)
+      } catch (error) {
+        rejectStartup(error)
+      }
     }
   })
 

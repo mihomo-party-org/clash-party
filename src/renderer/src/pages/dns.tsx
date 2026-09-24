@@ -223,11 +223,12 @@ const DNS: React.FC = () => {
                 )
               }
               const result = { dns: dnsConfig }
-              if (values.useHosts) {
-                result['hosts'] = Object.fromEntries(
-                  values.hosts.map(({ domain, value }) => [domain, value])
-                )
-              }
+              // 关闭自定义 hosts 时必须显式写入空对象，否则旧 hosts 会残留在
+              // controled 配置中继续生效（#433）；use-hosts 单独置 false 不足以
+              // 清除已合并进配置的 hosts 映射。
+              result['hosts'] = values.useHosts
+                ? Object.fromEntries(values.hosts.map(({ domain, value }) => [domain, value]))
+                : {}
               onSave(result)
             }}
           >

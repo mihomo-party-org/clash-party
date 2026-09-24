@@ -63,6 +63,14 @@ export function setupPlatformSpecifics(): void {
     if (elevated === true) {
       primeAdminPrivilegesCache(true)
       app.commandLine.appendSwitch('disable-gpu-sandbox')
+      // 高完整性（管理员）主进程无法稳定拉起跨站 iframe 的沙箱 OOPIF renderer：
+      // 主窗 sandbox:false 走 --no-sandbox，Sub-Store 的 http://127.0.0.1 iframe
+      // 仍进独立 --enable-sandbox 进程后空白（#2148）。提权时关闭 site isolation，
+      // 让 iframe 落入主窗已有 unsandboxed renderer，避免再开第二个沙箱进程。
+      app.commandLine.appendSwitch(
+        'disable-features',
+        'IsolateOrigins,site-per-process,IsolateSandboxedIframes'
+      )
     }
   }
 }

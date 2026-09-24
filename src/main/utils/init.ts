@@ -40,6 +40,7 @@ import {
   controledMihomoConfigPath,
   dataDir,
   logDir,
+  mihomoCoreDir,
   mihomoTestDir,
   mihomoWorkDir,
   overrideConfigPath,
@@ -174,30 +175,43 @@ async function killOldMihomoProcesses(): Promise<void> {
 
   try {
     const execFilePromise = promisify(execFile)
-    const coreNames = new Set(['mihomo.exe', 'mihomo-alpha.exe', 'mihomo-smart.exe'])
-    const { stdout } = await execFilePromise('tasklist', ['/FO', 'CSV', '/NH'], {
-      windowsHide: true,
-      timeout: 3000,
-      maxBuffer: 4 * 1024 * 1024
-    })
+    const coreNames = ['mihomo.exe', 'mihomo-alpha.exe', 'mihomo-smart.exe', 'mihomo-specific.exe']
+    // 只回收本应用 sidecar 目录下的残留内核进程（AUDIT-01）：此前按镜像名全机匹配，
+    // 会 SIGTERM 其他 mihomo 系客户端正在运行的内核，直接破坏用户网络。现在逐个
+    // 核对 ExecutablePath，路径不在 mihomoCoreDir() 内的一律不杀；查询失败也保持
+    // 不杀（安全默认，残留进程由 core.pid 停止路径兜底）。
+    const coreDir = path
+      .normalize(mihomoCoreDir())
+      .toLowerCase()
+      .replace(/[\\/]+$/, '')
+    const filter = coreNames.map((name) => `$_.Name -eq '${name}'`).join(' -or ')
+    const script = `Get-CimInstance Win32_Process | Where-Object { ${filter} } | Select-Object ProcessId,ExecutablePath | ConvertTo-Json -Compress`
+    const { stdout } = await execFilePromise(
+      'powershell',
+      ['-NoProfile', '-NonInteractive', '-Command', script],
+      {
+        windowsHide: true,
+        timeout: 5000,
+        maxBuffer: 4 * 1024 * 1024
+      }
+    )
 
-    const pids = stdout
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line && !line.includes('INFO:'))
-      .map((line) => {
-        const [, imageName, pid] = line.match(/^"([^"]+)","(\d+)"/) || []
-        if (!imageName || !coreNames.has(imageName.toLowerCase())) return NaN
-        return parseInt(pid, 10)
-      })
-      .filter((pid) => !isNaN(pid) && pid !== process.pid)
+    const parsed: unknown = JSON.parse(stdout.trim() || 'null')
+    const entries: Array<{ ProcessId?: unknown; ExecutablePath?: unknown }> = Array.isArray(parsed)
+      ? parsed
+      : parsed
+        ? [parsed as { ProcessId?: unknown; ExecutablePath?: unknown }]
+        : []
 
-    if (pids.length === 0) return
-
-    for (const pid of pids) {
+    for (const entry of entries) {
+      const pid = Number(entry?.ProcessId)
+      const exePath = typeof entry?.ExecutablePath === 'string' ? entry.ExecutablePath : ''
+      if (!Number.isInteger(pid) || pid === process.pid) continue
+      const normalizedExe = path.normalize(exePath).toLowerCase()
+      if (!exePath || !normalizedExe.startsWith(coreDir + path.sep)) continue
       try {
         process.kill(pid, 'SIGTERM')
-        await initLogger.info(`Terminated old mihomo process ${pid}`)
+        await initLogger.info(`Terminated leftover mihomo process ${pid} (${exePath})`)
       } catch {
         // 进程可能退出
       }
@@ -205,7 +219,7 @@ async function killOldMihomoProcesses(): Promise<void> {
 
     await new Promise((resolve) => setTimeout(resolve, 200))
   } catch {
-    // 忽略错误
+    // 查询失败时保守处理：不杀任何进程
   }
 }
 

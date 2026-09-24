@@ -1,4 +1,4 @@
-import { exec, execFile } from 'child_process'
+import { exec, execFile, spawn } from 'child_process'
 import { promisify } from 'util'
 import { stat } from 'fs/promises'
 import { existsSync } from 'fs'
@@ -15,7 +15,7 @@ const execPromise = promisify(exec)
 const execFilePromise = promisify(execFile)
 
 // 内核名称白名单
-const ALLOWED_CORES = ['mihomo', 'mihomo-alpha', 'mihomo-smart'] as const
+const ALLOWED_CORES = ['mihomo', 'mihomo-alpha', 'mihomo-smart', 'mihomo-specific'] as const
 type AllowedCore = (typeof ALLOWED_CORES)[number]
 type StopCoreBeforeAdminRestart = (force?: boolean) => Promise<void>
 
@@ -244,6 +244,15 @@ export async function grantTunPermissions(): Promise<void> {
   const corePath = mihomoCorePath(core)
   validateCorePath(corePath)
 
+  // 已具备 setuid+root 时跳过提权，避免 SIP 场景下重复 osascript/pkexec 报错（#1744）
+  if (process.platform === 'darwin' || process.platform === 'linux') {
+    const alreadyGranted = await checkMihomoCorePermissions()
+    if (alreadyGranted) {
+      managerLogger.info('Core already has required permissions, skipping elevation')
+      return
+    }
+  }
+
   if (process.platform === 'darwin') {
     const escapedPath = shellEscape(corePath)
     const script = `do shell script "chown root:admin ${escapedPath} && chmod +sx ${escapedPath}" with administrator privileges`
@@ -281,22 +290,31 @@ export async function restartAsAdmin(forTun: boolean = true): Promise<void> {
   const escapedExePath = exePath.replace(/'/g, "''")
   const argsString = restartArgs.map((arg) => arg.replace(/'/g, "''")).join("', '")
 
-  // 使用 Start-Sleep 延迟启动，确保旧进程完全退出后再启动新进程
+  // 不再在命令里 sleep 1s：改成 detached 独立 PowerShell 立即 Start-Process -Verb RunAs，
+  // 主进程等 UAC consent 有机会弹出后再退出，避免父进程过早退出杀掉提权链导致 UAC 静默失败（#1737）
   const command =
     restartArgs.length > 0
-      ? `powershell -NoProfile -Command "Start-Sleep -Milliseconds 1000; Start-Process -FilePath '${escapedExePath}' -ArgumentList '${argsString}' -Verb RunAs"`
-      : `powershell -NoProfile -Command "Start-Sleep -Milliseconds 1000; Start-Process -FilePath '${escapedExePath}' -Verb RunAs"`
+      ? `Start-Process -FilePath '${escapedExePath}' -ArgumentList '${argsString}' -Verb RunAs`
+      : `Start-Process -FilePath '${escapedExePath}' -Verb RunAs`
 
+  // 历史 n=7 实证：exec+立即 exit 仅 1/7 存活；必须 shell:true（cmd 包一层）+ detached + unref（7/7）。
+  // 主进程再等约 1.2s 给 consent.exe 弹出窗口，避免提权链被过早退出杀掉（#1737 / #1183）。
   managerLogger.info('Restarting as administrator with command', command)
 
-  // 先启动 PowerShell（它会等待 1 秒），然后立即退出当前进程
-  exec(command, { windowsHide: true }, (error) => {
-    if (error) {
-      managerLogger.error('Failed to start PowerShell for admin restart', error)
-    }
-  })
-  managerLogger.info('PowerShell command started, quitting app immediately')
-  app.exit(0)
+  try {
+    const child = spawn(`powershell -NoProfile -Command "${command}"`, {
+      shell: true,
+      windowsHide: true,
+      detached: true,
+      stdio: 'ignore'
+    })
+    child.unref()
+  } catch (error) {
+    managerLogger.error('Failed to spawn PowerShell for admin restart', error)
+  }
+
+  managerLogger.info('PowerShell detached, delaying quit for UAC consent window')
+  setTimeout(() => app.exit(0), 1200)
 }
 
 export async function requestTunPermissions(): Promise<void> {

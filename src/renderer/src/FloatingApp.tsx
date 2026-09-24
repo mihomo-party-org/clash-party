@@ -29,13 +29,15 @@ const FloatingApp: React.FC = () => {
   const [rotation, setRotation] = useState(0)
 
   useEffect(() => {
-    if (!spinFloatingIcon) return
+    // 无流量时不挂 rAF：spinSpeed===0 时旧实现仍每帧 setRotation（#698）。
+    // spinSpeed 在 deps 里，有流量会重新挂上动画循环。
+    if (!spinFloatingIcon || spinSpeed <= 0) return
 
     let animationFrameId: number
     const animate = (): void => {
       setRotation((prev) => {
-        if (prev === 360) {
-          return 0
+        if (prev >= 360) {
+          return prev - 360
         }
         return prev + spinSpeed
       })

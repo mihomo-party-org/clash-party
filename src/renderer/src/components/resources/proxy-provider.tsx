@@ -15,6 +15,7 @@ import { calcTraffic } from '@renderer/utils/calc'
 import { getHash } from '@renderer/utils/hash'
 import { useTranslation } from 'react-i18next'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { useGroups } from '@renderer/hooks/use-groups'
 import { FaPlus } from 'react-icons/fa6'
 import SimpleProviderModal from '../simple/simple-provider-modal'
 import SettingItem from '../base/base-setting-item'
@@ -24,6 +25,7 @@ import Viewer from './viewer'
 const ProxyProvider: React.FC = () => {
   const { t } = useTranslation()
   const { appConfig } = useAppConfig()
+  const { mutate: mutateGroups } = useGroups()
   const simpleMode = appConfig?.operationMode === 'simple'
   const [showDetails, setShowDetails] = useState({
     show: false,
@@ -76,6 +78,8 @@ const ProxyProvider: React.FC = () => {
     try {
       await mihomoUpdateProxyProviders(name)
       mutate()
+      // provider 节点变更后同步刷新代理组，避免等 30s 轮询（#638）
+      void mutateGroups()
     } catch (e) {
       toast.error(String(e))
     } finally {

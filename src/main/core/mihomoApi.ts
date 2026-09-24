@@ -21,6 +21,8 @@ let currentIpcPath: string = ''
 
 const MAX_RETRY = 10
 const RECONNECT_INTERVAL_MS = 1000
+// 快速重试用完后改成慢速重试，但只要流还是活的就永不放弃（#1410）
+const SLOW_RECONNECT_INTERVAL_MS = 15000
 
 interface MihomoStreamState {
   ws: WebSocket | null
@@ -66,6 +68,7 @@ function clearStreamReconnect(stream: MihomoStreamState): void {
 }
 
 function disposeStreamSocket(ws: WebSocket): void {
+  ws.onopen = null
   ws.onmessage = null
   ws.onclose = null
   ws.onerror = null
@@ -116,21 +119,34 @@ function isCurrentStream(stream: MihomoStreamState, generation: number): boolean
   return stream.active && stream.generation === generation
 }
 
+// 打开即回填重试预算：只等首条消息会让“连上但暂无消息”的流（如空闲 /connections）
+// 白烧完 10 次预算后永久死掉（#1410 / 分支 1a29f754）
+function armStreamSocket(stream: MihomoStreamState, generation: number, ws: WebSocket): void {
+  ws.onopen = (): void => {
+    if (!isCurrentStream(stream, generation)) return
+    stream.retry = MAX_RETRY
+  }
+}
+
 function scheduleStreamReconnect(
   stream: MihomoStreamState,
   generation: number,
   connect: () => Promise<void>
 ): void {
-  if (!isCurrentStream(stream, generation) || stream.retry <= 0) return
+  if (!isCurrentStream(stream, generation)) return
 
-  stream.retry--
+  // 流被显式停止时 active 会置 false（内核停止/重启都会走 stopStream），所以这里只要
+  // 还是活的就继续重连。以前重试 10 次就永久放弃，内核明明还活着，流量/连接/内存/日志
+  // 却再也不会恢复，只能重启内核或整个应用（#1410）。
+  const interval = stream.retry > 0 ? RECONNECT_INTERVAL_MS : SLOW_RECONNECT_INTERVAL_MS
+  if (stream.retry > 0) stream.retry--
   clearStreamReconnect(stream)
   stream.reconnectTimer = setTimeout(() => {
     stream.reconnectTimer = null
     if (isCurrentStream(stream, generation)) {
       void connect()
     }
-  }, RECONNECT_INTERVAL_MS)
+  }, interval)
 }
 
 function closeErroredStreamSocket(
@@ -281,9 +297,19 @@ async function resolveProviderProxies(
   const providers =
     fallbackToAllProviders || providerNames.size > PROVIDER_DETAIL_FETCH_THRESHOLD
       ? Object.values((await mihomoProxyProviders()).providers)
-      : (
-          await Promise.allSettled([...providerNames].map((name) => mihomoProxyProvider(name)))
-        ).flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []))
+      : await (async () => {
+          const results = await Promise.allSettled(
+            [...providerNames].map((name) => mihomoProxyProvider(name))
+          )
+          if (results.every((result) => result.status === 'fulfilled')) {
+            return results.map((result) => result.value)
+          }
+
+          // A config hot reload can briefly mix the old /proxies snapshot with the
+          // new runtime config. Refresh the complete provider list instead of
+          // retrying stale provider names individually.
+          return Object.values((await mihomoProxyProviders()).providers)
+        })()
 
   const providerProxies: Record<string, IMihomoProxy> = {}
   providers.forEach((provider) => {
@@ -420,8 +446,21 @@ export const mihomoGroupDelay = async (group: string, url?: string): Promise<IMi
 }
 
 export const mihomoUpgrade = async (): Promise<void> => {
-  const instance = await getAxios()
-  return await instance.post('/upgrade', undefined, { timeout: 90000 })
+  // 内核未就绪时连接控制管道会 ENOENT（#1413），先确保核心在跑
+  if (!hasCoreProcess() && app.isReady()) {
+    mihomoApiLogger.warn('Core is not running, restarting core before upgrade')
+    await restartCore()
+  }
+  try {
+    const instance = await getAxios()
+    return await instance.post('/upgrade', undefined, { timeout: 90000 })
+  } catch (error) {
+    if (hasCoreProcess() || !app.isReady()) throw error
+    mihomoApiLogger.warn('Core exited before upgrade completed, restarting core', error)
+    await restartCore()
+    const instance = await getAxios(true)
+    return await instance.post('/upgrade', undefined, { timeout: 90000 })
+  }
 }
 
 export const mihomoUpgradeUI = async (): Promise<void> => {
@@ -454,6 +493,9 @@ export const mihomoHotReloadConfig = async (): Promise<void> => {
     return
   }
   mihomoApiLogger.info('hot reload config completed')
+  // 热重载整包替换内核配置后必须通知渲染层刷新，否则界面继续显示旧订阅的代理组（#1169）
+  mainWindow?.webContents.send('groupsUpdated')
+  mainWindow?.webContents.send('rulesUpdated')
   try {
     await syncControlDnsAfterApply(dnsGuard)
   } catch (error) {
@@ -501,6 +543,7 @@ const mihomoTraffic = async (): Promise<void> => {
 
   mihomoApiLogger.info(`Creating traffic WebSocket with URL: ${wsUrl}, IPC path: ${ipcPath}`)
   trafficStream.ws = ws
+  armStreamSocket(trafficStream, generation, ws)
 
   ws.onmessage = (e): void => {
     if (!isCurrentStream(trafficStream, generation)) return
@@ -511,7 +554,6 @@ const mihomoTraffic = async (): Promise<void> => {
       // JSON.parse 必须放在 try 内：内核发来非 JSON 帧时，旧实现会在 async 回调里
       // 抛出并变成未捕获的 Promise rejection（其余三条流都已在 try 内解析）。
       const json = JSON.parse(data) as IMihomoTrafficInfo
-      mainWindow?.webContents.send('mihomoTraffic', json)
       if (process.platform !== 'linux') {
         tray?.setToolTip(
           '↑' +
@@ -521,6 +563,11 @@ const mihomoTraffic = async (): Promise<void> => {
         )
       }
       floatingWindow?.webContents.send('mihomoTraffic', json)
+      // 主窗隐藏仍推送：macOS showTraffic 托盘网速在渲染层合成（#1543 Q1），
+      // 与 #698 无关；隐藏时的图表重绘由 conn-card 自己跳过。
+      if (__LEGACY_BUILD__ || mainWindow?.isVisible() || process.platform === 'darwin') {
+        mainWindow?.webContents.send('mihomoTraffic', json)
+      }
     } catch {
       // ignore
     }
@@ -553,12 +600,15 @@ const mihomoMemory = async (): Promise<void> => {
 
   const { ws } = createMihomoWebSocket('/memory')
   memoryStream.ws = ws
+  armStreamSocket(memoryStream, generation, ws)
 
   ws.onmessage = (e): void => {
     if (!isCurrentStream(memoryStream, generation)) return
 
     const data = e.data as string
     memoryStream.retry = MAX_RETRY
+    // 主窗口隐藏时不再灌渲染层（#698）：关窗后内存卡不可见，继续 IPC 只烧 CPU
+    if (!__LEGACY_BUILD__ && !mainWindow?.isVisible()) return
     try {
       mainWindow?.webContents.send('mihomoMemory', JSON.parse(data) as IMihomoMemoryInfo)
     } catch {
@@ -594,12 +644,16 @@ const mihomoLogs = async (): Promise<void> => {
 
   const { ws } = createMihomoWebSocket(`/logs?level=${logLevel}`)
   logsStream.ws = ws
+  armStreamSocket(logsStream, generation, ws)
 
   ws.onmessage = (e): void => {
     if (!isCurrentStream(logsStream, generation)) return
 
     const data = e.data as string
     logsStream.retry = MAX_RETRY
+    // 窗口隐藏时丢弃日志帧（#698）：内核刷日志 + 无界面仍 JSON.parse/IPC 会把 Helper Renderer 打满；
+    // 日志页随窗口一起不可见，恢复显示后从下一帧继续即可（与连接流可见性门控同一策略）。
+    if (!__LEGACY_BUILD__ && !mainWindow?.isVisible()) return
     try {
       mainWindow?.webContents.send('mihomoLogs', JSON.parse(data) as IMihomoLogInfo)
     } catch {
@@ -618,6 +672,20 @@ const mihomoLogs = async (): Promise<void> => {
   }
 }
 
+// 最近一次连接快照：窗口不可见时推送被门控，渲染层 mount/重新可见时靠它回放（#1678）
+let lastConnectionsInfo: IMihomoConnectionsInfo | null = null
+
+export const getMihomoConnectionsSnapshot = async (): Promise<IMihomoConnectionsInfo | null> => {
+  return lastConnectionsInfo
+}
+
+export const sendMihomoConnectionsSnapshot = (): void => {
+  if (!lastConnectionsInfo) return
+  if (__LEGACY_BUILD__ || mainWindow?.isVisible()) {
+    mainWindow?.webContents.send('mihomoConnections', lastConnectionsInfo)
+  }
+}
+
 export const startMihomoConnections = async (): Promise<void> => {
   activateStream(connectionsStream)
   await mihomoConnections()
@@ -633,6 +701,7 @@ const mihomoConnections = async (): Promise<void> => {
 
   const { ws } = createMihomoWebSocket('/connections')
   connectionsStream.ws = ws
+  armStreamSocket(connectionsStream, generation, ws)
 
   ws.onmessage = (e): void => {
     if (!isCurrentStream(connectionsStream, generation)) return
@@ -642,6 +711,8 @@ const mihomoConnections = async (): Promise<void> => {
     try {
       const info = JSON.parse(data) as IMihomoConnectionsInfo
       recordTrafficUsage(info)
+      // 始终缓存，窗口可见才推送；否则隐藏期间的帧会整段丢掉且无法回放（#1678）
+      lastConnectionsInfo = info
       if (__LEGACY_BUILD__ || mainWindow?.isVisible()) {
         mainWindow?.webContents.send('mihomoConnections', info)
       }

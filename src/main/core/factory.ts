@@ -24,10 +24,18 @@ import { parse, stringify } from '../utils/yaml'
 import { deepMerge } from '../utils/merge'
 import { createLogger } from '../utils/logger'
 import { decryptAgeContent } from '../utils/age'
-import { DEFAULT_CONTROL_DNS, DEFAULT_CONTROL_SNIFF } from '../../shared/appConfig'
+import {
+  DEFAULT_CONTROL_DNS,
+  DEFAULT_CONTROL_SNIFF,
+  DEFAULT_CONTROL_TUN
+} from '../../shared/appConfig'
 import { atomicWriteFile } from '../utils/safeFile'
 import { compileSimpleRuntime } from '../simple/service'
-import { evaluateDnsOverrideGuard, type DnsOverrideGuardResult } from './dnsOverrideGuard'
+import {
+  ensureDnsOverrideGuardHydrated,
+  evaluateDnsOverrideGuard,
+  type DnsOverrideGuardResult
+} from './dnsOverrideGuard'
 
 const factoryLogger = createLogger('Factory')
 const SMART_OVERRIDE_ID = 'smart-core-override'
@@ -169,9 +177,11 @@ export async function generateProfile(
     diffWorkDir = false,
     controlDns: controlDnsSetting = DEFAULT_CONTROL_DNS,
     controlSniff = DEFAULT_CONTROL_SNIFF,
+    controlTun = DEFAULT_CONTROL_TUN,
     useNameserverPolicy
   } = appConfig
   // DNS 保护先于覆写和脚本处理，开关在内核应用成功后同步。
+  await ensureDnsOverrideGuardHydrated()
   const dnsGuard = evaluateDnsOverrideGuard(
     profileId ?? 'default',
     baseProfile,
@@ -200,8 +210,31 @@ export async function generateProfile(
   if (!controlSniff) {
     delete controledMihomoConfig.sniffer
   }
+  // 不接管 TUN 时只保留总开关 enable（侧栏/托盘仍可控），其余字段用订阅原始 tun（#1633）
+  if (!controlTun && controledMihomoConfig.tun) {
+    const { enable } = controledMihomoConfig.tun
+    controledMihomoConfig.tun = enable === undefined ? {} : { enable }
+  }
   if (!useNameserverPolicy) {
     delete controledMihomoConfig?.dns?.['nameserver-policy']
+  }
+
+  // 受控 TUN 层的路由数组不能整体替换 profile+override 的合并结果，否则覆写里
+  // `+route-exclude-address` / `+route-address` 追加的条目会被空数组冲掉（#704，
+  // exclude-interface 不在受控层才幸存）。GUI 空列表视为“无意见”保留既有值，
+  // 非空时与 profile+override 并集去重，两侧配置同时生效。
+  const controlledTun = controledMihomoConfig.tun
+  if (controlledTun) {
+    const mergedTun = { ...controlledTun }
+    for (const key of ['route-exclude-address', 'route-address'] as const) {
+      const fromControlled = mergedTun[key]
+      if (!Array.isArray(fromControlled)) continue
+      const fromProfile = Array.isArray(currentProfile.tun?.[key])
+        ? (currentProfile.tun?.[key] as string[])
+        : []
+      mergedTun[key] = [...new Set([...fromControlled, ...fromProfile])]
+    }
+    controledMihomoConfig = { ...controledMihomoConfig, tun: mergedTun }
   }
 
   const profile = deepMerge(currentProfile, controledMihomoConfig)

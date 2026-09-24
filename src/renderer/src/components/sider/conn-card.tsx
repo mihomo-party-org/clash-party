@@ -64,6 +64,8 @@ const ConnCard: React.FC<Props> = (props) => {
   // 使用 useRef 替代模块级变量
   const currentUploadRef = useRef<number | undefined>(undefined)
   const currentDownloadRef = useRef<number | undefined>(undefined)
+  // 上次已推送托盘的 calcTraffic 展示键（#1543 Q1）：只在展示串变化时 setImage
+  const lastTrayDisplayRef = useRef<string | null>(null)
   const hasShowTrafficRef = useRef(false)
   const showTrafficRef = useRef(showTraffic)
   showTrafficRef.current = showTraffic
@@ -136,22 +138,36 @@ const ConnCard: React.FC<Props> = (props) => {
   // 使用 useCallback 创建稳定的 handler 引用，通过 ref 读取 showTraffic 避免重建
   const handleTraffic = useCallback((_e: unknown, ...args: unknown[]) => {
     const info = args[0] as IMihomoTrafficInfo
-    setUpload(info.up)
-    setDownload(info.down)
-    setSeries((prev) => {
-      const data = [...prev]
-      data.shift()
-      data.push(info.up + info.down)
-      return data
-    })
+    // 关窗隐藏后仍会收到 mihomoTraffic（macOS 托盘网速依赖它，#1543 Q1）。
+    // 隐藏时跳过 Chart/React 状态更新，避免 Helper (Renderer) 后台 100%（#698）。
+    if (document.hidden) {
+      currentUploadRef.current = info.up
+      currentDownloadRef.current = info.down
+    } else {
+      setUpload(info.up)
+      setDownload(info.down)
+      setSeries((prev) => {
+        const data = [...prev]
+        data.shift()
+        data.push(info.up + info.down)
+        return data
+      })
+    }
     if (platform === 'darwin' && showTrafficRef.current) {
       const up = info.up
       const down = info.down
-      if (up !== currentUploadRef.current || down !== currentDownloadRef.current) {
+      // 托盘只关心 calcTraffic 展示结果：原始字节几乎每帧都变，
+      // 按字节去重仍会高频 setImage，导致菜单栏随网速疯狂抖动（#1543 Q1）。
+      const displayKey = `${calcTraffic(up)}|${calcTraffic(down)}`
+      if (displayKey !== lastTrayDisplayRef.current) {
         currentUploadRef.current = up
         currentDownloadRef.current = down
+        lastTrayDisplayRef.current = displayKey
         const png = renderTrafficIcon(up, down)
         window.electron.ipcRenderer.send('trayIconUpdate', png, true, trayIconColored)
+      } else {
+        currentUploadRef.current = up
+        currentDownloadRef.current = down
       }
     }
   }, [])
@@ -167,6 +183,7 @@ const ConnCard: React.FC<Props> = (props) => {
       // 开启：立即显示默认流量图标，重置缓存以确保下次流量事件触发更新
       currentUploadRef.current = undefined
       currentDownloadRef.current = undefined
+      lastTrayDisplayRef.current = null
       const png = renderTrafficIcon(0, 0)
       window.electron.ipcRenderer.send('trayIconUpdate', png, true, trayIconColored)
       hasShowTrafficRef.current = true

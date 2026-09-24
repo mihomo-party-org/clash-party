@@ -64,10 +64,37 @@ interface ControlDnsRequest {
   applied?: DnsOverrideGuardResult
 }
 
-// 确认、请求和待通知状态仅保留在本次进程内。
+// 确认指纹跨重启持久化（#2167）：用户已确认的覆写不得在下次启动被再次自动关闭；
+// 请求和待通知状态仍仅保留本次进程内。
 let confirmedFingerprint: string | null = null
+let confirmedFingerprintHydrated = false
 let pendingRequest: ControlDnsRequest | null = null
 let pendingAutoDisabledNotice = false
+
+// 首次生成配置前从 appConfig 恢复确认指纹；进程内只加载一次。
+async function hydrateConfirmedFingerprint(): Promise<void> {
+  if (confirmedFingerprintHydrated) return
+  confirmedFingerprintHydrated = true
+  try {
+    const { dnsOverrideConfirmedFingerprint = null } = await getAppConfig()
+    confirmedFingerprint = dnsOverrideConfirmedFingerprint ?? null
+  } catch (error) {
+    guardLogger.error('Failed to load DNS override confirmation', error)
+  }
+}
+
+export async function ensureDnsOverrideGuardHydrated(): Promise<void> {
+  await hydrateConfirmedFingerprint()
+}
+
+// 确认指纹的保存失败只记日志，不影响已完成的判定。
+async function persistConfirmedFingerprint(value: string | null): Promise<void> {
+  try {
+    await syncAppConfigAfterApply({ dnsOverrideConfirmedFingerprint: value })
+  } catch (error) {
+    guardLogger.error('Failed to persist DNS override confirmation', error)
+  }
+}
 
 export interface DnsOverrideGuardResult {
   controlDns: boolean
@@ -87,6 +114,7 @@ export function evaluateDnsOverrideGuard(
   const fingerprint = fields ? profileDnsFingerprint(profileId, fields) : null
   if (runtime && confirmedFingerprint !== null && confirmedFingerprint !== fingerprint) {
     confirmedFingerprint = null
+    void persistConfirmedFingerprint(null)
   }
   const request = runtime ? pendingRequest : null
   const enabled = request ? request.controlDns : controlDns
@@ -123,12 +151,14 @@ export async function syncControlDnsAfterApply(applied: DnsOverrideGuardResult):
       pendingAutoDisabledNotice = true
     }
     await persistControlDns(applied.controlDns)
+    await persistConfirmedFingerprint(confirmedFingerprint)
     notifyRenderer(applied.autoDisabled)
     return
   }
   // 并发更新可能晚于确认提交完成，仍需按实际来源使旧确认失效。
   if (confirmedFingerprint !== null && applied.fingerprint !== confirmedFingerprint) {
     confirmedFingerprint = null
+    void persistConfirmedFingerprint(null)
   }
   if (!applied.autoDisabled) return
   const { controlDns = DEFAULT_CONTROL_DNS } = await getAppConfig()

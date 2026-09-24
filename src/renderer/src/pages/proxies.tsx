@@ -43,6 +43,7 @@ import { IoIosArrowBack } from 'react-icons/io'
 import { useGroups } from '@renderer/hooks/use-groups'
 import CollapseInput from '@renderer/components/base/collapse-input'
 import { includesIgnoreCase } from '@renderer/utils/includes'
+import { loadProxiesSearch, saveProxiesSearch } from '@renderer/utils/proxies-search'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { useTranslation } from 'react-i18next'
 import { HiOutlineAdjustmentsHorizontal } from 'react-icons/hi2'
@@ -285,14 +286,25 @@ const Proxies: React.FC = () => {
   const [delaying, setDelaying] = useState<Set<string>[]>(() =>
     Array.from({ length: groups.length }, () => new Set<string>())
   )
-  const [searchValue, setSearchValue] = useState(Array(groups.length).fill(''))
+  const [searchValue, setSearchValue] = useState<string[]>(() => loadProxiesSearch(groups.length))
 
-  // searchValue 初始化
+  // searchValue 初始化：保留已暂存的筛选词（#1621），仅在长度变化时扩/缩
   useEffect(() => {
     if (groups.length !== searchValue.length) {
-      setSearchValue(Array(groups.length).fill(''))
+      setSearchValue((prev) => {
+        const next = loadProxiesSearch(groups.length)
+        // 若 localStorage 尚无数据，则按当前内存态截断/补齐
+        if (next.every((v) => v === '')) {
+          return Array.from({ length: groups.length }, (_, i) => prev[i] ?? '')
+        }
+        return next
+      })
     }
   }, [groups.length, searchValue.length])
+
+  useEffect(() => {
+    saveProxiesSearch(searchValue)
+  }, [searchValue])
 
   useEffect(() => {
     setDelaying((prev) => {
@@ -675,6 +687,8 @@ const Proxies: React.FC = () => {
                             setSearchValue((prev) => {
                               const newSearchValue = [...prev]
                               newSearchValue[index] = v
+                              // 立即落盘，组件卸载/切页后仍可恢复（#1621）
+                              saveProxiesSearch(newSearchValue)
                               return newSearchValue
                             })
                             // 过滤会改变列表总高度。不把正在筛选的分组标题钉回顶部的话，

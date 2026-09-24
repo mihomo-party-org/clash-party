@@ -6,6 +6,7 @@ const validInvokeChannels = [
   'mihomoVersion',
   'mihomoCloseConnection',
   'mihomoCloseAllConnections',
+  'getMihomoConnectionsSnapshot',
   'mihomoRules',
   'mihomoRulesDisable',
   'mihomoProxies',

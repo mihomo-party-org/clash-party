@@ -8,7 +8,11 @@ import { defaultControledMihomoConfig } from '../utils/template'
 import { deepMerge } from '../utils/merge'
 import { createLogger } from '../utils/logger'
 import { atomicWriteFile, WriteQueue } from '../utils/safeFile'
-import { DEFAULT_CONTROL_DNS, DEFAULT_CONTROL_SNIFF } from '../../shared/appConfig'
+import {
+  DEFAULT_CONTROL_DNS,
+  DEFAULT_CONTROL_SNIFF,
+  DEFAULT_CONTROL_TUN
+} from '../../shared/appConfig'
 import { SIMPLE_SHARED_CONFIG_KEYS } from '../../shared/simple-config'
 import type { SimpleSharedConfig } from '../simple/compiler'
 import { getAppConfig, patchAppConfig } from './app'
@@ -95,6 +99,7 @@ export async function patchControledMihomoConfig(patch: Partial<IMihomoConfig>):
     const {
       controlDns = DEFAULT_CONTROL_DNS,
       controlSniff = DEFAULT_CONTROL_SNIFF,
+      controlTun = DEFAULT_CONTROL_TUN,
       controlDnsBeforePause
     } = appConfig
     const nextConfig = JSON.parse(
@@ -155,6 +160,17 @@ export async function patchControledMihomoConfig(patch: Partial<IMihomoConfig>):
     }
     if (controlSniff && !nextConfig.sniffer) {
       nextConfig.sniffer = cloneDefaultControledMihomoConfig().sniffer
+    }
+
+    // 不接管 TUN 时热补丁只保留 enable（侧栏/托盘仍可控），其余字段留订阅原始 tun（#1633）；
+    // mihomo.yaml 仍保存完整 GUI 设置，便于重新接管时恢复。
+    if (!controlTun && nextPatch.tun) {
+      const { enable } = nextPatch.tun
+      if (enable === undefined) {
+        delete nextPatch.tun
+      } else {
+        nextPatch.tun = { enable }
+      }
     }
 
     await generateProfile(nextConfig)

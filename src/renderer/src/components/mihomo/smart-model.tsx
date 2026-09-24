@@ -1,6 +1,5 @@
 import { Button, Chip, Select, SelectItem } from '@heroui/react'
 import { toast } from '@renderer/components/base/toast'
-import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
 import { downloadSmartModel, getSmartModelStatus, restartCore } from '@renderer/utils/ipc'
 import { calcTraffic } from '@renderer/utils/calc'
@@ -69,7 +68,7 @@ const SmartModel: React.FC = () => {
   }
 
   return (
-    <SettingCard>
+    <>
       <SettingItem title={t('resources.smartModel.title')} divider>
         <div className="flex items-center gap-2">
           {state === 'ready' && status && (
@@ -86,10 +85,10 @@ const SmartModel: React.FC = () => {
       {state !== 'ready' && (
         <div className="select-text mb-2 text-sm text-foreground-500">{t(STATE_TIPS[state])}</div>
       )}
-      <SettingItem title={t('resources.smartModel.variant')}>
-        <div className="flex items-center gap-2">
+      <SettingItem title={t('resources.smartModel.variant')} stackOnSmallScreens>
+        <div className="flex min-w-0 items-center gap-2 max-sm:w-full">
           <Select
-            className="w-50"
+            className="min-w-0 flex-1 sm:w-50 sm:flex-none"
             size="sm"
             aria-label={t('resources.smartModel.variant')}
             selectedKeys={new Set([variant])}
@@ -102,12 +101,18 @@ const SmartModel: React.FC = () => {
               </SelectItem>
             ))}
           </Select>
-          <Button size="sm" color="primary" isLoading={downloading} onPress={download}>
+          <Button
+            className="shrink-0"
+            size="sm"
+            color="primary"
+            isLoading={downloading}
+            onPress={download}
+          >
             {t('resources.smartModel.download')}
           </Button>
         </div>
       </SettingItem>
-    </SettingCard>
+    </>
   )
 }
 

@@ -245,8 +245,10 @@ async function createWindowInternal(): Promise<void> {
     scheduleQuitWithoutCore(autoQuitWithoutCoreDelay, autoQuitWithoutCoreMode)
   }
 
-  // 开发模式下始终显示窗口
-  if (!silentStart || is.dev) {
+  // 静默启动不显示主窗。不再被 is.dev 旁路：未打包运行时 is.dev=true 会让
+  // silentStart 永远失效（云端 GUI 冒烟因此测不到静默契约，#408 类问题也
+  // 观察不到）。设置应在打包/未打包两种形态下一致生效。
+  if (!silentStart) {
     clearQuitTimeout()
     mainWindow.show()
     mainWindow.focusOnWebView()
@@ -300,12 +302,14 @@ function setupWindowEvents(window: BrowserWindow): void {
 
   window.on('show', () => {
     showDockIcon()
+    // 窗口从隐藏恢复时立刻回放最近连接快照，避免连接页空白直到下一帧 WS（#1678）
+    void import('./core/mihomoApi').then((m) => m.sendMihomoConnectionsSnapshot()).catch(() => {})
   })
 
   window.on('close', async (event) => {
-    saveWindowState(window) // 关窗前兜底（#1954）
-
+    // 先阻止默认关闭，避免同步写状态期间系统已按“关闭中”合成掉圆角的一帧（#624）
     event.preventDefault()
+    saveWindowState(window) // 关窗前兜底（#1954）
     window.hide()
 
     const {

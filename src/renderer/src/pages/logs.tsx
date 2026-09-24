@@ -7,6 +7,7 @@ import { IoLocationSharp } from 'react-icons/io5'
 import { CgTrash } from 'react-icons/cg'
 import { useTranslation } from 'react-i18next'
 import { includesIgnoreCase } from '@renderer/utils/includes'
+import { useImeSafeValueChange } from '@renderer/hooks/use-ime-safe-value-change'
 
 const LOGS_FILTER_KEY = 'logs-filter'
 const MAX_CACHED_LOGS = 500
@@ -54,6 +55,7 @@ const Logs: React.FC = () => {
   const [filter, setFilter] = useState(() => {
     return localStorage.getItem(LOGS_FILTER_KEY) || ''
   })
+  const filterIme = useImeSafeValueChange(setFilter)
   const [trace, setTrace] = useState(true)
 
   const virtuosoRef = useRef<VirtuosoHandle>(null)
@@ -98,7 +100,9 @@ const Logs: React.FC = () => {
             value={filter}
             placeholder={t('logs.filter')}
             isClearable
-            onValueChange={setFilter}
+            onValueChange={filterIme.onValueChange}
+            onCompositionStart={filterIme.onCompositionStart}
+            onCompositionEnd={filterIme.onCompositionEnd}
           />
           <Button
             size="sm"

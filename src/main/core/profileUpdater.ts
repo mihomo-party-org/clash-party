@@ -169,6 +169,17 @@ export async function addProfileUpdater(item: IProfileItem): Promise<void> {
   scheduleProfileUpdate(item)
 }
 
+// CLI / 计划任务入口：强制刷新全部可更新订阅（#884）
+export function findSubscriptionUpdateFlag(args: string[]): boolean {
+  return args.some((arg) => arg.toLowerCase() === '--update-subscription')
+}
+
+export async function forceUpdateAllProfiles(): Promise<void> {
+  const { items = [] } = await getProfileConfig()
+  const targets = items.filter((i) => i.type === 'remote' || (i.type === 'plugin' && !!i.pluginId))
+  await Promise.allSettled(targets.map((i) => updateProfile(i.id)))
+}
+
 export async function removeProfileUpdater(id: string): Promise<void> {
   if (intervalPool[id]) {
     if (intervalPool[id] instanceof Cron) {

@@ -29,6 +29,7 @@ import EditModeMenu from '@renderer/components/simple/edit-mode-menu'
 import RuleEditorModal from '@renderer/components/rules/rule-editor-modal'
 import { getSimpleRulesEditor, saveSimpleRules } from '@renderer/utils/ipc'
 import { toast } from '@renderer/components/base/toast'
+import { useImeSafeValueChange } from '@renderer/hooks/use-ime-safe-value-change'
 import { parseSimpleRule } from '../../../shared/simple-rules'
 import type { SimpleRuleEditor } from '../../../shared/simple-config'
 
@@ -37,6 +38,7 @@ const RULES_FILTER_KEY = 'rules-filter'
 const Rules: React.FC = () => {
   const { rules, mutate } = useRules()
   const [filter, setFilter] = useState(() => localStorage.getItem(RULES_FILTER_KEY) || '')
+  const filterIme = useImeSafeValueChange(setFilter)
   const { t } = useTranslation()
   const { appConfig } = useAppConfig()
   const simple = appConfig?.operationMode === 'simple'
@@ -178,7 +180,9 @@ const Rules: React.FC = () => {
             value={filter}
             placeholder={t('rules.filter')}
             isClearable
-            onValueChange={setFilter}
+            onValueChange={filterIme.onValueChange}
+            onCompositionStart={filterIme.onCompositionStart}
+            onCompositionEnd={filterIme.onCompositionEnd}
           />
         </div>
         <Divider />

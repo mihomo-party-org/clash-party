@@ -12,7 +12,7 @@ import dayjs from '@renderer/utils/dayjs'
 import React, { Key, useMemo, useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { openFile, updatePluginProfile } from '@renderer/utils/ipc'
+import { openFile, mihomoHotReloadConfig, updatePluginProfile } from '@renderer/utils/ipc'
 import { useTranslation } from 'react-i18next'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import BaseConfirmModal from '../base/base-confirm-modal'
@@ -289,19 +289,55 @@ const ProfileItem: React.FC<Props> = (props) => {
             isCurrent={isCurrent}
             actions={
               <div className="flex">
-                {(info.type === 'remote' || info.type === 'plugin') && (
-                  <Tooltip placement="left" content={dayjs(info.updated).fromNow()}>
+                {(info.type === 'remote' || info.type === 'plugin' || info.type === 'local') && (
+                  <Tooltip
+                    placement="left"
+                    content={
+                      info.type === 'local' ? (
+                        t('profiles.reloadLocal')
+                      ) : (
+                        <div className="flex flex-col gap-0.5 text-xs">
+                          <span>
+                            {t('profiles.updateStatus.lastUpdate', {
+                              time: dayjs(info.lastUpdateAt ?? info.updated).format(
+                                'YYYY-MM-DD HH:mm'
+                              )
+                            })}
+                          </span>
+                          {info.lastUpdateOk === true && (
+                            <span className="text-success">
+                              {t('profiles.updateStatus.success')}
+                            </span>
+                          )}
+                          {info.lastUpdateOk === false && (
+                            <span className="text-danger">
+                              {t('profiles.updateStatus.failed', {
+                                error: (info.lastUpdateError ?? '').slice(0, 120)
+                              })}
+                            </span>
+                          )}
+                        </div>
+                      )
+                    }
+                  >
                     <Button
                       isIconOnly
                       size="sm"
                       variant="light"
                       color="default"
-                      disabled={updating || (info.type === 'plugin' && !info.pluginId)}
+                      disabled={
+                        updating ||
+                        (info.type === 'plugin' && !info.pluginId) ||
+                        // 本地配置仅当前订阅可热重载；非当前项切换时会自然读盘
+                        (info.type === 'local' && !isCurrent)
+                      }
                       onPress={async () => {
                         try {
                           setUpdating(true)
                           if (info.type === 'remote') await addProfileItem(info)
-                          else if (info.pluginId) await updatePluginProfile(info.pluginId, true)
+                          else if (info.type === 'plugin' && info.pluginId)
+                            await updatePluginProfile(info.pluginId, true)
+                          else if (info.type === 'local' && isCurrent) await mihomoHotReloadConfig()
                         } finally {
                           setUpdating(false)
                         }

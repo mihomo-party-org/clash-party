@@ -20,7 +20,7 @@ import {
 import { createTray } from './resolve/tray'
 import { init, initBasic, safeShowErrorBox, startSubStoreServices } from './utils/init'
 import { initShortcut } from './resolve/shortcut'
-import { initProfileUpdater } from './core/profileUpdater'
+import { findSubscriptionUpdateFlag, initProfileUpdater } from './core/profileUpdater'
 import { startMonitor } from './resolve/trafficMonitor'
 import { showFloatingWindow } from './resolve/floatingWindow'
 import { logger, createLogger } from './utils/logger'
@@ -125,7 +125,7 @@ async function initHardwareAcceleration(): Promise<void> {
 initHardwareAcceleration()
 setupAppLifecycle()
 
-type LaunchTarget = { type: 'deep-link' | 'plugin-file'; value: string }
+type LaunchTarget = { type: 'deep-link' | 'plugin-file' | 'update-subscription'; value: string }
 
 let launchTargetsReady = false
 let pendingLaunchTargets: LaunchTarget[] = []
@@ -145,6 +145,12 @@ function queueLaunchTarget(target: LaunchTarget): void {
       if (target.type === 'deep-link') {
         showMainWindow()
         await handleDeepLink(target.value)
+        return
+      }
+
+      if (target.type === 'update-subscription') {
+        const { forceUpdateAllProfiles } = await import('./core/profileUpdater')
+        await forceUpdateAllProfiles()
         return
       }
 
@@ -207,8 +213,16 @@ app.on('second-instance', (_event, commandline) => {
     return
   }
   const pluginFile = findPluginFile(commandline)
-  if (pluginFile) queueLaunchTarget({ type: 'plugin-file', value: pluginFile })
-  else showMainWindow()
+  if (pluginFile) {
+    queueLaunchTarget({ type: 'plugin-file', value: pluginFile })
+    return
+  }
+  // 计划任务静默更新：不弹主窗口（#884）
+  if (findSubscriptionUpdateFlag(commandline)) {
+    queueLaunchTarget({ type: 'update-subscription', value: '' })
+    return
+  }
+  showMainWindow()
 })
 
 app.on('open-url', (_event, url) => {
@@ -381,6 +395,9 @@ app
     })()
 
     // macOS delivers cold-start targets through open-url/open-file; Windows/Linux put them in argv.
+    if (findSubscriptionUpdateFlag(process.argv)) {
+      queueLaunchTarget({ type: 'update-subscription', value: '' })
+    }
     if (process.platform !== 'darwin') {
       const initialDeepLink = findDeepLink(process.argv)
       if (initialDeepLink) {
@@ -430,7 +447,15 @@ app
       mainWindow?.webContents.send('core-started')
     }
 
+    // #408：静默启动 + 悬浮窗时，悬浮窗 show() 会向系统派发 activate，若照常
+    // showMainWindow() 会把主窗拉出来，违背「静默启动」。启动后 10 秒内忽略
+    // activate 触发的主窗显示（托盘/悬浮卡片/快捷键各自的用户通道不受影响）。
+    const bootStartedAt = Date.now()
     app.on('activate', () => {
+      if (Date.now() - bootStartedAt < 10000) {
+        mainLogger.info('activate ignored during startup grace period (#408)')
+        return
+      }
       showMainWindow()
     })
   })

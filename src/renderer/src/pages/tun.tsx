@@ -16,13 +16,21 @@ import React, { Key, useState } from 'react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { MdDeleteForever } from 'react-icons/md'
 import { useTranslation } from 'react-i18next'
-import { DEFAULT_MIHOMO_TUN_CONFIG, getDefaultMihomoTunDevice } from '../../../shared/appConfig'
+import {
+  DEFAULT_CONTROL_TUN,
+  DEFAULT_MIHOMO_TUN_CONFIG,
+  getDefaultMihomoTunDevice
+} from '../../../shared/appConfig'
 
 const Tun: React.FC = () => {
   const { t } = useTranslation()
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
   const { appConfig, patchAppConfig } = useAppConfig()
-  const { autoSetDNS = true } = appConfig || {}
+  const {
+    autoSetDNS = true,
+    controlTun = DEFAULT_CONTROL_TUN,
+    operationMode = 'standard'
+  } = appConfig || {}
   const { tun } = controledMihomoConfig || {}
   const [loading, setLoading] = useState(false)
   const {
@@ -100,7 +108,7 @@ const Tun: React.FC = () => {
     }
     try {
       await patchControledMihomoConfig({ ...patch, tun: tunPatch })
-      if (appConfig?.operationMode !== 'simple') await mihomoHotReloadConfig()
+      if (operationMode !== 'simple' && controlTun) await mihomoHotReloadConfig()
     } catch (e) {
       showErrorSync(e, t('common.error.updateCoreConfigFailed'))
     } finally {
@@ -134,12 +142,28 @@ const Tun: React.FC = () => {
                 })
               }
             >
-              {t('common.save')}
+              {operationMode === 'simple' || controlTun ? t('common.save') : t('tun.saveOnly')}
             </Button>
           )
         }
       >
         <SettingCard className="tun-settings">
+          {operationMode !== 'simple' && (
+            <SettingItem title={t('tun.controlTun')} divider>
+              <Switch
+                size="sm"
+                isSelected={controlTun}
+                onValueChange={async (v) => {
+                  try {
+                    await patchAppConfig({ controlTun: v })
+                    await mihomoHotReloadConfig()
+                  } catch (e) {
+                    showErrorSync(e, t('common.error.updateCoreConfigFailed'))
+                  }
+                }}
+              />
+            </SettingItem>
+          )}
           {platform === 'win32' && (
             <SettingItem title={t('tun.firewall.title')} divider>
               <Button

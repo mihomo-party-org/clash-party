@@ -12,9 +12,15 @@ import { parse, stringify } from '../utils/yaml'
 import { defaultProfile } from '../utils/template'
 import { decryptAgeContent } from '../utils/age'
 import { DEFAULT_MIHOMO_PORTS } from '../../shared/appConfig'
+import { normalizeUrlInput } from '../../shared/urlInput'
 import { subStorePort } from '../resolve/server'
 import { mihomoCloseAllConnections, mihomoHotReloadConfig } from '../core/mihomoApi'
-import { checkProfileConfig, restartCore, type CheckProfileOptions } from '../core/manager'
+import {
+  checkProfileConfig,
+  hasCoreProcess,
+  restartCore,
+  type CheckProfileOptions
+} from '../core/manager'
 import { generateProfile, globalOverrideIdsNow } from '../core/factory'
 import { addProfileUpdater, removeProfileUpdater } from '../core/profileUpdater'
 import {
@@ -31,6 +37,7 @@ import type { SimpleSubscriptionOptions } from '../../shared/simple-config'
 import { getAppConfig } from './app'
 import { getControledMihomoConfig } from './controledMihomo'
 import { getPluginItem, pluginSchedule } from './plugin'
+import { normalizeConfigIds } from './normalizeIds'
 import { runtimeConfigWriteQueue } from './runtimeConfigQueue'
 
 const profileLogger = createLogger('Profile')
@@ -106,12 +113,12 @@ export async function getProfileConfig(force = false): Promise<IProfileConfig> {
   }
   if (typeof profileConfig !== 'object') profileConfig = { items: [] }
   if (!Array.isArray(profileConfig.items)) profileConfig.items = []
-  return JSON.parse(JSON.stringify(profileConfig))
+  return JSON.parse(JSON.stringify(normalizeConfigIds(profileConfig))) as IProfileConfig
 }
 
 export async function setProfileConfig(config: IProfileConfig): Promise<void> {
   await profileConfigWriteQueue.run(async () => {
-    const nextConfig = JSON.parse(JSON.stringify(config)) as IProfileConfig
+    const nextConfig = JSON.parse(JSON.stringify(normalizeConfigIds(config))) as IProfileConfig
     await atomicWriteFile(profileConfigPath(), stringify(nextConfig), { encoding: 'utf8' })
     profileConfig = nextConfig
     profileConfigVersion++
@@ -131,11 +138,13 @@ export async function updateProfileConfig(
       throw new Error('Profile config is invalid')
     }
     if (!Array.isArray(currentConfig.items)) currentConfig.items = []
-    const nextConfig = await updater(JSON.parse(JSON.stringify(currentConfig)))
+    const nextConfig = await updater(
+      JSON.parse(JSON.stringify(normalizeConfigIds(currentConfig))) as IProfileConfig
+    )
     await atomicWriteFile(profileConfigPath(), stringify(nextConfig), { encoding: 'utf8' })
     profileConfig = nextConfig
     profileConfigVersion++
-    return JSON.parse(JSON.stringify(nextConfig)) as IProfileConfig
+    return JSON.parse(JSON.stringify(normalizeConfigIds(nextConfig))) as IProfileConfig
   }, signal)
 }
 
@@ -181,6 +190,12 @@ export async function changeCurrentProfile(id: string): Promise<void> {
           return config
         })
         taskError = e
+        // 切换失败（尤其 TUN 下）可能连带内核已退出，回滚后补一次重启（#1741）
+        try {
+          if (!hasCoreProcess()) await restartCore()
+        } catch (restartError) {
+          profileLogger.warn('Failed to restart core after profile switch rollback', restartError)
+        }
       }
     })
   await changeProfileQueue
@@ -199,7 +214,14 @@ export async function updateProfileItem(
     if (index === -1) {
       throw new Error('Profile not found')
     }
-    config.items[index] = item
+    // lastUpdate* 由 addProfileItem 维护，整项覆盖时保留磁盘现值，避免陈旧快照抹掉后台写入
+    const existing = config.items[index]
+    config.items[index] = {
+      ...item,
+      lastUpdateAt: existing.lastUpdateAt,
+      lastUpdateOk: existing.lastUpdateOk,
+      lastUpdateError: existing.lastUpdateError
+    }
     return config
   })
   if (simpleOptions && (await getAppConfig()).operationMode === 'simple') {
@@ -224,7 +246,17 @@ export async function addProfileItem(
   item: Partial<IProfileItem>,
   simpleOptions?: SimpleSubscriptionOptions
 ): Promise<void> {
-  const newItem = await createProfile(item)
+  let newItem: IProfileItem
+  try {
+    newItem = await createProfile(item)
+    newItem.lastUpdateAt = Date.now()
+    newItem.lastUpdateOk = true
+    newItem.lastUpdateError = undefined
+  } catch (error) {
+    // 拉取失败也要落盘上次尝试结果，供 UI tooltip 展示（#1606）
+    await recordProfileUpdateFailure(item.id, error)
+    throw error
+  }
   let shouldChangeCurrent = false
   let newProfileIsCurrentAfterUpdate = false
   await updateProfileConfig((config) => {
@@ -265,6 +297,26 @@ export async function addProfileItem(
     await changeCurrentProfile(newItem.id)
   }
   await addProfileUpdater(newItem)
+}
+
+async function recordProfileUpdateFailure(id: string | undefined, error: unknown): Promise<void> {
+  if (!id) return
+  try {
+    const message = String((error as Error)?.message ?? error)
+    await updateProfileConfig((config) => {
+      const index = config.items.findIndex((i) => i.id === id)
+      if (index === -1) return config
+      config.items[index].lastUpdateAt = Date.now()
+      config.items[index].lastUpdateOk = false
+      config.items[index].lastUpdateError = message
+      return config
+    })
+    // 背景定时更新失败时渲染层无 mutate 兜底，需主动通知（#1606）
+    const { mainWindow } = await import('../window')
+    mainWindow?.webContents.send('profileConfigUpdated')
+  } catch (persistError) {
+    profileLogger.warn('Failed to persist profile update failure', persistError)
+  }
 }
 
 export async function removeProfileItem(id: string): Promise<void> {
@@ -513,6 +565,9 @@ async function fetchAndValidateSubscription(options: FetchOptions): Promise<Fetc
 
 export async function createProfile(item: Partial<IProfileItem>): Promise<IProfileItem> {
   const id = item.id || new Date().getTime().toString(16)
+  // #756: 中文 IME 手输 URL 常混入全角标点（：/． 等），肉眼与半角一致但
+  // new URL/axios 抛 "Invalid URL"，同一字符串粘贴却成功；入口统一转半角并去空白。
+  if (item.url) item = { ...item, url: normalizeUrlInput(item.url) }
   const newItem: IProfileItem = {
     id,
     name: item.name || (item.type === 'remote' ? 'Remote File' : 'Local File'),

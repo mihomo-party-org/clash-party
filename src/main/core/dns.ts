@@ -48,18 +48,41 @@ async function getOriginDNS(): Promise<void> {
 
 async function setDNS(dns: string, timeout?: number): Promise<void> {
   const service = await getDefaultService()
-  try {
+  const postViaHelper = async (attemptTimeout?: number): Promise<void> => {
     await axios.post(
       'http://localhost/dns',
       { service, dns },
       {
         socketPath: helperSocketPath,
-        ...(timeout === undefined ? {} : { timeout })
+        ...(attemptTimeout === undefined ? {} : { timeout: attemptTimeout })
       }
     )
+  }
+
+  try {
+    await postViaHelper(timeout)
   } catch (error) {
     // 退出清理使用有界 helper 请求；此时不能再弹授权框或启动无界的 osascript fallback。
     if (timeout !== undefined) throw error
+
+    const errCode = (error as NodeJS.ErrnoException).code
+    const errMsg = (error as Error).message || ''
+    // helper.sock 重启后 ENOENT/ECONNREFUSED：先给 launchd 起 helper 一次机会再重试（#1468）
+    if (
+      errCode === 'ENOENT' ||
+      errCode === 'ECONNREFUSED' ||
+      errMsg.includes('ENOENT') ||
+      errMsg.includes('ECONNREFUSED')
+    ) {
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+      try {
+        await postViaHelper(5000)
+        return
+      } catch {
+        // fall through to osascript
+      }
+    }
+
     // fallback to osascript if helper not available
     const shell = `networksetup -setdnsservers "${service}" ${dns}`
     const command = `do shell script "${shell}" with administrator privileges`

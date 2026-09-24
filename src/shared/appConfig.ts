@@ -2,6 +2,8 @@ export const DEFAULT_CONTROL_DNS = false
 
 export const DEFAULT_CONTROL_SNIFF = true
 
+export const DEFAULT_CONTROL_TUN = true
+
 export const DEFAULT_USE_NAMESERVER_POLICY = false
 
 export const DEFAULT_NAMESERVER_POLICY: IAppConfig['nameserverPolicy'] = {}

@@ -25,6 +25,7 @@ interface IpcApi {
   mihomoVersion: () => Promise<IMihomoVersion>
   mihomoCloseConnection: (id: string) => Promise<void>
   mihomoCloseAllConnections: () => Promise<void>
+  getMihomoConnectionsSnapshot: () => Promise<IMihomoConnectionsInfo | null>
   mihomoRules: () => Promise<IMihomoRulesInfo>
   mihomoRulesDisable: (rules: Record<string, boolean>) => Promise<void>
   mihomoProxies: () => Promise<IMihomoProxies>
@@ -273,6 +274,7 @@ export const {
   mihomoVersion,
   mihomoCloseConnection,
   mihomoCloseAllConnections,
+  getMihomoConnectionsSnapshot,
   mihomoRules,
   mihomoRulesDisable,
   mihomoProxies,

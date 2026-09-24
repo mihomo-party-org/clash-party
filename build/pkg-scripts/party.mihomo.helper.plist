@@ -10,6 +10,8 @@
     </array>
     <key>KeepAlive</key>
     <true/>
+    <key>RunAtLoad</key>
+    <true/>
     <key>Program</key>
     <string>/Library/PrivilegedHelperTools/party.mihomo.helper</string>
     <key>StandardErrorPath</key>

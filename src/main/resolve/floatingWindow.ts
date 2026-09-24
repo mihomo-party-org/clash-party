@@ -6,7 +6,7 @@ import windowStateKeeper from 'electron-window-state'
 import { getAppConfig, patchAppConfig } from '../config'
 import { floatingWindowLogger } from '../utils/logger'
 import { applyTheme } from './theme'
-import { buildContextMenu, showTrayIcon } from './tray'
+import { buildContextMenu, showTrayIconForFallback } from './tray'
 
 export let floatingWindow: BrowserWindow | null = null
 
@@ -151,10 +151,11 @@ async function createFloatingWindow(): Promise<void> {
 
 // 只有在悬浮窗顶上时才允许关掉托盘图标（见 general-config.tsx）。悬浮窗一旦没了，
 // 必须把托盘找回来：否则主窗口一关就再没有任何入口，用户只能去任务管理器杀进程（#2046）。
+// 恢复只补本会话入口，不再把“禁用托盘图标”偏好覆写成 false——否则一次悬浮窗异常
+// 就会让该设置永久失效，重启后托盘图标违背用户设置再次出现（#1398）。
 async function restoreTrayIcon(): Promise<void> {
   try {
-    await showTrayIcon()
-    await patchAppConfig({ disableTray: false })
+    await showTrayIconForFallback()
   } catch (error) {
     logError('Failed to restore tray icon', error)
   }

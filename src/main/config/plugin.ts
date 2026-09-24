@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'fs'
 import { pluginConfigPath } from '../utils/dirs'
 import { atomicWriteFile, WriteQueue } from '../utils/safeFile'
 import { parse, stringify } from '../utils/yaml'
+import { makeFallbackId, normalizeConfigIds } from './normalizeIds'
 
 let pluginConfig: IPluginConfig | undefined
 const writeQueue = new WriteQueue()
@@ -36,6 +37,7 @@ function loadUnlocked(): void {
   }
   if (typeof pluginConfig !== 'object' || pluginConfig === null) pluginConfig = { items: [] }
   if (!Array.isArray(pluginConfig.items)) pluginConfig.items = []
+  pluginConfig = normalizeConfigIds(pluginConfig, makeFallbackId)
   for (const item of pluginConfig.items) normalizeDiscoveryMarker(item)
 }
 
@@ -51,13 +53,17 @@ export async function getPluginConfig(force = false): Promise<IPluginConfig> {
       if (force || !pluginConfig) loadUnlocked()
     })
   }
-  return JSON.parse(JSON.stringify(pluginConfig)) as IPluginConfig
+  return JSON.parse(
+    JSON.stringify(normalizeConfigIds(pluginConfig ?? { items: [] }, makeFallbackId))
+  ) as IPluginConfig
 }
 
 async function update(updater: (c: IPluginConfig) => IPluginConfig): Promise<void> {
   await writeQueue.run(async () => {
     if (!pluginConfig) loadUnlocked()
-    const current = JSON.parse(JSON.stringify(pluginConfig)) as IPluginConfig
+    const current = JSON.parse(
+      JSON.stringify(normalizeConfigIds(pluginConfig ?? { items: [] }, makeFallbackId))
+    ) as IPluginConfig
     const next = updater(current)
     await atomicWriteFile(pluginConfigPath(), stringify(next), { encoding: 'utf8' })
     pluginConfig = next

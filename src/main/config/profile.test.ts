@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { addProfileUpdater } from '../core/profileUpdater'
 import { getOverrideConfig, updateOverrideConfig } from './override'
 import {
+  addProfileItem,
   createProfile,
   getProfileConfig,
   getProfileItem,
@@ -96,6 +97,7 @@ vi.mock('../core/mihomoApi', () => ({
 }))
 vi.mock('../core/manager', () => ({
   checkProfileConfig: mocks.checkProfileConfig,
+  hasCoreProcess: () => true,
   restartCore: mocks.restartCore
 }))
 vi.mock('../core/profileUpdater', () => ({
@@ -120,6 +122,7 @@ vi.mock('./plugin', () => ({
     autoUpdate: item?.autoUpdate ?? true
   })
 }))
+vi.mock('../window', () => ({ mainWindow: null }))
 
 const oldProfile = `proxies:
   - name: old
@@ -204,6 +207,114 @@ describe('remote profile candidate validation', () => {
     expect(mocks.checkProfileConfig).toHaveBeenCalledOnce()
     expect(readFileSync(join(testDir, 'profiles', 'remote.yaml'), 'utf8')).toBe(newProfile)
     expect(mocks.hotReload).toHaveBeenCalledOnce()
+  })
+})
+
+describe('last update status (#1606)', () => {
+  it('records a successful remote update on the profile item', async () => {
+    await addProfileItem({
+      id: 'remote',
+      type: 'remote',
+      name: 'Remote',
+      url: 'https://example.test'
+    })
+
+    const item = await getProfileItem('remote')
+    expect(item?.lastUpdateOk).toBe(true)
+    expect(item?.lastUpdateError).toBeUndefined()
+    expect(typeof item?.lastUpdateAt).toBe('number')
+  })
+
+  it('persists a failed remote update and rethrows', async () => {
+    // direct + proxy fallback both fail
+    mocks.axiosGet.mockRejectedValue(new Error('network down'))
+
+    await expect(
+      addProfileItem({
+        id: 'remote',
+        type: 'remote',
+        name: 'Remote',
+        url: 'https://example.test'
+      })
+    ).rejects.toThrow('network down')
+
+    const item = await getProfileItem('remote')
+    expect(item?.lastUpdateOk).toBe(false)
+    expect(item?.lastUpdateError).toContain('network down')
+    expect(typeof item?.lastUpdateAt).toBe('number')
+
+    mocks.axiosGet.mockReset()
+    mocks.axiosGet.mockResolvedValue({
+      status: 200,
+      data: newProfile,
+      headers: { 'content-type': 'text/yaml' }
+    })
+  })
+
+  it('updateProfileItem keeps lastUpdate* fields from disk', async () => {
+    await addProfileItem({
+      id: 'remote',
+      type: 'remote',
+      name: 'Remote',
+      url: 'https://example.test'
+    })
+    const before = await getProfileItem('remote')
+
+    await updateProfileItem({
+      ...(before as IProfileItem),
+      name: 'Renamed',
+      lastUpdateAt: undefined,
+      lastUpdateOk: undefined,
+      lastUpdateError: 'stale'
+    })
+
+    const after = await getProfileItem('remote')
+    expect(after?.name).toBe('Renamed')
+    expect(after?.lastUpdateOk).toBe(true)
+    expect(after?.lastUpdateAt).toBe(before?.lastUpdateAt)
+    expect(after?.lastUpdateError).toBeUndefined()
+  })
+})
+
+describe('legacy numeric profile IDs (#2141 residual)', () => {
+  it('coerces non-finite and numeric ids to strings before JSON clone', async () => {
+    writeFileSync(
+      join(testDir, 'profile.yaml'),
+      'current: 19999999999\nitems:\n  - id: 19999999999\n    type: local\n    name: Num\n  - id: .inf\n    type: local\n    name: Inf\n'
+    )
+    await getProfileConfig(true)
+
+    const config = await getProfileConfig()
+    expect(config.items.map((i) => i.id)).toEqual(['19999999999', 'Infinity'])
+    expect(config.current).toBe('19999999999')
+    expect(config.items.every((i) => typeof i.id === 'string')).toBe(true)
+  })
+
+  it('deduplicates duplicate ids and keeps current consistent', async () => {
+    writeFileSync(
+      join(testDir, 'profile.yaml'),
+      'current: dup\nitems:\n  - id: dup\n    type: local\n    name: A\n  - id: dup\n    type: local\n    name: B\n'
+    )
+    await getProfileConfig(true)
+
+    const config = await getProfileConfig()
+    const ids = config.items.map((i) => i.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    expect(config.items.find((i) => i.name === 'A')?.id).toBe('dup')
+    expect(config.items.find((i) => i.name === 'B')?.id).toBe('dup-2')
+    expect(config.current).toBe('dup')
+  })
+
+  it('replaces null ids with a generated string id', async () => {
+    writeFileSync(
+      join(testDir, 'profile.yaml'),
+      'items:\n  - id: null\n    type: local\n    name: NullId\n'
+    )
+    await getProfileConfig(true)
+
+    const config = await getProfileConfig()
+    expect(config.items[0]?.id).toBeTruthy()
+    expect(typeof config.items[0]?.id).toBe('string')
   })
 })
 
