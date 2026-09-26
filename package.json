@@ -50,7 +50,6 @@
     "d3": "^7.9.0",
     "express": "^5.2.1",
     "file-icon": "^6.0.0",
-    "file-icon-info": "^1.1.1",
     "flag-icons": "^7.5.0",
     "http-proxy-agent": "^9.1.0",
     "i18next": "^26.4.2",

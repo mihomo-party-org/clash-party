@@ -187,8 +187,7 @@ const validInvokeChannels = [
   'fetchIPInfo',
   'measureLatency',
   'getImageDataURL',
-  'getIconDataURL',
-  'getAppName',
+  'getAppInfo',
   'changeLanguage'
 ] as const
 

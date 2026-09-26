@@ -757,3 +757,8 @@ interface IPluginStaleDevice {
   deviceId: string
   devicePrivKey: string
 }
+
+interface IAppInfo {
+  name: string
+  icon: string
+}

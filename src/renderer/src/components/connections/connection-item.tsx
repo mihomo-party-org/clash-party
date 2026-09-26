@@ -3,6 +3,8 @@ import { calcTraffic } from '@renderer/utils/calc'
 import dayjs from '@renderer/utils/dayjs'
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { CgClose, CgTrash } from 'react-icons/cg'
+import { platform } from '@renderer/utils/init'
+import { connectionFallbackIcon } from '@renderer/utils/connection-icon'
 
 interface Props {
   index: number
@@ -31,6 +33,7 @@ const ConnectionItemComponent: React.FC<Props> = ({
     [info.metadata.process, info.metadata.sourceIP]
   )
   const processName = displayName || fallbackProcessName
+  const fallbackIcon = connectionFallbackIcon(platform, info.metadata.processPath)
 
   const destination = useMemo(
     () =>
@@ -93,7 +96,10 @@ const ConnectionItemComponent: React.FC<Props> = ({
               <Avatar
                 size="lg"
                 radius="sm"
-                src={iconUrl}
+                src={iconUrl || fallbackIcon}
+                showFallback
+                fallback={<img src={fallbackIcon} alt="" className="w-full h-full object-cover" />}
+                classNames={{ fallback: 'w-full h-full' }}
                 className="bg-transparent ml-2 w-14 h-14"
               />
             </div>
@@ -163,6 +169,7 @@ const ConnectionItem = memo(ConnectionItemComponent, (prevProps, nextProps) => {
     prevProps.info.downloadSpeed === nextProps.info.downloadSpeed &&
     prevProps.info.isActive === nextProps.info.isActive &&
     prevProps.iconUrl === nextProps.iconUrl &&
+    prevProps.info.metadata.processPath === nextProps.info.metadata.processPath &&
     prevProps.displayIcon === nextProps.displayIcon &&
     prevProps.displayName === nextProps.displayName &&
     prevProps.selected?.id === nextProps.selected?.id
