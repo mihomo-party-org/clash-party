@@ -56,9 +56,12 @@ export async function recoverAfterResume(): Promise<void> {
       if (tun?.enable && !isTunDevicePresent(device)) {
         // 内核只在 TUN 配置真正变化时才重建虚拟网卡（ReCreateTun 先和 LastTunConf 比较），
         // 所以必须先关后开，等价于用户手动开关 TUN 这个既有的绕过办法。
+        // 重新开启时不能只 PATCH { enable: true }：网卡已被系统销毁时，内核会按默认参数
+        // 重建（utunN 无地址、auto-route 关闭、gVisor、mtu 9000），TUN 实际不可用。
+        // 改用热重载下发完整配置，与 UI 手动开关 TUN 走同一条路径。
         resumeLogger.warn(`TUN device ${device} is gone after resume, recreating it`)
         await patchMihomoConfig({ tun: { enable: false } })
-        await patchMihomoConfig({ tun: { enable: true } })
+        await mihomoHotReloadConfig()
       } else if (tun?.enable) {
         // 网卡还在、内核也活着，但 TUN 的路由与 DNS 劫持在挂起期间可能已经失效
         // （用户报告唤醒后代理端口正常、DNS 却不响应）。热重载会让内核重跑
