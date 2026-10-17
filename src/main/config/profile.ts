@@ -490,7 +490,7 @@ async function fetchAndValidateSubscription(options: FetchOptions): Promise<Fetc
 
   const decryptedData = await decryptAgeContent(data, options.ageSecretKey, 'subscription')
   const parsed = parse(decryptedData) as Record<string, unknown> | null
-  if (typeof parsed !== 'object' || parsed === null) {
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
     await profileLogger.warn(
       `Remote profile parse failed url=${redactedUrl} mode=${fetchMode} parsedType=${typeof parsed}`
     )
@@ -499,13 +499,14 @@ async function fetchAndValidateSubscription(options: FetchOptions): Promise<Fetc
   await profileLogger.info(
     `Remote profile parsed url=${redactedUrl} mode=${fetchMode} summary=${parsedProfileSummary(parsed)}`
   )
-  if (!parsed['proxies'] && !parsed['proxy-providers']) {
+  const hasProxyGroups = Array.isArray(parsed['proxy-groups']) && parsed['proxy-groups'].length > 0
+  if (!parsed['proxies'] && !parsed['proxy-providers'] && !hasProxyGroups) {
     await profileLogger.warn(
-      `Remote profile validation failed url=${redactedUrl} mode=${fetchMode} reason=missing-proxies-or-providers summary=${parsedProfileSummary(
+      `Remote profile validation failed url=${redactedUrl} mode=${fetchMode} reason=missing-proxies-providers-or-groups summary=${parsedProfileSummary(
         parsed
       )}`
     )
-    throw new Error('Subscription failed: Profile missing proxies or providers')
+    throw new Error('Subscription failed: Profile missing proxies, providers or proxy groups')
   }
 
   return { data, headers: responseHeaders }
