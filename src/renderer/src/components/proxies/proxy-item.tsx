@@ -1,6 +1,6 @@
-import { Button, Card, CardBody } from '@heroui/react'
-import { mihomoUnfixedProxy } from '@renderer/utils/ipc'
-import React, { useMemo, useState, useCallback } from 'react'
+import { Avatar, Button, Card, CardBody } from '@heroui/react'
+import { getImageDataURL, mihomoUnfixedProxy } from '@renderer/utils/ipc'
+import React, { useEffect, useMemo, useState, useCallback } from 'react'
 import { FaMapPin } from 'react-icons/fa6'
 import { useTranslation } from 'react-i18next'
 import { KeyedMutator } from 'swr'
@@ -63,6 +63,33 @@ const ProxyItemBase: React.FC<Props> = (props) => {
 
   const fixed = useMemo(() => group.fixed && group.fixed === proxy.name, [group.fixed, proxy.name])
 
+  // 展开组时，成员中的子策略组也应该显示自己的图标，
+  // 复用组标题卡片（pages/proxies.tsx renderGroupContent）的加载与 localStorage 缓存逻辑。
+  const icon = 'icon' in proxy && typeof proxy.icon === 'string' ? proxy.icon : undefined
+  const [iconSrc, setIconSrc] = useState<string>()
+
+  useEffect(() => {
+    if (!icon || !icon.startsWith('http')) {
+      setIconSrc(icon)
+      return undefined
+    }
+    const cached = localStorage.getItem(icon)
+    if (cached) {
+      setIconSrc(cached)
+      return undefined
+    }
+    let cancelled = false
+    getImageDataURL(icon)
+      .then((dataURL) => {
+        localStorage.setItem(icon, dataURL)
+        if (!cancelled) setIconSrc(dataURL)
+      })
+      .catch(() => {})
+    return (): void => {
+      cancelled = true
+    }
+  }, [icon])
+
   return (
     <Card
       as="div"
@@ -83,9 +110,19 @@ const ProxyItemBase: React.FC<Props> = (props) => {
         {proxyDisplayMode === 'full' ? (
           <div className="flex flex-col gap-1">
             <div className="flex justify-between items-center pl-1">
-              <div className="text-ellipsis overflow-hidden whitespace-nowrap">
-                <div className="flag-emoji inline" title={proxy.name}>
-                  {proxy.name}
+              <div className="flex min-w-0 items-center">
+                {iconSrc && (
+                  <Avatar
+                    className="bg-transparent mr-2 shrink-0"
+                    size="sm"
+                    radius="sm"
+                    src={iconSrc}
+                  />
+                )}
+                <div className="text-ellipsis overflow-hidden whitespace-nowrap">
+                  <div className="flag-emoji inline" title={proxy.name}>
+                    {proxy.name}
+                  </div>
                 </div>
               </div>
               {fixed && (
@@ -136,9 +173,19 @@ const ProxyItemBase: React.FC<Props> = (props) => {
           </div>
         ) : (
           <div className="flex justify-between items-center pl-1">
-            <div className="text-ellipsis overflow-hidden whitespace-nowrap">
-              <div className="flag-emoji inline" title={proxy.name}>
-                {proxy.name}
+            <div className="flex min-w-0 items-center">
+              {iconSrc && (
+                <Avatar
+                  className="bg-transparent mr-2 shrink-0"
+                  size="sm"
+                  radius="sm"
+                  src={iconSrc}
+                />
+              )}
+              <div className="text-ellipsis overflow-hidden whitespace-nowrap">
+                <div className="flag-emoji inline" title={proxy.name}>
+                  {proxy.name}
+                </div>
               </div>
             </div>
             <div className="flex justify-end">
