@@ -14,6 +14,37 @@ export function primeAdminPrivilegesCache(value: boolean): void {
   managerLogger.info(`Admin privileges primed from sync check: ${value}`)
 }
 
+type ProbeResult = { ok: true } | { ok: false; timedOut: boolean; detail: string }
+
+// 默认 1.5s 足够快速判断；被杀掉（超时）后再用更长的超时重试，避免慢机器被误判为非管理员
+const PROBE_TIMEOUTS = [1500, 10000]
+
+async function probe(command: string, args: string[]): Promise<ProbeResult> {
+  let last: ProbeResult = { ok: false, timedOut: false, detail: 'not run' }
+  for (const timeout of PROBE_TIMEOUTS) {
+    try {
+      await execFilePromise(command, args, { windowsHide: true, timeout })
+      return { ok: true }
+    } catch (error: unknown) {
+      const { code, signal, killed } = error as {
+        code?: number | string | null
+        signal?: string | null
+        killed?: boolean
+      }
+      // 超时被杀时 code 为 null 且 killed/signal 被设置，不能当作退出码 0
+      const timedOut = code == null && (killed === true || signal != null)
+      last = {
+        ok: false,
+        timedOut,
+        detail: timedOut ? `killed by ${signal ?? 'signal'} after ${timeout}ms` : `code ${code}`
+      }
+      if (!timedOut) return last
+      managerLogger.debug(`${command} ${last.detail}, retrying with a longer timeout`)
+    }
+  }
+  return last
+}
+
 export async function checkAdminPrivileges(): Promise<boolean> {
   if (process.platform !== 'win32') {
     return true
@@ -22,26 +53,32 @@ export async function checkAdminPrivileges(): Promise<boolean> {
   if (adminPrivilegePromise) return adminPrivilegePromise
 
   adminPrivilegePromise = (async () => {
-    try {
-      await execFilePromise('fltmc', [], { windowsHide: true, timeout: 1500 })
+    const fltmc = await probe('fltmc', [])
+    if (fltmc.ok) {
       managerLogger.info('Admin privileges confirmed via fltmc')
       return true
-    } catch (fltmcError: unknown) {
-      const errorCode = (fltmcError as { code?: number })?.code || 0
-      managerLogger.debug(`fltmc failed with code ${errorCode}, trying net session as fallback`)
-
-      try {
-        await execFilePromise('net', ['session'], { windowsHide: true, timeout: 1500 })
-        managerLogger.info('Admin privileges confirmed via net session')
-        return true
-      } catch (netSessionError: unknown) {
-        const netErrorCode = (netSessionError as { code?: number })?.code || 0
-        managerLogger.debug(
-          `Both fltmc and net session failed, no admin privileges. Error codes: fltmc=${errorCode}, net=${netErrorCode}`
-        )
-        return false
-      }
     }
+    managerLogger.debug(`fltmc failed (${fltmc.detail}), trying net session as fallback`)
+
+    const net = await probe('net', ['session'])
+    if (net.ok) {
+      managerLogger.info('Admin privileges confirmed via net session')
+      return true
+    }
+
+    if (fltmc.timedOut || net.timedOut) {
+      // 结果不确定，不缓存，下次调用时重新检测
+      managerLogger.warn(
+        `Admin privilege check inconclusive, not caching. fltmc: ${fltmc.detail}, net: ${net.detail}`
+      )
+      adminPrivilegePromise = null
+      return false
+    }
+
+    managerLogger.debug(
+      `Both fltmc and net session failed, no admin privileges. fltmc: ${fltmc.detail}, net: ${net.detail}`
+    )
+    return false
   })()
 
   return adminPrivilegePromise
