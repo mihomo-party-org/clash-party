@@ -2,6 +2,7 @@ import { Notification } from 'electron'
 import i18next from 'i18next'
 import { addProfileItem } from './config'
 import { installRemotePlugin, loginPlugin } from './resolve/plugin'
+import { setOperationMode } from './simple/mode'
 import { mainWindow } from './window'
 import { safeShowErrorBox } from './utils/init'
 
@@ -21,8 +22,12 @@ export async function handleDeepLink(url: string): Promise<void> {
       try {
         const profileUrl = urlObj.searchParams.get('url')
         const profileName = urlObj.searchParams.get('name')
+        const operationMode = urlObj.searchParams.get('operation-mode')
         if (!profileUrl) {
           throw new Error(i18next.t('profiles.error.urlParamMissing'))
+        }
+        if (operationMode === 'standard' || operationMode === 'simple') {
+          await setOperationMode(operationMode)
         }
         await addProfileItem({
           type: 'remote',
