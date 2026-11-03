@@ -26,6 +26,7 @@ import {
 } from '../utils/dirs'
 import { createLogger } from '../utils/logger'
 import { atomicWriteFile } from '../utils/safeFile'
+import { isHttpUrl } from '../utils/url'
 import type { LocalSubscriptionOptions } from '../../shared/local-config'
 import {
   isLocalProfile,
@@ -684,7 +685,7 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
     if (headers['content-disposition'] && newItem.name === 'Remote File') {
       newItem.name = parseFilename(headers['content-disposition'])
     }
-    if (headers['profile-web-page-url']) {
+    if (isHttpUrl(headers['profile-web-page-url'])) {
       newItem.home = headers['profile-web-page-url']
     }
     if (headers['profile-update-interval'] && !item.allowFixedInterval) {
@@ -837,7 +838,8 @@ export async function getProfileImportInfo(
     if (name !== 'Remote File') result.name = name
   }
   if (!result.name) result.name = fallbackName
-  if (responseHeaders['profile-web-page-url']) result.home = responseHeaders['profile-web-page-url']
+  if (isHttpUrl(responseHeaders['profile-web-page-url']))
+    result.home = responseHeaders['profile-web-page-url']
   if (responseHeaders['profile-update-interval'] && !item.allowFixedInterval) {
     const hours = Number(responseHeaders['profile-update-interval'])
     if (Number.isFinite(hours) && hours > 0)
