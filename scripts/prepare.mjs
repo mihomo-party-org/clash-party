@@ -231,7 +231,7 @@ async function resolveSidecar(binInfo) {
         const extractedFilePath = path.join(tempDir, extractedFile)
         fs.renameSync(extractedFilePath, sidecarPath)
         console.log(`[INFO]: "${name}" file renamed to "${sidecarPath}"`)
-        execSync(`chmod 755 ${sidecarPath}`)
+        fs.chmodSync(sidecarPath, 0o755)
         console.log(`[INFO]: "${name}" chmod binary finished`)
       } else {
         throw new Error(`Expected file not found in ${tempDir}`)
@@ -250,7 +250,7 @@ async function resolveSidecar(binInfo) {
           .pipe(writeStream)
           .on('finish', () => {
             console.log(`[INFO]: "${name}" gunzip finished`)
-            execSync(`chmod 755 ${sidecarPath}`)
+            fs.chmodSync(sidecarPath, 0o755)
             console.log(`[INFO]: "${name}" chmod binary finished`)
             resolve()
           })
