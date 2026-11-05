@@ -98,12 +98,17 @@ async function createFloatingWindow(): Promise<void> {
     // 事件监听器
     floatingWindow.webContents.on('render-process-gone', (_, details) => {
       logError('Render process gone', details.reason)
+      // 先记下来：destroy() 触发的 closed 事件会清掉 floatingWindow 引用
+      const isCurrentWindow = floatingWindow === win
       // 只丢引用不销毁的话，屏幕上会残留一个无边框、置顶、不在任务栏且 closable: false 的幽灵窗，
       // 用户既关不掉也找不到，只能重启应用
       if (!win.isDestroyed()) {
         win.destroy()
       }
-      void restoreTrayIcon()
+      // 被 recreateFloatingWindow 替换掉的旧窗口不算悬浮窗没了，不能把托盘找回来（#1398）
+      if (isCurrentWindow) {
+        void restoreTrayIcon()
+      }
     })
 
     // 窗口销毁后必须清掉引用，否则 isVisible() 之类的调用会作用在已销毁窗口上抛错；
@@ -193,13 +198,25 @@ export async function triggerFloatingWindow(): Promise<void> {
   }
 }
 
-export async function closeFloatingWindow(): Promise<void> {
-  if (floatingWindow) {
-    ipcMain.removeAllListeners('updateFloatingWindow')
-    floatingWindow.destroy()
+function destroyFloatingWindow(): void {
+  const win = floatingWindow
+  if (win) {
     floatingWindow = null
+    ipcMain.removeAllListeners('updateFloatingWindow')
+    win.destroy()
   }
+}
+
+export async function closeFloatingWindow(): Promise<void> {
+  destroyFloatingWindow()
   await restoreTrayIcon()
+}
+
+// 切换兼容模式这类只是重建窗口的场景，悬浮窗马上就回来，不能走 closeFloatingWindow 把托盘找回来、
+// 顺带清掉"禁用托盘图标"（#1398）。重建失败时 showFloatingWindow 自己会恢复托盘。
+export async function recreateFloatingWindow(): Promise<void> {
+  destroyFloatingWindow()
+  await showFloatingWindow()
 }
 
 export async function showContextMenu(): Promise<void> {

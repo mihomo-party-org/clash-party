@@ -165,6 +165,7 @@ const validInvokeChannels = [
   'triggerMainWindow',
   'showFloatingWindow',
   'closeFloatingWindow',
+  'recreateFloatingWindow',
   'showContextMenu',
   'setTitleBarOverlay',
   'setAlwaysOnTop',
