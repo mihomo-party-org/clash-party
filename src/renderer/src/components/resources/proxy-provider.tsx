@@ -15,6 +15,7 @@ import { calcTraffic } from '@renderer/utils/calc'
 import { getHash } from '@renderer/utils/hash'
 import { useTranslation } from 'react-i18next'
 import { useActiveProfile } from '@renderer/hooks/use-active-profile'
+import { useGroups } from '@renderer/hooks/use-groups'
 import { includesIgnoreCase } from '@renderer/utils/includes'
 import { FaPlus } from 'react-icons/fa6'
 import ProviderModal from '../local/provider-modal'
@@ -26,6 +27,7 @@ import Viewer from './viewer'
 const ProxyProvider: React.FC<{ editing?: boolean }> = ({ editing: editingProp }) => {
   const { t } = useTranslation()
   const { isLocalActive: localMode } = useActiveProfile()
+  const { mutate: mutateGroups } = useGroups()
   const editing = !!editingProp && localMode
   const [showDetails, setShowDetails] = useState({
     show: false,
@@ -97,6 +99,14 @@ const ProxyProvider: React.FC<{ editing?: boolean }> = ({ editing: editingProp }
         return [...prev]
       })
     }
+  }
+
+  const updateProviders = async (targets: IMihomoProxyProvider[]): Promise<void> => {
+    await Promise.all(
+      targets.map((provider) => onUpdate(provider.name, providers.indexOf(provider)))
+    )
+    // 代理组的节点列表来自 provider，只刷新这里的话代理组页面要等 30s 轮询才看到新节点（#638、#1153）
+    mutateGroups()
   }
 
   if (!providers.length && !localMode) {
@@ -181,11 +191,7 @@ const ProxyProvider: React.FC<{ editing?: boolean }> = ({ editing: editingProp }
             size="sm"
             color="primary"
             isDisabled={!filteredProviders.length}
-            onPress={() => {
-              filteredProviders.forEach((provider) => {
-                onUpdate(provider.name, providers.indexOf(provider))
-              })
-            }}
+            onPress={() => updateProviders(filteredProviders)}
           >
             {t('resources.proxyProviders.updateAll')}
           </Button>
@@ -252,9 +258,7 @@ const ProxyProvider: React.FC<{ editing?: boolean }> = ({ editing: editingProp }
                   title={t('common.updater.update')}
                   className="ml-2"
                   size="sm"
-                  onPress={() => {
-                    onUpdate(provider.name, index)
-                  }}
+                  onPress={() => updateProviders([provider])}
                 >
                   <IoMdRefresh className={`text-lg ${updating[index] ? 'animate-spin' : ''}`} />
                 </Button>
