@@ -9,7 +9,11 @@ import { deepMerge } from '../utils/merge'
 import { createLogger } from '../utils/logger'
 import { atomicWriteFile, WriteQueue } from '../utils/safeFile'
 import { DEFAULT_CONTROL_DNS, DEFAULT_CONTROL_SNIFF } from '../../shared/appConfig'
-import { isLocalProfile, LOCAL_SHARED_CONFIG_KEYS } from '../../shared/local-config'
+import {
+  isLocalProfile,
+  LOCAL_GENERAL_CONFIG_KEYS,
+  LOCAL_SHARED_CONFIG_KEYS
+} from '../../shared/local-config'
 import type { LocalSharedConfig } from '../local/compiler'
 import { getAppConfig, patchAppConfig } from './app'
 
@@ -64,6 +68,12 @@ export async function getControledMihomoConfig(force = false): Promise<Partial<I
     const { getLocalState } = await import('../local/store')
     const state = await getLocalState()
     const localConfig: Partial<IMihomoConfig> = {}
+    for (const key of LOCAL_GENERAL_CONFIG_KEYS) {
+      const value = controledMihomoConfig[key]
+      if (value !== undefined) {
+        ;(localConfig as Record<string, unknown>)[key] = structuredClone(value)
+      }
+    }
     try {
       const general = parse(state.published.modules.general)
       if (general && typeof general === 'object' && !Array.isArray(general)) {
