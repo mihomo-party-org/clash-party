@@ -28,6 +28,8 @@
   "common.notification.copyEnvSuccess": "دستور محیطی کپی شد",
   "common.notification.tunEnabled": "TUN فعال شد",
   "common.notification.tunDisabled": "TUN غیرفعال شد",
+  "common.notification.tailscaleAuthTitle": "گره Tailscale {{name}} به احراز هویت نیاز دارد",
+  "common.notification.tailscaleAuthBody": "برای باز کردن پیوند احراز هویت کلیک کنید",
   "common.notification.ruleMode": "حالت قانون",
   "common.notification.globalMode": "حالت جهانی",
   "common.notification.directMode": "حالت مستقیم",

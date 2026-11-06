@@ -28,6 +28,8 @@
   "common.notification.copyEnvSuccess": "命令行命令已复制",
   "common.notification.tunEnabled": "TUN 已启用",
   "common.notification.tunDisabled": "TUN 已关闭",
+  "common.notification.tailscaleAuthTitle": "Tailscale 节点 {{name}} 需要认证",
+  "common.notification.tailscaleAuthBody": "点击打开认证链接",
   "common.notification.ruleMode": "规则模式",
   "common.notification.globalMode": "全局模式",
   "common.notification.directMode": "直连模式",

@@ -28,6 +28,8 @@
   "common.notification.copyEnvSuccess": "Команда env скопирована",
   "common.notification.tunEnabled": "TUN включен",
   "common.notification.tunDisabled": "TUN отключен",
+  "common.notification.tailscaleAuthTitle": "Узел Tailscale {{name}} требует аутентификации",
+  "common.notification.tailscaleAuthBody": "Нажмите, чтобы открыть ссылку для аутентификации",
   "common.notification.ruleMode": "Правило",
   "common.notification.globalMode": "Глобальный",
   "common.notification.directMode": "Прямой",

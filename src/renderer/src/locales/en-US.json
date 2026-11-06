@@ -28,6 +28,8 @@
   "common.notification.copyEnvSuccess": "Shell env command copied",
   "common.notification.tunEnabled": "TUN enabled",
   "common.notification.tunDisabled": "TUN disabled",
+  "common.notification.tailscaleAuthTitle": "Tailscale node {{name}} needs authentication",
+  "common.notification.tailscaleAuthBody": "Click to open the authentication link",
   "common.notification.ruleMode": "Rule Mode",
   "common.notification.globalMode": "Global Mode",
   "common.notification.directMode": "Direct Mode",
