@@ -72,7 +72,7 @@ function stateFromProfileConfig(value: unknown): LocalState {
   const state = defaultState()
   if (!value || typeof value !== 'object' || Array.isArray(value)) return state
   const config = value as Record<string, unknown>
-  const general: Record<string, unknown> = {}
+  const general = parse(state.draft.modules.general) as Record<string, unknown>
   for (const key of LOCAL_GENERAL_CONFIG_KEYS) {
     if (config[key] !== undefined) general[key] = config[key]
   }
