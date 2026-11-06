@@ -65,6 +65,7 @@ describe('configureAppPaths', () => {
 
     expect(setName).toHaveBeenCalledWith('mihomo-party-dev')
     expect(paths.userData).toBe(path.join(APP_DATA, 'mihomo-party-dev'))
+    expect(paths.sessionData).toBe(path.join(APP_DATA, 'mihomo-party-dev', 'cache'))
   })
 
   it('leaves packaged stable and dev-release builds on production paths', async () => {
@@ -73,8 +74,8 @@ describe('configureAppPaths', () => {
     configureAppPaths()
 
     expect(setName).not.toHaveBeenCalled()
-    expect(setPath).not.toHaveBeenCalled()
     expect(paths.userData).toBe(path.join(APP_DATA, 'mihomo-party'))
+    expect(paths.sessionData).toBe(path.join(APP_DATA, 'mihomo-party', 'cache'))
   })
 
   it('keeps portable userData precedence over local development isolation', async () => {
@@ -84,6 +85,7 @@ describe('configureAppPaths', () => {
 
     expect(setName).toHaveBeenCalledWith('mihomo-party-dev')
     expect(paths.userData).toBe(path.join(EXE_DIR, 'data'))
-    expect(setPath).toHaveBeenLastCalledWith('userData', path.join(EXE_DIR, 'data'))
+    expect(paths.sessionData).toBe(path.join(EXE_DIR, 'data', 'cache'))
+    expect(setPath).toHaveBeenLastCalledWith('sessionData', path.join(EXE_DIR, 'data', 'cache'))
   })
 })

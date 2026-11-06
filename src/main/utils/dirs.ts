@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync } from 'fs'
+import { existsSync, mkdirSync, renameSync } from 'fs'
 import path from 'path'
 import { is } from '@electron-toolkit/utils'
 import { app } from 'electron'
@@ -26,6 +26,44 @@ export function configureAppPaths(): void {
   if (isPortable()) {
     app.setPath('userData', portableDataDir())
   }
+
+  // Electron stores Chromium session data (including Cache, Code Cache and
+  // GPUCache) in userData by default. Keep those generated files together so
+  // the application data directory remains easy to manage.
+  const sessionDataDir = path.join(dataDir(), 'cache')
+  mkdirSync(sessionDataDir, { recursive: true })
+  const sessionDataEntries = [
+    'Cache',
+    'Code Cache',
+    'GPUCache',
+    'DawnGraphiteCache',
+    'DawnWebGPUCache',
+    'Cookies',
+    'Cookies-journal',
+    'Local Storage',
+    'Session Storage',
+    'Sessions',
+    'Network Persistent State',
+    'Preferences',
+    'Shared Dictionary',
+    'TransportSecurity',
+    'Service Worker',
+    'databases',
+    'blob_storage',
+    'File System',
+    'WebStorage'
+  ]
+  for (const entry of sessionDataEntries) {
+    const legacyPath = path.join(dataDir(), entry)
+    const targetPath = path.join(sessionDataDir, entry)
+    if (!existsSync(legacyPath) || existsSync(targetPath)) continue
+    try {
+      renameSync(legacyPath, targetPath)
+    } catch {
+      // A locked cache can be recreated in the new location on the next launch.
+    }
+  }
+  app.setPath('sessionData', sessionDataDir)
 }
 
 export function dataDir(): string {
