@@ -113,7 +113,7 @@ async function terminateProcess(pid: number): Promise<void> {
 // Best-effort check whether a PID is still alive without actually killing it.
 // process.kill(pid, 0) throws ESRCH when the process is gone and EPERM when
 // it is alive but owned by another user (we treat that as "alive, don't touch").
-function isPidAlive(pid: number): boolean {
+export function isPidAlive(pid: number): boolean {
   if (!Number.isFinite(pid) || pid <= 0) return false
   try {
     process.kill(pid, 0)
