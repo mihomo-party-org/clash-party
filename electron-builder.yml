@@ -69,6 +69,11 @@ pkg:
 linux:
   executableName: mihomo-party
   icon: build/icon.png
+  extraFiles:
+    - from: './build/icon.png'
+      to: 'icon.png'
+    - from: './build/linux/install.sh'
+      to: 'install.sh'
   desktop:
     entry:
       Name: Clash Party
@@ -82,6 +87,7 @@ linux:
     - deb
     - rpm
     - pacman
+    - tar.gz
   maintainer: mihomo-party-org
   category: Utility
   artifactName: clash-party-linux-${version}-${arch}.${ext}

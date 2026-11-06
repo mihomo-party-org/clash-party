@@ -308,7 +308,7 @@ jobs:
           npm_config_target_arch: ${{ matrix.arch }}
         run: pnpm build:linux --${{ matrix.arch }}
       - name: Generate checksums
-        run: pnpm checksum .deb .rpm .pkg.tar.zst
+        run: pnpm checksum .deb .rpm .pkg.tar.zst .tar.gz
       - name: Copy Legacy Artifacts
         run: pnpm copy-legacy
       - name: Upload Artifacts
@@ -321,6 +321,7 @@ jobs:
             dist/*.deb
             dist/*.rpm
             dist/*.pkg.tar.zst
+            dist/*.tar.gz
           if-no-files-found: error
       - name: Publish Release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -331,6 +332,7 @@ jobs:
             dist/*.deb
             dist/*.rpm
             dist/*.pkg.tar.zst
+            dist/*.tar.gz
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish Dev Release
         if: github.event_name == 'workflow_dispatch'
@@ -342,6 +344,7 @@ jobs:
             dist/*.deb
             dist/*.rpm
             dist/*.pkg.tar.zst
+            dist/*.tar.gz
           prerelease: true
           draft: false
           token: ${{ secrets.GITHUB_TOKEN }}
