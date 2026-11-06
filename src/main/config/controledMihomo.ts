@@ -68,12 +68,6 @@ export async function getControledMihomoConfig(force = false): Promise<Partial<I
     const { getLocalState } = await import('../local/store')
     const state = await getLocalState()
     const localConfig: Partial<IMihomoConfig> = {}
-    for (const key of LOCAL_GENERAL_CONFIG_KEYS) {
-      const value = controledMihomoConfig[key]
-      if (value !== undefined) {
-        ;(localConfig as Record<string, unknown>)[key] = structuredClone(value)
-      }
-    }
     try {
       const general = parse(state.published.modules.general)
       if (general && typeof general === 'object' && !Array.isArray(general)) {
@@ -81,6 +75,12 @@ export async function getControledMihomoConfig(force = false): Promise<Partial<I
       }
     } catch (error) {
       controledMihomoLogger.warn('Failed to parse local general module', error)
+    }
+    for (const key of LOCAL_GENERAL_CONFIG_KEYS) {
+      const value = controledMihomoConfig[key]
+      if (value !== undefined) {
+        ;(localConfig as Record<string, unknown>)[key] = structuredClone(value)
+      }
     }
     for (const key of LOCAL_SHARED_CONFIG_KEYS) {
       const value = controledMihomoConfig[key]
