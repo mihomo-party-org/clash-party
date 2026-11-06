@@ -7,6 +7,7 @@ import { stopCoreForExit, cleanupCoreWatcher } from './core/manager'
 import { primeAdminPrivilegesCache } from './core/admin'
 import { triggerSysProxy, disableSysProxySync } from './sys/sysproxy'
 import { closeTrafficUsage } from './traffic/recorder'
+import { stopMonitor } from './resolve/trafficMonitor'
 import { exePath } from './utils/dirs'
 import { saveMainWindowState } from './window'
 
@@ -110,7 +111,11 @@ export function setupAppLifecycle(): void {
         sysProxyDisabled = true
       }
 
-      const cleanupTasks: Promise<unknown>[] = [stopCoreForExit(), closeTrafficUsage()]
+      const cleanupTasks: Promise<unknown>[] = [
+        stopCoreForExit(),
+        closeTrafficUsage(),
+        stopMonitor()
+      ]
       if (process.platform === 'darwin') {
         cleanupTasks.push(
           triggerSysProxy(false, { helperTimeout: 750, force: true }).then(() => {
