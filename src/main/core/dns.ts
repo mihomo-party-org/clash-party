@@ -6,6 +6,8 @@ import { getAppConfig, patchAppConfig } from '../config'
 
 const execPromise = promisify(exec)
 const helperSocketPath = '/tmp/mihomo-party-helper.sock'
+const publicDNS = '223.5.5.5'
+const emptyDNS = 'Empty'
 
 let setPublicDNSTimer: NodeJS.Timeout | null = null
 let recoverDNSTimer: NodeJS.Timeout | null = null
@@ -36,14 +38,17 @@ async function getDefaultService(): Promise<string> {
   throw new Error('Get service failed')
 }
 
-async function getOriginDNS(): Promise<void> {
+async function getCurrentDNS(): Promise<string> {
   const service = await getDefaultService()
   const { stdout: dns } = await execPromise(`networksetup -getdnsservers "${service}"`)
   if (dns.startsWith("There aren't any DNS Servers set on")) {
-    await patchAppConfig({ originDNS: 'Empty' })
-  } else {
-    await patchAppConfig({ originDNS: dns.trim().replace(/\n/g, ' ') })
+    return emptyDNS
   }
+  return dns.trim().replace(/\n/g, ' ')
+}
+
+async function getOriginDNS(): Promise<void> {
+  await patchAppConfig({ originDNS: await getCurrentDNS() })
 }
 
 async function setDNS(dns: string, timeout?: number): Promise<void> {
@@ -70,10 +75,11 @@ async function setDNS(dns: string, timeout?: number): Promise<void> {
 export async function setPublicDNS(): Promise<void> {
   if (process.platform !== 'darwin') return
   if (net.isOnline()) {
-    const { originDNS } = await getAppConfig()
-    if (!originDNS) {
-      await getOriginDNS()
-      await setDNS('223.5.5.5')
+    const currentDNS = await getCurrentDNS()
+    if (currentDNS !== publicDNS) {
+      const { originDNS } = await getAppConfig()
+      if (!originDNS) await getOriginDNS()
+      await setDNS(publicDNS)
     }
   } else {
     if (setPublicDNSTimer) clearTimeout(setPublicDNSTimer)
