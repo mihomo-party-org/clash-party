@@ -26,6 +26,7 @@ import {
   importThemes,
   relaunchApp,
   readImageFileDataURL,
+  recreateFloatingWindow,
   resolveThemes,
   showFloatingWindow,
   showTrayIcon,
@@ -528,10 +529,7 @@ const GeneralConfig: React.FC = () => {
                   isSelected={floatingWindowCompatMode}
                   onValueChange={async (v) => {
                     await patchAppConfig({ floatingWindowCompatMode: v })
-                    closeFloatingWindow()
-                    setTimeout(() => {
-                      showFloatingWindow()
-                    }, 100)
+                    recreateFloatingWindow()
                   }}
                 />
                 <Tooltip content={t('settings.floatingWindowCompatModeTooltip')}>
