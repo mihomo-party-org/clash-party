@@ -15,6 +15,7 @@ import { getLocalConfig, publishLocalConfig, saveLocalDraft } from '@renderer/ut
 import { parse, stringify } from 'yaml'
 import { useEffect, useState } from 'react'
 import type { LocalModule, LocalState } from '../../../../shared/local-config'
+import { parseYaml } from '../../../../shared/yaml'
 
 /* eslint-disable react/prop-types */
 
@@ -132,7 +133,7 @@ const ProviderModal: React.FC<Props> = ({ kind, name: editingName, onClose, onSa
           .filter(Boolean)
       } else {
         try {
-          parsedPayload = parse(payload) || []
+          parsedPayload = parseYaml(payload) || []
           if (
             !Array.isArray(parsedPayload) ||
             parsedPayload.some((item) => !item || typeof item !== 'object' || Array.isArray(item))

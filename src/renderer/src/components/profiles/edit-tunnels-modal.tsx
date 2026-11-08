@@ -12,11 +12,12 @@ import {
 } from '@heroui/react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from '@renderer/components/base/toast'
-import { getProfileStr, setProfileStr } from '@renderer/utils/ipc'
+import { getAppConfig, getProfileStr, setProfileStr } from '@renderer/utils/ipc'
 import { isValidListenAddressFull } from '@renderer/utils/validate'
-import { dump, load } from 'js-yaml'
 import { useTranslation } from 'react-i18next'
 import { IoMdCreate, IoMdTrash, IoMdUndo } from 'react-icons/io'
+import { stringify } from 'yaml'
+import { parseYaml } from '../../../../shared/yaml'
 
 interface Props {
   id: string
@@ -215,8 +216,12 @@ const EditTunnelsModal: React.FC<Props> = (props) => {
       setIsLoading(true)
       setLoadFailed(false)
       try {
-        const content = await getProfileStr(id)
-        const parsed = load(content)
+        const [content, { yamlMaxAliasCount }] = await Promise.all([
+          getProfileStr(id),
+          getAppConfig()
+        ])
+        // 与 main 读订阅一致：同一个解析器、同一个别名上限，未加引号的 short-id 保持原文
+        const parsed = parseYaml(content, { maxAliasCount: yamlMaxAliasCount })
         // 解析结果不是 YAML mapping 时（例如 age 密文、根数组或日期），
         // 旧实现静默退化成 {} 且不提示，保存就会把整份订阅写没。
         if (Object.prototype.toString.call(parsed) !== '[object Object]') {
@@ -303,7 +308,8 @@ const EditTunnelsModal: React.FC<Props> = (props) => {
         delete nextProfile.tunnels
       }
 
-      await setProfileStr(id, dump(nextProfile))
+      // compat: 读取端认合并键，字面量 "<<" 键也要加引号，否则读回会被当成合并
+      await setProfileStr(id, stringify(nextProfile, { compat: ['merge'] }))
       onClose()
     } catch (e) {
       toast.error(

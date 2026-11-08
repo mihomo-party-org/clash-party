@@ -1,20 +1,11 @@
 import yaml from 'yaml'
+import { parseYaml } from '../../shared/yaml'
+import type { YamlParseOptions } from '../../shared/yaml'
 
-export interface YamlParseOptions {
-  maxAliasCount?: number
-}
+export type { YamlParseOptions }
 
 export const parse = <T = unknown>(content: string, options?: YamlParseOptions): T => {
-  const processedContent = content.replace(
-    /(^|\{|,)(\s*short-id:\s*)(?!['"]|null\b|Null\b|NULL\b|~)([^"'\s,}\n]+)/gm,
-    '$1$2"$3"'
-  )
-  return (
-    (yaml.parse(processedContent, {
-      merge: true,
-      maxAliasCount: options?.maxAliasCount
-    }) as T) || ({} as T)
-  )
+  return (parseYaml(content, options) as T) || ({} as T)
 }
 
 export function stringify(content: unknown): string {

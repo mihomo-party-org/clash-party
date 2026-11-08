@@ -1,5 +1,5 @@
-import { parse } from 'yaml'
 import type { LocalObject } from '../local-config'
+import { parseYaml } from '../yaml'
 
 export interface LocalNodeParseResult {
   nodes: LocalObject[]
@@ -791,7 +791,7 @@ export function parseLocalNodeInput(text: string): LocalNodeParseResult {
   if (structured) {
     let document: unknown
     try {
-      document = parse(structured)
+      document = parseYaml(structured)
     } catch (error) {
       errors.push(`YAML/JSON 解析失败: ${errorMessage(error).split('\n')[0]}`)
     }
