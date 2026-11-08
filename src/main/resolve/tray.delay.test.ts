@@ -1,4 +1,4 @@
-import { beforeEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { buildContextMenu } from './tray'
 
 const mocks = vi.hoisted(() => ({
@@ -81,7 +81,11 @@ async function clickGroupDelayTest(): Promise<void> {
   await delayTest?.click?.()
 }
 
+const platform = Object.getOwnPropertyDescriptor(process, 'platform')
+
 beforeEach(() => {
+  // the tray only lists proxy groups outside Linux, so pin the platform instead of relying on the CI host
+  Object.defineProperty(process, 'platform', { configurable: true, value: 'win32' })
   vi.clearAllMocks()
   mocks.mihomoGroups.mockResolvedValue([
     {
@@ -91,6 +95,10 @@ beforeEach(() => {
       all: [...proxies, { name: 'provided', history: [], 'provider-name': 'remote' }]
     }
   ])
+})
+
+afterEach(() => {
+  if (platform) Object.defineProperty(process, 'platform', platform)
 })
 
 it('tests the group node by node within the delay test concurrency (#1507)', async () => {
