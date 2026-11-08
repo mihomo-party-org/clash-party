@@ -16,7 +16,14 @@ import dayjs from '@renderer/utils/dayjs'
 import React, { Key, useMemo, useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { exportLocalConfig, openFile, updatePluginProfile } from '@renderer/utils/ipc'
+import {
+  exportLocalConfig,
+  getProfileStr,
+  openFile,
+  setProfileStr,
+  updatePluginProfile
+} from '@renderer/utils/ipc'
+import { showError } from '@renderer/utils/error-display'
 import { toast } from '@renderer/components/base/toast'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import { useTranslation } from 'react-i18next'
@@ -331,31 +338,44 @@ const ProfileItem: React.FC<Props> = (props) => {
             isCurrent={isCurrent}
             actions={
               <div className="flex">
-                {(info.type === 'remote' || info.pluginId) && (
-                  <Tooltip placement="left" content={dayjs(info.updated).fromNow()}>
-                    <Button
-                      isIconOnly
-                      size="sm"
-                      variant="light"
+                <Tooltip
+                  placement="left"
+                  content={
+                    info.type === 'local' && !info.pluginId
+                      ? t('common.error.reload')
+                      : dayjs(info.updated).fromNow()
+                  }
+                >
+                  <Button
+                    isIconOnly
+                    aria-label={
+                      info.type === 'local' && !info.pluginId
+                        ? t('common.error.reload')
+                        : t('common.refresh')
+                    }
+                    size="sm"
+                    variant="light"
+                    color="default"
+                    isDisabled={updating}
+                    onPress={async () => {
+                      try {
+                        setUpdating(true)
+                        if (info.type === 'remote') await addProfileItem(info)
+                        else if (info.pluginId) await updatePluginProfile(info.pluginId, true)
+                        else await setProfileStr(info.id, await getProfileStr(info.id))
+                      } catch (error) {
+                        await showError(error, t('common.error.updateProfileFailed'))
+                      } finally {
+                        setUpdating(false)
+                      }
+                    }}
+                  >
+                    <IoMdRefresh
                       color="default"
-                      disabled={updating}
-                      onPress={async () => {
-                        try {
-                          setUpdating(true)
-                          if (info.type === 'remote') await addProfileItem(info)
-                          else if (info.pluginId) await updatePluginProfile(info.pluginId, true)
-                        } finally {
-                          setUpdating(false)
-                        }
-                      }}
-                    >
-                      <IoMdRefresh
-                        color="default"
-                        className={`${isCurrent ? 'text-primary-foreground' : 'text-foreground'} text-[24px] ${updating ? 'animate-spin' : ''}`}
-                      />
-                    </Button>
-                  </Tooltip>
-                )}
+                      className={`${isCurrent ? 'text-primary-foreground' : 'text-foreground'} text-[24px] ${updating ? 'animate-spin' : ''}`}
+                    />
+                  </Button>
+                </Tooltip>
 
                 <Dropdown isOpen={dropdownOpen} onOpenChange={setDropdownOpen}>
                   <DropdownTrigger>
