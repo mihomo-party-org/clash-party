@@ -155,15 +155,21 @@ async function checkHighPrivilegeMihomoProcess(): Promise<boolean> {
         return false
       }
 
-      const candidatePids: { pid: string; image: string }[] = []
+      const processes: { pid: string; image: string; session?: string }[] = []
       for (const line of stdout.split('\n')) {
-        const match = line.match(/^"([^"]+)","(\d+)"/)
+        const match = line.match(/^"([^"]+)","(\d+)"(?:,"[^"]*","(\d+)")?/)
         if (!match) continue
-        const image = match[1].toLowerCase()
-        if (mihomoExecutables.includes(image)) {
-          candidatePids.push({ pid: match[2], image })
-        }
+        processes.push({ image: match[1].toLowerCase(), pid: match[2], session: match[3] })
       }
+
+      // tasklist 也会列出其他已登录用户的进程，Get-Process 同样读不到它们的 Path，
+      // 别的用户的普通内核会被误判成高权限内核，所以只检查本会话的进程
+      const ownSession = processes.find(({ pid }) => pid === String(process.pid))?.session
+      const candidatePids = processes.filter(
+        ({ image, session }) =>
+          mihomoExecutables.includes(image) &&
+          (ownSession === undefined || session === undefined || session === ownSession)
+      )
 
       if (candidatePids.length === 0) {
         managerLogger.info('No mihomo processes found running')

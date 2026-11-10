@@ -5,6 +5,8 @@ const CORE_DIR = '/Applications/Clash Party.app/Contents/Resources/sidecar'
 const mocks = vi.hoisted(() => ({
   execFile: vi.fn(),
   stat: vi.fn(),
+  existsSync: vi.fn(),
+  checkAdminPrivileges: vi.fn(),
   getAppConfig: vi.fn(),
   appExit: vi.fn(),
   disableSysProxySync: vi.fn()
@@ -12,6 +14,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('child_process', () => ({ execFile: mocks.execFile, exec: vi.fn() }))
 vi.mock('fs/promises', () => ({ stat: mocks.stat }))
+vi.mock('fs', () => ({ existsSync: mocks.existsSync }))
 vi.mock('electron', () => ({
   app: { exit: mocks.appExit },
   dialog: {},
@@ -32,7 +35,7 @@ vi.mock('../utils/logger', () => ({
 }))
 vi.mock('../sys/autoRun', () => ({ checkAutoRun: vi.fn(), enableAutoRun: vi.fn() }))
 vi.mock('../../shared/i18n', () => ({ default: { t: (key: string) => key } }))
-vi.mock('./admin', () => ({ checkAdminPrivileges: vi.fn() }))
+vi.mock('./admin', () => ({ checkAdminPrivileges: mocks.checkAdminPrivileges }))
 
 const originalPlatform = process.platform
 
@@ -44,6 +47,8 @@ beforeEach(() => {
   vi.resetModules()
   mocks.execFile.mockReset()
   mocks.stat.mockReset()
+  mocks.existsSync.mockReset()
+  mocks.checkAdminPrivileges.mockReset()
   mocks.getAppConfig.mockReset().mockResolvedValue({ core: 'mihomo' })
   mocks.appExit.mockReset()
   mocks.disableSysProxySync.mockReset()
@@ -225,5 +230,74 @@ describe('restartAsAdmin', () => {
     expect(stopCore).not.toHaveBeenCalled()
     expect(mocks.disableSysProxySync).not.toHaveBeenCalled()
     expect(mocks.appExit).not.toHaveBeenCalled()
+  })
+})
+
+describe('checkHighPrivilegeCore on Windows', () => {
+  type ExecCallback = (error: Error | null, result?: { stdout: string; stderr: string }) => void
+
+  function row(image: string, pid: number, session: number): string {
+    return `"${image}","${pid}","${session === 0 ? 'Services' : 'Console'}","${session}","12,345 K"`
+  }
+
+  function mockCommands(tasklist: string[], getProcess: object[]): void {
+    mocks.execFile.mockImplementation(
+      (file: string, _args: string[], _options: unknown, cb: ExecCallback) => {
+        const stdout = file === 'tasklist' ? tasklist.join('\r\n') : JSON.stringify(getProcess)
+        cb(null, { stdout, stderr: '' })
+      }
+    )
+  }
+
+  function powershellCalls(): unknown[][] {
+    return mocks.execFile.mock.calls.filter((call) => call[0] === 'powershell')
+  }
+
+  beforeEach(() => {
+    setPlatform('win32')
+    mocks.existsSync.mockReturnValue(true)
+    mocks.checkAdminPrivileges.mockResolvedValue(false)
+  })
+
+  it("ignores another signed-in user's core", async () => {
+    // A standard user cannot read the Path of an administrator's processes, which made
+    // the administrator's normal core look like an elevated one in this session.
+    mockCommands(
+      [
+        row('Clash Party.exe', process.pid, 2),
+        row('mihomo.exe', 4321, 1),
+        // A disconnected session has an empty session name.
+        '"mihomo.exe","5678","","3","12,345 K"'
+      ],
+      [{ Name: 'mihomo', Id: 4321, Path: null }]
+    )
+    const { checkHighPrivilegeCore } = await import('./permissions')
+
+    expect(await checkHighPrivilegeCore()).toBe(false)
+    expect(powershellCalls()).toHaveLength(0)
+  })
+
+  it('still detects an elevated core in the current session', async () => {
+    mockCommands(
+      [
+        row('Clash Party.exe', process.pid, 1),
+        row('mihomo.exe', 4321, 1),
+        row('mihomo.exe', 99, 2)
+      ],
+      [{ Name: 'mihomo', Id: 4321, Path: null }]
+    )
+    const { checkHighPrivilegeCore } = await import('./permissions')
+
+    expect(await checkHighPrivilegeCore()).toBe(true)
+    expect(powershellCalls()[0][1]).toContain(
+      'Get-Process -Id 4321 -ErrorAction SilentlyContinue | Select-Object Name,Id,Path | ConvertTo-Json -Compress'
+    )
+  })
+
+  it('falls back to every core when its own session cannot be found', async () => {
+    mockCommands([row('mihomo.exe', 4321, 1)], [{ Name: 'mihomo', Id: 4321, Path: null }])
+    const { checkHighPrivilegeCore } = await import('./permissions')
+
+    expect(await checkHighPrivilegeCore()).toBe(true)
   })
 })
