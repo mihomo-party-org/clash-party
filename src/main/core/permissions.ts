@@ -69,6 +69,15 @@ export function getSessionAdminStatus(): boolean {
 
 export { checkAdminPrivileges } from './admin'
 
+async function isSetuidRoot(corePath: string): Promise<boolean> {
+  try {
+    const stats = await stat(corePath)
+    return (stats.mode & 0o4000) !== 0 && stats.uid === 0
+  } catch {
+    return false
+  }
+}
+
 export async function checkMihomoCorePermissions(): Promise<boolean> {
   const { core = 'mihomo' } = await getAppConfig()
   const corePath = mihomoCorePath(core)
@@ -79,8 +88,7 @@ export async function checkMihomoCorePermissions(): Promise<boolean> {
     }
 
     if (process.platform === 'darwin' || process.platform === 'linux') {
-      const stats = await stat(corePath)
-      return (stats.mode & 0o4000) !== 0 && stats.uid === 0
+      return await isSetuidRoot(corePath)
     }
   } catch {
     return false
@@ -243,6 +251,13 @@ export async function grantTunPermissions(): Promise<void> {
 
   const corePath = mihomoCorePath(core)
   validateCorePath(corePath)
+
+  // macOS 安装包已经把内核设为 setuid root，而系统不允许修改 App 包内的文件（root 也不行），
+  // 再执行 chown 只会报 Operation not permitted
+  if (process.platform !== 'win32' && (await isSetuidRoot(corePath))) {
+    managerLogger.info('Core is already setuid root, skipping permission grant')
+    return
+  }
 
   if (process.platform === 'darwin') {
     const escapedPath = shellEscape(corePath)
