@@ -8,6 +8,7 @@ import { getAppConfig, getControledMihomoConfig, patchControledMihomoConfig } fr
 import { mihomoCorePath, mihomoCoreDir } from '../utils/dirs'
 import { managerLogger } from '../utils/logger'
 import { checkAutoRun, enableAutoRun } from '../sys/autoRun'
+import { disableSysProxySync } from '../sys/sysproxy'
 import i18next from '../../shared/i18n'
 import { checkAdminPrivileges } from './admin'
 
@@ -280,37 +281,45 @@ export async function restartAsAdmin(forTun: boolean = true): Promise<void> {
     throw new Error('This function is only available on Windows')
   }
 
-  // 先停止 Core，避免新旧进程冲突
+  const quote = (value: string): string => `'${value.replace(/'/g, "''")}'`
+  const args = process.argv.slice(1).filter((arg) => arg !== '--admin-restart-for-tun')
+  const restartArgs = forTun ? [...args, '--admin-restart-for-tun'] : args
+  const argumentList =
+    restartArgs.length > 0 ? ` -ArgumentList ${restartArgs.map(quote).join(', ')}` : ''
+
+  // 提权后的 PowerShell 先等当前进程退出、释放单实例锁，再以管理员身份启动应用
+  const relaunch = `Wait-Process -Id ${process.pid} -Timeout 15 -ErrorAction SilentlyContinue; Start-Process -FilePath ${quote(process.execPath)}${argumentList}`
+  const encodedRelaunch = Buffer.from(relaunch, 'utf16le').toString('base64')
+
+  // UAC 要趁应用还在前台时请求：应用退出后再请求，Windows 会当作后台请求，只在任务栏闪烁。
+  // 用户拒绝时 Start-Process 报错，退出码为 1。
+  const elevate = `try { Start-Process -FilePath 'powershell.exe' -Verb RunAs -WindowStyle Hidden -ArgumentList '-NoProfile', '-NonInteractive', '-EncodedCommand', '${encodedRelaunch}' -ErrorAction Stop } catch { exit 1 }`
+
+  managerLogger.info('Requesting admin rights for restart with script', relaunch)
+  try {
+    await execFilePromise(
+      'powershell.exe',
+      ['-NoProfile', '-NonInteractive', '-Command', elevate],
+      {
+        windowsHide: true
+      }
+    )
+  } catch (error) {
+    managerLogger.warn('Admin restart was cancelled or failed', error)
+    throw new Error('Administrator permission was not granted')
+  }
+
+  // 用户已同意，新实例会在本进程退出后启动。先停止 Core，避免新旧进程冲突
   try {
     managerLogger.info('Stopping core before admin restart...')
     await stopCoreBeforeAdminRestart?.(true)
-    await new Promise((resolve) => setTimeout(resolve, 500))
   } catch (error) {
     managerLogger.warn('Failed to stop core before restart:', error)
   }
 
-  const exePath = process.execPath
-  const args = process.argv.slice(1).filter((arg) => arg !== '--admin-restart-for-tun')
-  const restartArgs = forTun ? [...args, '--admin-restart-for-tun'] : args
-
-  const escapedExePath = exePath.replace(/'/g, "''")
-  const argsString = restartArgs.map((arg) => arg.replace(/'/g, "''")).join("', '")
-
-  // 使用 Start-Sleep 延迟启动，确保旧进程完全退出后再启动新进程
-  const command =
-    restartArgs.length > 0
-      ? `powershell -NoProfile -Command "Start-Sleep -Milliseconds 1000; Start-Process -FilePath '${escapedExePath}' -ArgumentList '${argsString}' -Verb RunAs"`
-      : `powershell -NoProfile -Command "Start-Sleep -Milliseconds 1000; Start-Process -FilePath '${escapedExePath}' -Verb RunAs"`
-
-  managerLogger.info('Restarting as administrator with command', command)
-
-  // 先启动 PowerShell（它会等待 1 秒），然后立即退出当前进程
-  exec(command, { windowsHide: true }, (error) => {
-    if (error) {
-      managerLogger.error('Failed to start PowerShell for admin restart', error)
-    }
-  })
-  managerLogger.info('PowerShell command started, quitting app immediately')
+  // app.exit() 会跳过 before-quit 清理，系统代理会一直指向已停止的 Core；先关掉，新实例启动后会重新开启
+  disableSysProxySync()
+  managerLogger.info('Admin rights granted, quitting app for restart')
   app.exit(0)
 }
 

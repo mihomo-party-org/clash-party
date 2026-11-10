@@ -5,12 +5,19 @@ const CORE_DIR = '/Applications/Clash Party.app/Contents/Resources/sidecar'
 const mocks = vi.hoisted(() => ({
   execFile: vi.fn(),
   stat: vi.fn(),
-  getAppConfig: vi.fn()
+  getAppConfig: vi.fn(),
+  appExit: vi.fn(),
+  disableSysProxySync: vi.fn()
 }))
 
 vi.mock('child_process', () => ({ execFile: mocks.execFile, exec: vi.fn() }))
 vi.mock('fs/promises', () => ({ stat: mocks.stat }))
-vi.mock('electron', () => ({ app: { exit: vi.fn() }, dialog: {}, ipcMain: { emit: vi.fn() } }))
+vi.mock('electron', () => ({
+  app: { exit: mocks.appExit },
+  dialog: {},
+  ipcMain: { emit: vi.fn() }
+}))
+vi.mock('../sys/sysproxy', () => ({ disableSysProxySync: mocks.disableSysProxySync }))
 vi.mock('../config', () => ({
   getAppConfig: mocks.getAppConfig,
   getControledMihomoConfig: vi.fn(),
@@ -38,6 +45,8 @@ beforeEach(() => {
   mocks.execFile.mockReset()
   mocks.stat.mockReset()
   mocks.getAppConfig.mockReset().mockResolvedValue({ core: 'mihomo' })
+  mocks.appExit.mockReset()
+  mocks.disableSysProxySync.mockReset()
 })
 
 afterEach(() => {
@@ -110,5 +119,111 @@ describe('checkMihomoCorePermissions', () => {
     expect(await checkMihomoCorePermissions()).toBe(false)
     mocks.stat.mockRejectedValueOnce(new Error('ENOENT'))
     expect(await checkMihomoCorePermissions()).toBe(false)
+  })
+})
+
+describe('restartAsAdmin', () => {
+  const originalArgv = process.argv
+
+  type ExecCallback = (error: Error | null, result?: { stdout: string; stderr: string }) => void
+
+  // `granted` decides how the user answers the UAC prompt.
+  function mockElevation(granted: boolean): void {
+    mocks.execFile.mockImplementation(
+      (_file: string, _args: string[], _options: unknown, cb: ExecCallback) => {
+        if (granted) cb(null, { stdout: '', stderr: '' })
+        else cb(Object.assign(new Error('Command failed'), { code: 1 }))
+      }
+    )
+  }
+
+  function elevateScript(): string {
+    const [file, args, options] = mocks.execFile.mock.calls[0]
+    expect(file).toBe('powershell.exe')
+    expect(args.slice(0, 3)).toEqual(['-NoProfile', '-NonInteractive', '-Command'])
+    expect(options).toMatchObject({ windowsHide: true })
+    return args[3]
+  }
+
+  function relaunchScript(): string {
+    const encoded = elevateScript().match(/'-EncodedCommand', '([A-Za-z0-9+/=]+)'/)?.[1]
+    expect(encoded).toBeDefined()
+    return Buffer.from(encoded as string, 'base64').toString('utf16le')
+  }
+
+  async function restart(
+    forTun = true
+  ): Promise<{ stopCore: ReturnType<typeof vi.fn>; result: Promise<void> }> {
+    const stopCore = vi.fn().mockResolvedValue(undefined)
+    const permissions = await import('./permissions')
+    permissions.setStopCoreBeforeAdminRestart(stopCore)
+    return { stopCore, result: permissions.restartAsAdmin(forTun) }
+  }
+
+  beforeEach(() => {
+    setPlatform('win32')
+    process.argv = ['C:\\Clash Party\\Clash Party.exe', "--it's", '--admin-restart-for-tun']
+  })
+
+  afterEach(() => {
+    process.argv = originalArgv
+  })
+
+  it('asks for admin rights while the app is still running, then stops the core and quits', async () => {
+    mockElevation(true)
+    const { stopCore, result } = await restart()
+    await result
+
+    // UAC is requested first; an elevated PowerShell is what relaunches the app.
+    expect(elevateScript()).toContain(
+      "Start-Process -FilePath 'powershell.exe' -Verb RunAs -WindowStyle Hidden"
+    )
+    expect(elevateScript()).toContain('catch { exit 1 }')
+    expect(stopCore).toHaveBeenCalledWith(true)
+    expect(mocks.disableSysProxySync).toHaveBeenCalledTimes(1)
+    expect(mocks.appExit).toHaveBeenCalledWith(0)
+    const order = [
+      mocks.execFile.mock.invocationCallOrder[0],
+      stopCore.mock.invocationCallOrder[0],
+      mocks.disableSysProxySync.mock.invocationCallOrder[0],
+      mocks.appExit.mock.invocationCallOrder[0]
+    ]
+    expect(order).toEqual([...order].sort((a, b) => a - b))
+  })
+
+  it('relaunches only after this process has exited, so the single-instance lock is free', async () => {
+    mockElevation(true)
+    const { result } = await restart()
+    await result
+
+    const relaunch = relaunchScript()
+    expect(relaunch).toMatch(
+      new RegExp(`^Wait-Process -Id ${process.pid} -Timeout 15 -ErrorAction SilentlyContinue; `)
+    )
+    expect(relaunch).toContain(
+      `Start-Process -FilePath '${process.execPath}' -ArgumentList '--it''s', '--admin-restart-for-tun'`
+    )
+    // The relaunch runs inside the elevated PowerShell, so it must not ask for UAC again.
+    expect(relaunch).not.toContain('RunAs')
+  })
+
+  it('does not add the TUN flag for a plain admin restart', async () => {
+    mockElevation(true)
+    const { result } = await restart(false)
+    await result
+
+    const relaunch = relaunchScript()
+    expect(relaunch).toContain("-ArgumentList '--it''s'")
+    expect(relaunch).not.toContain('--admin-restart-for-tun')
+  })
+
+  it('keeps the app and the core running when UAC is declined', async () => {
+    mockElevation(false)
+    const { stopCore, result } = await restart()
+
+    await expect(result).rejects.toThrow('Administrator permission was not granted')
+    expect(stopCore).not.toHaveBeenCalled()
+    expect(mocks.disableSysProxySync).not.toHaveBeenCalled()
+    expect(mocks.appExit).not.toHaveBeenCalled()
   })
 })
