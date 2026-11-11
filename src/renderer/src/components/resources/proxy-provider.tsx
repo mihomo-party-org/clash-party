@@ -67,6 +67,10 @@ const ProxyProvider: React.FC<{ editing?: boolean }> = ({ editing: editingProp }
   }, [showDetails.title])
 
   const { data, mutate } = useSWR('mihomoProxyProviders', mihomoProxyProviders)
+  useEffect(
+    () => window.electron.ipcRenderer.on('proxyProvidersUpdated', () => void mutate()),
+    [mutate]
+  )
   const [filter, setFilter] = useState('')
   const providers = useMemo(() => {
     if (!data || !data.providers) return []

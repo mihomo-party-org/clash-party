@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto'
 import { readFile } from 'fs/promises'
 import { appConfigPath } from '../utils/dirs'
 import { atomicWriteFile, WriteQueue } from '../utils/safeFile'
@@ -16,6 +17,10 @@ let appConfig: IAppConfig // config.yaml
 let legacyOperationMode: unknown
 const appConfigWriteQueue = new WriteQueue()
 const appConfigListeners = new Set<(config: IAppConfig) => void>()
+
+function ensureMcpToken(config: IAppConfig): void {
+  if (!config.mcpToken?.trim()) config.mcpToken = randomBytes(32).toString('hex')
+}
 
 export function getLegacyOperationMode(): unknown {
   return legacyOperationMode
@@ -49,6 +54,7 @@ export async function getAppConfig(force = false): Promise<IAppConfig> {
       delete legacy.modeSelected
       mergedConfig.maxLogFileSize = normalizeMaxLogFileSizeMB(mergedConfig.maxLogFileSize)
       mergedConfig.yamlMaxAliasCount = normalizeYamlMaxAliasCount(mergedConfig.yamlMaxAliasCount)
+      ensureMcpToken(mergedConfig)
       if (JSON.stringify(mergedConfig) !== JSON.stringify(parsedConfig)) {
         await atomicWriteFile(appConfigPath(), stringify(mergedConfig))
       }
@@ -86,6 +92,7 @@ async function writeAppConfig(
     }
     nextConfig.maxLogFileSize = normalizeMaxLogFileSizeMB(nextConfig.maxLogFileSize)
     nextConfig.yamlMaxAliasCount = normalizeYamlMaxAliasCount(nextConfig.yamlMaxAliasCount)
+    ensureMcpToken(nextConfig)
     try {
       await atomicWriteFile(appConfigPath(), stringify(nextConfig))
     } catch (error) {

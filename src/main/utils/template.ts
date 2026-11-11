@@ -18,6 +18,9 @@ import {
 } from '../../shared/appConfig'
 
 export const defaultConfig: IAppConfig = {
+  mcpEnabled: false,
+  mcpPort: 28765,
+  mcpToken: '',
   core: 'mihomo',
   enableSmartCore: false,
   enableSmartOverride: true,

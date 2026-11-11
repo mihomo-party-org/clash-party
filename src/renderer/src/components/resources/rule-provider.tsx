@@ -72,10 +72,17 @@ const RuleProvider: React.FC<{ editing?: boolean }> = (props) => {
 
   const { data, mutate } = useSWR('mihomoRuleProviders', mihomoRuleProviders)
   useEffect(() => {
-    return window.electron.ipcRenderer.on('localConfigUpdated', () => {
+    const unsubscribeProviders = window.electron.ipcRenderer.on('ruleProvidersUpdated', () => {
+      void mutate()
+    })
+    const unsubscribeLocal = window.electron.ipcRenderer.on('localConfigUpdated', () => {
       void mutate()
       if (editing) void refreshEditor()
     })
+    return () => {
+      unsubscribeProviders()
+      unsubscribeLocal()
+    }
   }, [editing, mutate, refreshEditor])
   const allProviders = useMemo(() => {
     if (editing)

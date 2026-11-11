@@ -40,6 +40,7 @@
   },
   "dependencies": {
     "@electron-toolkit/utils": "^4.0.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@types/d3": "^7.4.3",
     "@types/plist": "^3.0.5",
     "adm-zip": "^0.6.1",
@@ -62,7 +63,8 @@
     "validator": "^13.15.35",
     "webdav": "^5.11.0",
     "ws": "^8.22.0",
-    "yaml": "^2.9.1"
+    "yaml": "^2.9.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@dnd-kit/core": "^6.3.1",
