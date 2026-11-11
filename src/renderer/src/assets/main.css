@@ -76,6 +76,10 @@
 .app-drag {
   -webkit-app-region: drag;
 }
+/* 拖拽区的点击被系统窗口吞掉，菜单收不到外部点击；菜单打开期间取消拖拽，点标题栏也能收起。 */
+body:has([data-open='true'] [role='menu']) .app-drag {
+  -webkit-app-region: no-drag;
+}
 
 * {
   user-select: none;
