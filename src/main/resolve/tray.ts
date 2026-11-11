@@ -31,6 +31,7 @@ import {
   getTrayIconStatus,
   calculateTrayIconStatus
 } from '../core/mihomoApi'
+import { confirmLocalSwitchDns, localSwitchNeedsDnsConfirm } from '../core/dnsOverrideGuard'
 import { mainWindow, showMainWindow, triggerMainWindow } from '../window'
 import { dataDir, logDir, mihomoCoreDir, mihomoWorkDir } from '../utils/dirs'
 import { triggerSysProxy } from '../sys/sysproxy'
@@ -317,6 +318,11 @@ export const buildContextMenu = async (): Promise<Menu> => {
           checked: item.id === current,
           click: async (): Promise<void> => {
             if (item.id === current) return
+            if ((await localSwitchNeedsDnsConfirm(item.id)) && !(await confirmLocalSwitchDns())) {
+              // 取消后把单选项复位到当前订阅。
+              ipcMain.emit('updateTrayMenu')
+              return
+            }
             await changeCurrentProfile(item.id)
             mainWindow?.webContents.send('profileConfigUpdated')
             ipcMain.emit('updateTrayMenu')

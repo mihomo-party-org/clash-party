@@ -68,6 +68,7 @@ interface IpcApi {
   patchControledMihomoConfig: (patch: Partial<IMihomoConfig>) => Promise<void>
   resetAppConfig: () => Promise<void>
   // Profile
+  localSwitchNeedsDnsConfirm: (targetId: string) => Promise<boolean>
   getProfileConfig: (force?: boolean) => Promise<IProfileConfig>
   setProfileConfig: (config: IProfileConfig) => Promise<void>
   getCurrentProfileItem: () => Promise<IProfileItem>
@@ -318,6 +319,7 @@ export const {
   patchControledMihomoConfig,
   resetAppConfig,
   // Profile
+  localSwitchNeedsDnsConfirm,
   getProfileConfig,
   setProfileConfig,
   getCurrentProfileItem,

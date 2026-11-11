@@ -1,8 +1,11 @@
 import { createHash } from 'crypto'
+import { dialog } from 'electron'
+import i18next from 'i18next'
 import { getAppConfig, getProfile, getProfileConfig, syncAppConfigAfterApply } from '../config'
 import { mainWindow } from '../window'
 import { createLogger } from '../utils/logger'
 import { DEFAULT_CONTROL_DNS } from '../../shared/appConfig'
+import { isLocalProfile } from '../../shared/local-config'
 
 const guardLogger = createLogger('DnsOverrideGuard')
 
@@ -164,6 +167,37 @@ export async function takeDnsOverrideAutoDisabledNotice(): Promise<boolean> {
   const pending = pendingAutoDisabledNotice
   pendingAutoDisabledNotice = false
   return pending
+}
+
+// 从含自定义 DNS 的订阅切到本地配置时，DNS 改由本地配置提供，与开启 DNS 覆写同样需要确认。
+export async function localSwitchNeedsDnsConfirm(targetId: string): Promise<boolean> {
+  try {
+    const { disableDnsOverrideGuard = false } = await getAppConfig()
+    if (disableDnsOverrideGuard) return false
+    const { current, items } = await getProfileConfig()
+    if (!current || current === targetId) return false
+    const find = (id: string): IProfileItem | undefined => items.find((item) => item.id === id)
+    if (!isLocalProfile(find(targetId)) || isLocalProfile(find(current))) return false
+    return detectProfileDns(await getProfile(current)) !== null
+  } catch (error) {
+    // 检测失败不阻止切换。
+    await guardLogger.warn('Failed to inspect profile DNS before switching to local profile', error)
+    return false
+  }
+}
+
+// 托盘无页面弹窗，用系统对话框给出同样的提示；返回是否仍要切换。
+export async function confirmLocalSwitchDns(): Promise<boolean> {
+  const { response } = await dialog.showMessageBox({
+    type: 'warning',
+    title: i18next.t('dns.overrideGuard.confirmTitle'),
+    message: i18next.t('dns.overrideGuard.confirmTitle'),
+    detail: i18next.t('dns.overrideGuard.confirmContent'),
+    buttons: [i18next.t('dns.overrideGuard.keepOff'), i18next.t('dns.overrideGuard.enableAnyway')],
+    defaultId: 0,
+    cancelId: 0
+  })
+  return response === 1
 }
 
 async function inspectCurrentProfileDns(): Promise<string | null> {

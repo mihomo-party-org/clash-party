@@ -200,12 +200,12 @@ const ProfileItem: React.FC<Props> = (props) => {
         break
       }
       case 'local-nodes': {
-        if (!isCurrent) await changeCurrentProfile(info.id)
+        if (!isCurrent && !(await changeCurrentProfile(info.id))) break
         setOpenLocalNodes(true)
         break
       }
       case 'local-export': {
-        if (!isCurrent) await changeCurrentProfile(info.id)
+        if (!isCurrent && !(await changeCurrentProfile(info.id))) break
         try {
           const result = await exportLocalConfig()
           if (result.path) toast.success(result.path)

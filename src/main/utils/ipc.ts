@@ -92,7 +92,11 @@ import {
   setupFirewall
 } from '../sys/misc'
 import { getRuntimeConfig, getRuntimeConfigStr } from '../core/factory'
-import { setControlDns, takeDnsOverrideAutoDisabledNotice } from '../core/dnsOverrideGuard'
+import {
+  localSwitchNeedsDnsConfirm,
+  setControlDns,
+  takeDnsOverrideAutoDisabledNotice
+} from '../core/dnsOverrideGuard'
 import { getSmartModelStatus, downloadSmartModel } from '../core/smartModel'
 import {
   listWebdavBackups,
@@ -298,6 +302,7 @@ const asyncHandlers: Record<string, AsyncFn> = {
   setControlDns,
   takeDnsOverrideAutoDisabledNotice,
   // Profile
+  localSwitchNeedsDnsConfirm,
   getProfileConfig,
   setProfileConfig,
   getCurrentProfileItem,

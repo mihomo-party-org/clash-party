@@ -41,6 +41,7 @@ const validInvokeChannels = [
   'takeDnsOverrideAutoDisabledNotice',
   'resetAppConfig',
   // Profile
+  'localSwitchNeedsDnsConfirm',
   'getProfileConfig',
   'setProfileConfig',
   'getCurrentProfileItem',
