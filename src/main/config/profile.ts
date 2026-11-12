@@ -1032,14 +1032,10 @@ function parseSubinfo(str: string): ISubscriptionUserInfo {
   return obj
 }
 
-function isAbsolutePath(path: string): boolean {
-  return path.startsWith('/') || /^[a-zA-Z]:\\/.test(path)
-}
-
 export async function getFileStr(path: string): Promise<string> {
   const { diffWorkDir = false } = await getAppConfig()
   const { current } = await getProfileConfig()
-  if (isAbsolutePath(path)) {
+  if (isAbsolute(path)) {
     return await readFile(path, 'utf-8')
   } else {
     return await readFile(
@@ -1052,7 +1048,7 @@ export async function getFileStr(path: string): Promise<string> {
 export async function setFileStr(path: string, content: string): Promise<void> {
   const { diffWorkDir = false } = await getAppConfig()
   const { current } = await getProfileConfig()
-  if (isAbsolutePath(path)) {
+  if (isAbsolute(path)) {
     await atomicWriteFile(path, content, { encoding: 'utf8' })
   } else {
     await atomicWriteFile(
@@ -1076,7 +1072,7 @@ export async function convertMrsRuleset(filePath: string, behavior: string): Pro
   const { diffWorkDir = false } = await getAppConfig()
   const { current } = await getProfileConfig()
   let fullPath: string
-  if (isAbsolutePath(filePath)) {
+  if (isAbsolute(filePath)) {
     fullPath = filePath
   } else {
     fullPath = join(diffWorkDir ? mihomoProfileWorkDir(current) : mihomoWorkDir(), filePath)
