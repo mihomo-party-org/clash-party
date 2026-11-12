@@ -35,3 +35,10 @@ export {
   manageSmartOverride,
   isSmartOverrideExists
 } from './smartOverride'
+export {
+  runInSilentHy2Context,
+  takeHy2BandwidthPrompt,
+  resolveHy2BandwidthPrompt,
+  runHy2Speedtest,
+  abortHy2Speedtest
+} from './hy2Bandwidth'

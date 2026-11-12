@@ -27,6 +27,7 @@ import {
 import { createLogger } from '../utils/logger'
 import { atomicWriteFile } from '../utils/safeFile'
 import { isHttpUrl } from '../utils/url'
+import { inspectHy2InYaml, patchHy2BandwidthInYaml } from '../utils/hy2Bandwidth'
 import type { LocalSubscriptionOptions } from '../../shared/local-config'
 import {
   isLocalProfile,
@@ -35,6 +36,7 @@ import {
 } from '../../shared/local-config'
 import { getAppConfig } from './app'
 import { getControledMihomoConfig } from './controledMihomo'
+import { isSilentHy2Context, requestHy2BandwidthPolicy } from './hy2Bandwidth'
 import { getPluginItem, pluginSchedule } from './plugin'
 import { runtimeConfigWriteQueue } from './runtimeConfigQueue'
 
@@ -610,11 +612,34 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
     userAgent: item.userAgent,
     ageSecretKey: item.ageSecretKey,
     updated: new Date().getTime(),
-    updateTimeout: item.updateTimeout
+    updateTimeout: item.updateTimeout,
+    hy2BandwidthPolicy: item.hy2BandwidthPolicy
   }
 
   if (newItem.type === 'local') {
-    await setProfileStr(id, item.file || '')
+    let data = item.file || ''
+    const inspection = inspectHy2InYaml(data)
+    if (inspection.hasHy2) {
+      const existingItem = await getProfileItem(id)
+      const savedPolicy = item.hy2BandwidthPolicy ?? existingItem?.hy2BandwidthPolicy ?? null
+      const { mainWindow } = await import('../window')
+      if (isSilentHy2Context() || !mainWindow || mainWindow.isDestroyed()) {
+        if (savedPolicy) {
+          newItem.hy2BandwidthPolicy = savedPolicy
+          data = patchHy2BandwidthInYaml(data, savedPolicy)
+        }
+      } else {
+        const chosenPolicy = await requestHy2BandwidthPolicy({
+          profileId: id,
+          profileName: newItem.name,
+          inspection,
+          savedPolicy
+        })
+        newItem.hy2BandwidthPolicy = chosenPolicy
+        data = patchHy2BandwidthInYaml(data, chosenPolicy)
+      }
+    }
+    await setProfileStr(id, data, true)
     return newItem
   }
 
@@ -680,7 +705,8 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
       }
     }
 
-    const { data, headers } = result
+    const { data: rawData, headers } = result
+    let data = rawData
 
     if (headers['content-disposition'] && newItem.name === 'Remote File') {
       newItem.name = parseFilename(headers['content-disposition'])
@@ -698,8 +724,30 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
       newItem.extra = parseSubinfo(headers['subscription-userinfo'])
     }
 
+    const inspection = inspectHy2InYaml(data)
+    if (inspection.hasHy2) {
+      const existingItem = await getProfileItem(id)
+      const savedPolicy = item.hy2BandwidthPolicy ?? existingItem?.hy2BandwidthPolicy ?? null
+      const { mainWindow } = await import('../window')
+      if (isSilentHy2Context() || !mainWindow || mainWindow.isDestroyed()) {
+        if (savedPolicy) {
+          newItem.hy2BandwidthPolicy = savedPolicy
+          data = patchHy2BandwidthInYaml(data, savedPolicy)
+        }
+      } else {
+        const chosenPolicy = await requestHy2BandwidthPolicy({
+          profileId: id,
+          profileName: newItem.name,
+          inspection,
+          savedPolicy
+        })
+        newItem.hy2BandwidthPolicy = chosenPolicy
+        data = patchHy2BandwidthInYaml(data, chosenPolicy)
+      }
+    }
+
     await validateProfileCandidate(newItem, data)
-    await setProfileStr(id, data)
+    await setProfileStr(id, data, true)
     await profileLogger.info(
       `Remote profile saved id=${id} name=${newItem.name} path=${profilePath(
         id
@@ -915,7 +963,40 @@ export async function getProfileStr(id: string | undefined): Promise<string> {
   }
 }
 
-export async function setProfileStr(id: string, content: string): Promise<void> {
+export async function setProfileStr(
+  id: string,
+  rawContent: string,
+  skipHy2Prompt = false
+): Promise<void> {
+  let content = rawContent
+  if (!skipHy2Prompt) {
+    const inspection = inspectHy2InYaml(content)
+    if (inspection.hasHy2) {
+      const existingItem = await getProfileItem(id)
+      const savedPolicy = existingItem?.hy2BandwidthPolicy ?? null
+      const { mainWindow } = await import('../window')
+      if (isSilentHy2Context() || !mainWindow || mainWindow.isDestroyed()) {
+        if (savedPolicy) {
+          content = patchHy2BandwidthInYaml(content, savedPolicy)
+        }
+      } else {
+        const chosenPolicy = await requestHy2BandwidthPolicy({
+          profileId: id,
+          profileName: existingItem?.name || id,
+          inspection,
+          savedPolicy
+        })
+        await updateProfileConfig((config) => {
+          const idx = config.items.findIndex((i) => i.id === id)
+          if (idx !== -1) {
+            config.items[idx] = { ...config.items[idx], hy2BandwidthPolicy: chosenPolicy }
+          }
+          return config
+        })
+        content = patchHy2BandwidthInYaml(content, chosenPolicy)
+      }
+    }
+  }
   // 读取最新的配置
   const { current } = await getProfileConfig(true)
   const currentItem = await getProfileItem(current)

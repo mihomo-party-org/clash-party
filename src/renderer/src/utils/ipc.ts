@@ -267,6 +267,11 @@ interface IpcApi {
   getImageDataURL: (url: string) => Promise<string>
   relaunchApp: () => Promise<void>
   quitApp: () => Promise<void>
+  // Hy2 Bandwidth
+  takeHy2BandwidthPrompt: () => Promise<IHy2BandwidthPrompt | null>
+  resolveHy2BandwidthPrompt: (promptId: string, policy: IHy2BandwidthPolicy) => Promise<boolean>
+  runHy2Speedtest: () => Promise<IHy2SpeedtestResult>
+  abortHy2Speedtest: () => Promise<void>
 }
 
 // 使用 Proxy 自动生成 IPC 调用
@@ -462,7 +467,12 @@ export const {
   measureLatency,
   getImageDataURL,
   relaunchApp,
-  quitApp
+  quitApp,
+  // Hy2 Bandwidth
+  takeHy2BandwidthPrompt,
+  resolveHy2BandwidthPrompt,
+  runHy2Speedtest,
+  abortHy2Speedtest
 } = ipc
 
 // platform 需要重命名导出

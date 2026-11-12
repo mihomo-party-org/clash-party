@@ -192,7 +192,12 @@ const validInvokeChannels = [
   'measureLatency',
   'getImageDataURL',
   'getAppInfo',
-  'changeLanguage'
+  'changeLanguage',
+  // Hy2 Bandwidth
+  'takeHy2BandwidthPrompt',
+  'resolveHy2BandwidthPrompt',
+  'runHy2Speedtest',
+  'abortHy2Speedtest'
 ] as const
 
 // 允许的 on/removeListener channels 白名单
@@ -210,7 +215,9 @@ const validListenChannels = [
   'updateDownloadProgress',
   'pluginConfigUpdated',
   'openPluginFile',
-  'dnsOverrideAutoDisabled'
+  'dnsOverrideAutoDisabled',
+  'hy2BandwidthPrompt',
+  'hy2BandwidthSpeedtestProgress'
 ] as const
 
 // 允许的 send channels 白名单

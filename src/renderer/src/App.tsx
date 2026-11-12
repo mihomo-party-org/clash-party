@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next'
 import { DEFAULT_ENABLE_TRAFFIC_LOGGER } from '../../shared/appConfig'
 import SiderItem from './components/sider/sider-item'
 import MihomoIcon from './components/base/mihomo-icon'
+import Hy2BandwidthModal from './components/profiles/hy2-bandwidth-modal'
 import { getSiderCardByPath } from './utils/sider'
 import { markInitialContentPartReady } from './utils/startup'
 
@@ -318,6 +319,7 @@ const App: React.FC = () => {
           <FirstContentReady />
         </Suspense>
       </div>
+      <Hy2BandwidthModal />
     </div>
   )
 }

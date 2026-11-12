@@ -6,6 +6,7 @@ import {
   getProfileConfig,
   getProfileItem
 } from '../config'
+import { runInSilentHy2Context } from '../config/hy2Bandwidth'
 import { logger } from '../utils/logger'
 
 const intervalPool: Record<string, Cron | NodeJS.Timeout> = {}
@@ -34,7 +35,7 @@ async function updateProfile(id: string): Promise<void> {
   try {
     const item = await getProfileItem(id)
     if (item && item.type === 'remote') {
-      await addProfileItem(item)
+      await runInSilentHy2Context(() => addProfileItem(item))
       // 后台定时更新完成后主动通知渲染层，否则订阅列表的更新时间/流量要等窗口重新聚焦才刷新（#1570）
       // 动态 import 避免与 window.ts 形成静态循环依赖
       const { mainWindow } = await import('../window')
@@ -123,7 +124,7 @@ export async function initProfileUpdater(): Promise<void> {
 
       if (autoUpdateProfileOnStart) {
         try {
-          await addProfileItem(item)
+          await runInSilentHy2Context(() => addProfileItem(item))
         } catch (e) {
           await logger.warn(`[ProfileUpdater] Failed to init profile ${item.name}:`, e)
         }
@@ -143,7 +144,7 @@ export async function initProfileUpdater(): Promise<void> {
 
     if (autoUpdateProfileOnStart) {
       try {
-        await addProfileItem(currentItem)
+        await runInSilentHy2Context(() => addProfileItem(currentItem))
       } catch (e) {
         await logger.warn(`[ProfileUpdater] Failed to init current profile:`, e)
       }

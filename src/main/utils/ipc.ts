@@ -54,7 +54,11 @@ import {
   getOverride,
   setOverride,
   updateOverrideItem,
-  convertMrsRuleset
+  convertMrsRuleset,
+  takeHy2BandwidthPrompt,
+  resolveHy2BandwidthPrompt,
+  runHy2Speedtest,
+  abortHy2Speedtest
 } from '../config'
 import {
   startSubStoreFrontendServer,
@@ -434,7 +438,12 @@ const asyncHandlers: Record<string, AsyncFn> = {
   getAppInfo,
   changeLanguage,
   setTitleBarOverlay,
-  registerShortcut
+  registerShortcut,
+  // Hy2 Bandwidth
+  takeHy2BandwidthPrompt,
+  resolveHy2BandwidthPrompt,
+  runHy2Speedtest,
+  abortHy2Speedtest
 }
 
 const syncHandlers: Record<string, SyncFn> = {

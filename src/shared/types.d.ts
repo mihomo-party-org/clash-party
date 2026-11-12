@@ -617,6 +617,65 @@ interface IProfileItem {
   ageSecretKey?: string
   updateTimeout?: number
   pluginId?: string
+  hy2BandwidthPolicy?: IHy2BandwidthPolicy
+}
+
+interface IHy2BandwidthPolicy {
+  mode: 'keep' | 'bbr' | 'brutal'
+  upMbps?: number
+  downMbps?: number
+  updatedAt?: number
+}
+
+interface IHy2ProfileInspection {
+  hasHy2: boolean
+  hy2Count: number
+  names: string[]
+  firstUpMbps: number | null
+  firstDownMbps: number | null
+  hasBandwidth: boolean
+}
+
+interface IHy2BandwidthPrompt {
+  promptId: string
+  profileId: string
+  profileName: string
+  hy2Count: number
+  names: string[]
+  firstUpMbps: number | null
+  firstDownMbps: number | null
+  savedPolicy: IHy2BandwidthPolicy | null
+}
+
+interface IHy2SpeedtestProgress {
+  phase: 'prepare' | 'download' | 'upload' | 'done'
+  progress: number
+  currentMbps?: number
+  downMbps?: number
+  downPeakMbps?: number
+  upMbps?: number
+  upPeakMbps?: number
+  recommendedDownMbps?: number
+  recommendedUpMbps?: number
+  matchedDownTierMbps?: number | null
+  matchedUpTierMbps?: number | null
+  bindAddress?: string | null
+  ifaceName?: string | null
+}
+
+interface IHy2SpeedtestResult {
+  ok: boolean
+  downMbps: number
+  downPeakMbps: number
+  upMbps: number
+  upPeakMbps: number
+  recommendedDownMbps: number
+  recommendedUpMbps: number
+  matchedDownTierMbps?: number | null
+  matchedUpTierMbps?: number | null
+  bindAddress: string | null
+  ifaceName: string | null
+  error?: string
 }
 
 interface ISubStoreSub {
