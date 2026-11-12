@@ -8,6 +8,7 @@ import { getAppConfig, getControledMihomoConfig, patchControledMihomoConfig } fr
 import { mihomoCorePath, mihomoCoreDir } from '../utils/dirs'
 import { managerLogger } from '../utils/logger'
 import { checkAutoRun, enableAutoRun } from '../sys/autoRun'
+import { disableSysProxySync } from '../sys/sysproxy'
 import i18next from '../../shared/i18n'
 import { checkAdminPrivileges } from './admin'
 
@@ -69,6 +70,15 @@ export function getSessionAdminStatus(): boolean {
 
 export { checkAdminPrivileges } from './admin'
 
+async function isSetuidRoot(corePath: string): Promise<boolean> {
+  try {
+    const stats = await stat(corePath)
+    return (stats.mode & 0o4000) !== 0 && stats.uid === 0
+  } catch {
+    return false
+  }
+}
+
 export async function checkMihomoCorePermissions(): Promise<boolean> {
   const { core = 'mihomo' } = await getAppConfig()
   const corePath = mihomoCorePath(core)
@@ -79,8 +89,7 @@ export async function checkMihomoCorePermissions(): Promise<boolean> {
     }
 
     if (process.platform === 'darwin' || process.platform === 'linux') {
-      const stats = await stat(corePath)
-      return (stats.mode & 0o4000) !== 0 && stats.uid === 0
+      return await isSetuidRoot(corePath)
     }
   } catch {
     return false
@@ -146,15 +155,21 @@ async function checkHighPrivilegeMihomoProcess(): Promise<boolean> {
         return false
       }
 
-      const candidatePids: { pid: string; image: string }[] = []
+      const processes: { pid: string; image: string; session?: string }[] = []
       for (const line of stdout.split('\n')) {
-        const match = line.match(/^"([^"]+)","(\d+)"/)
+        const match = line.match(/^"([^"]+)","(\d+)"(?:,"[^"]*","(\d+)")?/)
         if (!match) continue
-        const image = match[1].toLowerCase()
-        if (mihomoExecutables.includes(image)) {
-          candidatePids.push({ pid: match[2], image })
-        }
+        processes.push({ image: match[1].toLowerCase(), pid: match[2], session: match[3] })
       }
+
+      // tasklist 也会列出其他已登录用户的进程，Get-Process 同样读不到它们的 Path，
+      // 别的用户的普通内核会被误判成高权限内核，所以只检查本会话的进程
+      const ownSession = processes.find(({ pid }) => pid === String(process.pid))?.session
+      const candidatePids = processes.filter(
+        ({ image, session }) =>
+          mihomoExecutables.includes(image) &&
+          (ownSession === undefined || session === undefined || session === ownSession)
+      )
 
       if (candidatePids.length === 0) {
         managerLogger.info('No mihomo processes found running')
@@ -244,6 +259,13 @@ export async function grantTunPermissions(): Promise<void> {
   const corePath = mihomoCorePath(core)
   validateCorePath(corePath)
 
+  // macOS 安装包已经把内核设为 setuid root，而系统不允许修改 App 包内的文件（root 也不行），
+  // 再执行 chown 只会报 Operation not permitted
+  if (process.platform !== 'win32' && (await isSetuidRoot(corePath))) {
+    managerLogger.info('Core is already setuid root, skipping permission grant')
+    return
+  }
+
   if (process.platform === 'darwin') {
     const escapedPath = shellEscape(corePath)
     const script = `do shell script "chown root:admin ${escapedPath} && chmod +sx ${escapedPath}" with administrator privileges`
@@ -265,37 +287,45 @@ export async function restartAsAdmin(forTun: boolean = true): Promise<void> {
     throw new Error('This function is only available on Windows')
   }
 
-  // 先停止 Core，避免新旧进程冲突
+  const quote = (value: string): string => `'${value.replace(/'/g, "''")}'`
+  const args = process.argv.slice(1).filter((arg) => arg !== '--admin-restart-for-tun')
+  const restartArgs = forTun ? [...args, '--admin-restart-for-tun'] : args
+  const argumentList =
+    restartArgs.length > 0 ? ` -ArgumentList ${restartArgs.map(quote).join(', ')}` : ''
+
+  // 提权后的 PowerShell 先等当前进程退出、释放单实例锁，再以管理员身份启动应用
+  const relaunch = `Wait-Process -Id ${process.pid} -Timeout 15 -ErrorAction SilentlyContinue; Start-Process -FilePath ${quote(process.execPath)}${argumentList}`
+  const encodedRelaunch = Buffer.from(relaunch, 'utf16le').toString('base64')
+
+  // UAC 要趁应用还在前台时请求：应用退出后再请求，Windows 会当作后台请求，只在任务栏闪烁。
+  // 用户拒绝时 Start-Process 报错，退出码为 1。
+  const elevate = `try { Start-Process -FilePath 'powershell.exe' -Verb RunAs -WindowStyle Hidden -ArgumentList '-NoProfile', '-NonInteractive', '-EncodedCommand', '${encodedRelaunch}' -ErrorAction Stop } catch { exit 1 }`
+
+  managerLogger.info('Requesting admin rights for restart with script', relaunch)
+  try {
+    await execFilePromise(
+      'powershell.exe',
+      ['-NoProfile', '-NonInteractive', '-Command', elevate],
+      {
+        windowsHide: true
+      }
+    )
+  } catch (error) {
+    managerLogger.warn('Admin restart was cancelled or failed', error)
+    throw new Error('Administrator permission was not granted')
+  }
+
+  // 用户已同意，新实例会在本进程退出后启动。先停止 Core，避免新旧进程冲突
   try {
     managerLogger.info('Stopping core before admin restart...')
     await stopCoreBeforeAdminRestart?.(true)
-    await new Promise((resolve) => setTimeout(resolve, 500))
   } catch (error) {
     managerLogger.warn('Failed to stop core before restart:', error)
   }
 
-  const exePath = process.execPath
-  const args = process.argv.slice(1).filter((arg) => arg !== '--admin-restart-for-tun')
-  const restartArgs = forTun ? [...args, '--admin-restart-for-tun'] : args
-
-  const escapedExePath = exePath.replace(/'/g, "''")
-  const argsString = restartArgs.map((arg) => arg.replace(/'/g, "''")).join("', '")
-
-  // 使用 Start-Sleep 延迟启动，确保旧进程完全退出后再启动新进程
-  const command =
-    restartArgs.length > 0
-      ? `powershell -NoProfile -Command "Start-Sleep -Milliseconds 1000; Start-Process -FilePath '${escapedExePath}' -ArgumentList '${argsString}' -Verb RunAs"`
-      : `powershell -NoProfile -Command "Start-Sleep -Milliseconds 1000; Start-Process -FilePath '${escapedExePath}' -Verb RunAs"`
-
-  managerLogger.info('Restarting as administrator with command', command)
-
-  // 先启动 PowerShell（它会等待 1 秒），然后立即退出当前进程
-  exec(command, { windowsHide: true }, (error) => {
-    if (error) {
-      managerLogger.error('Failed to start PowerShell for admin restart', error)
-    }
-  })
-  managerLogger.info('PowerShell command started, quitting app immediately')
+  // app.exit() 会跳过 before-quit 清理，系统代理会一直指向已停止的 Core；先关掉，新实例启动后会重新开启
+  disableSysProxySync()
+  managerLogger.info('Admin rights granted, quitting app for restart')
   app.exit(0)
 }
 

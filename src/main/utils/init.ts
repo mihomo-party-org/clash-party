@@ -12,6 +12,7 @@ import {
   subStoreFrontendPort
 } from '../resolve/server'
 import { triggerSysProxy } from '../sys/sysproxy'
+import { cleanupLegacyAutoRun } from '../sys/autoRun'
 import {
   getAppConfig,
   getControledMihomoConfig,
@@ -319,7 +320,7 @@ async function cleanup(): Promise<void> {
     })
     .map((log) => rm(path.join(logDir(), log)).catch(() => {}))
 
-  await Promise.all([...cacheCleanup, ...logCleanup])
+  await Promise.all([...cacheCleanup, ...logCleanup, cleanupLegacyAutoRun()])
 }
 
 async function migrateSubStoreFiles(): Promise<void> {

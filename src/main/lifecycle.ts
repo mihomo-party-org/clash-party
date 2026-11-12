@@ -2,7 +2,7 @@ import { spawn, exec, execFileSync } from 'child_process'
 import { promisify } from 'util'
 import { stat } from 'fs/promises'
 import { existsSync } from 'fs'
-import { app, powerMonitor } from 'electron'
+import { app, BaseWindow, powerMonitor } from 'electron'
 import { stopCoreForExit, cleanupCoreWatcher } from './core/manager'
 import { primeAdminPrivilegesCache } from './core/admin'
 import { triggerSysProxy, disableSysProxySync } from './sys/sysproxy'
@@ -78,6 +78,8 @@ function isWindowsElevatedSync(): boolean | null {
   }
 }
 
+let sessionEndWindow: BaseWindow | null = null
+
 export function setupAppLifecycle(): void {
   let sysProxyDisabled = false
   let cleanupPromise: Promise<void> | null = null
@@ -140,12 +142,35 @@ export function setupAppLifecycle(): void {
 
   // Windows 注销/关机可能先触发窗口 session-end；复用同一清理 Promise，
   // 避免与 powerMonitor.shutdown 重复执行普通、无界的核心和代理清理。
+  const onSessionEnd = async (): Promise<void> => {
+    await cleanupBeforeExit()
+    app.exit()
+  }
+
   app.on('browser-window-created', (_event, window) => {
-    window.on('session-end', async () => {
-      await cleanupBeforeExit()
-      app.exit()
-    })
+    window.on('session-end', onSessionEnd)
   })
+
+  // session-end 只发给窗口，powerMonitor 的 shutdown 在 Windows 上也不会触发。轻量模式销毁主窗口、
+  // 又没开悬浮窗时进程里没有任何窗口，关机后系统代理会一直开着，所以常驻一个隐藏窗口来接收它。
+  if (process.platform === 'win32') {
+    app
+      .whenReady()
+      .then(() => {
+        sessionEndWindow = new BaseWindow({
+          show: false,
+          width: 1,
+          height: 1,
+          frame: false,
+          skipTaskbar: true,
+          focusable: false
+        })
+        sessionEndWindow.on('session-end', onSessionEnd)
+      })
+      .catch(() => {
+        // 创建失败只是少了这层兜底，有窗口时仍由窗口的 session-end 处理
+      })
+  }
 
   app.on('before-quit', async (e) => {
     e.preventDefault()
