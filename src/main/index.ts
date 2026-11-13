@@ -13,6 +13,7 @@ import {
   checkAdminRestartForTun,
   checkHighPrivilegeCore,
   restartAsAdmin,
+  waitForAdminRestartSource,
   initAdminStatus,
   checkAdminPrivileges,
   initCoreWatcher
@@ -98,6 +99,9 @@ subscribeAppConfig((config) => {
 })
 
 export { mainWindow, showMainWindow, triggerMainWindow, closeMainWindow }
+
+// 管理员重启的新实例要等旧实例退出后才能拿到单实例锁
+waitForAdminRestartSource()
 
 const gotTheLock = app.requestSingleInstanceLock()
 if (!gotTheLock) {

@@ -75,6 +75,7 @@ export {
   checkHighPrivilegeCore,
   grantTunPermissions,
   restartAsAdmin,
+  waitForAdminRestartSource,
   requestTunPermissions,
   showTunPermissionDialog,
   showErrorDialog,

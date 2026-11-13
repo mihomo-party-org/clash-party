@@ -8,6 +8,7 @@ import { getAppConfig, getControledMihomoConfig, patchControledMihomoConfig } fr
 import { mihomoCorePath, mihomoCoreDir } from '../utils/dirs'
 import { managerLogger } from '../utils/logger'
 import { checkAutoRun, enableAutoRun } from '../sys/autoRun'
+import { disableSysProxySync } from '../sys/sysproxy'
 import i18next from '../../shared/i18n'
 import { checkAdminPrivileges } from './admin'
 
@@ -18,6 +19,11 @@ const execFilePromise = promisify(execFile)
 const ALLOWED_CORES = ['mihomo', 'mihomo-alpha', 'mihomo-smart'] as const
 type AllowedCore = (typeof ALLOWED_CORES)[number]
 type StopCoreBeforeAdminRestart = (force?: boolean) => Promise<void>
+
+// 管理员重启时传给新实例的参数：发起重启的旧实例的 PID
+const ADMIN_RESTART_WAIT_PID_ARG = '--admin-restart-wait-pid='
+// 旧实例停止 Core 最多需要几秒，超时后照常启动
+const ADMIN_RESTART_WAIT_TIMEOUT = 10000
 
 let stopCoreBeforeAdminRestart: StopCoreBeforeAdminRestart | null = null
 
@@ -280,38 +286,75 @@ export async function restartAsAdmin(forTun: boolean = true): Promise<void> {
     throw new Error('This function is only available on Windows')
   }
 
-  // 先停止 Core，避免新旧进程冲突
+  const quote = (value: string): string => `'${value.replace(/'/g, "''")}'`
+  const args = process.argv
+    .slice(1)
+    .filter(
+      (arg) => arg !== '--admin-restart-for-tun' && !arg.startsWith(ADMIN_RESTART_WAIT_PID_ARG)
+    )
+  // 新实例在本进程退出前就会启动，带上本进程的 PID，让它等本进程退出、释放单实例锁后再继续
+  const restartArgs = [
+    ...args,
+    ...(forTun ? ['--admin-restart-for-tun'] : []),
+    `${ADMIN_RESTART_WAIT_PID_ARG}${process.pid}`
+  ]
+
+  // UAC 要趁应用还在前台时请求：应用退出后再请求，Windows 会当作后台请求，只在任务栏闪烁。
+  // 用户拒绝时 Start-Process 报错，退出码为 1。
+  const script = `try { Start-Process -FilePath ${quote(process.execPath)} -ArgumentList ${restartArgs.map(quote).join(', ')} -Verb RunAs -ErrorAction Stop } catch { exit 1 }`
+
+  managerLogger.info('Requesting admin rights for restart with script', script)
+  try {
+    await execFilePromise('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
+      windowsHide: true
+    })
+  } catch (error) {
+    managerLogger.warn('Admin restart was cancelled or failed', error)
+    throw new Error('Administrator permission was not granted')
+  }
+
+  // 用户已同意，新实例正在等本进程退出。先停止 Core，避免新旧进程冲突
   try {
     managerLogger.info('Stopping core before admin restart...')
     await stopCoreBeforeAdminRestart?.(true)
-    await new Promise((resolve) => setTimeout(resolve, 500))
   } catch (error) {
     managerLogger.warn('Failed to stop core before restart:', error)
   }
 
-  const exePath = process.execPath
-  const args = process.argv.slice(1).filter((arg) => arg !== '--admin-restart-for-tun')
-  const restartArgs = forTun ? [...args, '--admin-restart-for-tun'] : args
-
-  const escapedExePath = exePath.replace(/'/g, "''")
-  const argsString = restartArgs.map((arg) => arg.replace(/'/g, "''")).join("', '")
-
-  // 使用 Start-Sleep 延迟启动，确保旧进程完全退出后再启动新进程
-  const command =
-    restartArgs.length > 0
-      ? `powershell -NoProfile -Command "Start-Sleep -Milliseconds 1000; Start-Process -FilePath '${escapedExePath}' -ArgumentList '${argsString}' -Verb RunAs"`
-      : `powershell -NoProfile -Command "Start-Sleep -Milliseconds 1000; Start-Process -FilePath '${escapedExePath}' -Verb RunAs"`
-
-  managerLogger.info('Restarting as administrator with command', command)
-
-  // 先启动 PowerShell（它会等待 1 秒），然后立即退出当前进程
-  exec(command, { windowsHide: true }, (error) => {
-    if (error) {
-      managerLogger.error('Failed to start PowerShell for admin restart', error)
-    }
-  })
-  managerLogger.info('PowerShell command started, quitting app immediately')
+  // app.exit() 会跳过 before-quit 清理，系统代理会一直指向已停止的 Core；先关掉，新实例启动后会重新开启
+  disableSysProxySync()
+  managerLogger.info('Admin rights granted, quitting app for restart')
   app.exit(0)
+}
+
+// 以管理员身份重启时，新实例在旧实例退出前就已启动。申请单实例锁之前先等旧实例退出，否则新实例会直接退出
+export function waitForAdminRestartSource(): void {
+  if (process.platform !== 'win32') return
+
+  const arg = process.argv.find((value) => value.startsWith(ADMIN_RESTART_WAIT_PID_ARG))
+  const pid = Number(arg?.slice(ADMIN_RESTART_WAIT_PID_ARG.length))
+  if (!Number.isInteger(pid) || pid <= 0) return
+
+  const deadline = Date.now() + ADMIN_RESTART_WAIT_TIMEOUT
+  while (Date.now() < deadline) {
+    try {
+      process.kill(pid, 0)
+    } catch (error) {
+      // ESRCH 表示进程已退出；其他错误（如无权访问）说明进程还在
+      if ((error as NodeJS.ErrnoException).code === 'ESRCH') return
+    }
+    sleepSync(100)
+  }
+}
+
+function sleepSync(ms: number): void {
+  try {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
+  } catch {
+    // 个别环境不允许在主线程阻塞等待，退回忙等
+    const end = Date.now() + ms
+    while (Date.now() < end);
+  }
 }
 
 export async function requestTunPermissions(): Promise<void> {
