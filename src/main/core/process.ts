@@ -40,6 +40,32 @@ export async function cleanupWindowsNamedPipes(thorough = false): Promise<void> 
   }
 }
 
+// 从 `tasklist /FO CSV /NH` 的输出里找出内核进程。tasklist 会列出所有会话的进程，其他已登录用户
+// 会话里的内核不属于本应用：读不到它的 Path 不代表它是高权限内核，也不应该被结束。
+// 会话 0（服务）不属于任何登录用户，仍然保留。
+export function parseWindowsCorePids(stdout: string): number[] {
+  const processes: { image: string; pid: number; session?: string }[] = []
+  for (const line of stdout.split('\n')) {
+    const match = line.match(/^"([^"]+)","(\d+)"(?:,"[^"]*","(\d+)")?/)
+    if (!match) continue
+    const pid = parseInt(match[2], 10)
+    if (!isNaN(pid)) processes.push({ image: match[1].toLowerCase(), pid, session: match[3] })
+  }
+
+  const ownSession = processes.find(({ pid }) => pid === process.pid)?.session
+  return processes
+    .filter(
+      ({ image, pid, session }) =>
+        windowsCoreExecutables.includes(image) &&
+        pid !== process.pid &&
+        (ownSession === undefined ||
+          session === undefined ||
+          session === ownSession ||
+          session === '0')
+    )
+    .map(({ pid }) => pid)
+}
+
 async function findWindowsCorePids(timeout: number): Promise<number[]> {
   const { stdout } = await execFilePromise('tasklist', ['/FO', 'CSV', '/NH'], {
     windowsHide: true,
@@ -47,13 +73,7 @@ async function findWindowsCorePids(timeout: number): Promise<number[]> {
     maxBuffer: 4 * 1024 * 1024
   })
 
-  const candidates: number[] = []
-  for (const line of stdout.split('\n')) {
-    const match = line.match(/^"([^"]+)","(\d+)"/)
-    if (!match || !windowsCoreExecutables.includes(match[1].toLowerCase())) continue
-    const pid = parseInt(match[2], 10)
-    if (!isNaN(pid) && pid !== process.pid) candidates.push(pid)
-  }
+  const candidates = parseWindowsCorePids(stdout)
   if (candidates.length === 0) return []
 
   let processInfo = ''

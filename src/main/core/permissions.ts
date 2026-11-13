@@ -11,6 +11,7 @@ import { checkAutoRun, enableAutoRun } from '../sys/autoRun'
 import { disableSysProxySync } from '../sys/sysproxy'
 import i18next from '../../shared/i18n'
 import { checkAdminPrivileges } from './admin'
+import { parseWindowsCorePids } from './process'
 
 const execPromise = promisify(exec)
 const execFilePromise = promisify(execFile)
@@ -160,15 +161,8 @@ async function checkHighPrivilegeMihomoProcess(): Promise<boolean> {
         return false
       }
 
-      const candidatePids: { pid: string; image: string }[] = []
-      for (const line of stdout.split('\n')) {
-        const match = line.match(/^"([^"]+)","(\d+)"/)
-        if (!match) continue
-        const image = match[1].toLowerCase()
-        if (mihomoExecutables.includes(image)) {
-          candidatePids.push({ pid: match[2], image })
-        }
-      }
+      // 只检查本会话和服务会话里的内核，其他已登录用户的内核不算
+      const candidatePids = parseWindowsCorePids(stdout)
 
       if (candidatePids.length === 0) {
         managerLogger.info('No mihomo processes found running')
@@ -177,7 +171,7 @@ async function checkHighPrivilegeMihomoProcess(): Promise<boolean> {
 
       managerLogger.info(`Found ${candidatePids.length} mihomo processes running`)
 
-      const pidArgs = candidatePids.map(({ pid }) => pid).join(',')
+      const pidArgs = candidatePids.join(',')
       try {
         const { stdout: processInfo } = await execFilePromise(
           'powershell',

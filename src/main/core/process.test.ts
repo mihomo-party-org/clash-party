@@ -77,6 +77,31 @@ describe('cleanupWindowsNamedPipes', () => {
     expect(powershellArgs?.join(' ')).toContain('Get-Process -Id 1002,1003,1004,1006')
   })
 
+  it("leaves cores in other signed-in users' sessions alone", async () => {
+    // Session 1 is this app's session, session 2 belongs to another signed-in user.
+    const stdout = [
+      `"Clash Party.exe","${process.pid}","Console","1","90,000 K"`,
+      '"mihomo.exe","2001","Console","1","20,000 K"',
+      '"mihomo.exe","2002","RDP-Tcp#0","2","20,000 K"',
+      '"mihomo.exe","2003","","3","20,000 K"',
+      '"mihomo.exe","2004","Services","0","20,000 K"'
+    ].join('\r\n')
+    mocks.execFile.mockImplementation(
+      (file: string, _args: string[], _options: unknown, callback) => {
+        if (file === 'tasklist') callback(null, { stdout, stderr: '' })
+        // Paths of other users' processes cannot be read, which used to make them targets.
+        else
+          callback(null, { stdout: JSON.stringify([2001, 2004].map((Id) => ({ Id, Path: null }))) })
+      }
+    )
+
+    await cleanupWindowsNamedPipes()
+
+    expect(terminatedPids()).toEqual([2001, 2004])
+    const powershellArgs = mocks.execFile.mock.calls.find(([file]) => file === 'powershell')?.[1]
+    expect(powershellArgs?.join(' ')).toContain('Get-Process -Id 2001,2004 ')
+  })
+
   it('skips process inspection when no core executable is running', async () => {
     mocks.execFile.mockImplementation(
       (_file: string, _args: string[], _options: unknown, callback) =>
