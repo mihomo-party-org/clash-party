@@ -73,6 +73,7 @@ export const defaultConfig: IAppConfig = {
   siderOrder: DEFAULT_SIDER_ORDER,
   lastSelectedSiderCard: 'proxy',
   siderWidth: 250,
+  proxyRunning: false,
   sysProxy: { enable: false, mode: 'manual' },
   triggerMainWindowBehavior: 'show',
   showMixedPort: DEFAULT_MIHOMO_PORTS.mixed,

@@ -680,12 +680,12 @@ export async function SysProxyStatus(): Promise<boolean> {
   const appConfig = await getAppConfig()
   // 配置缺失/损坏时 sysProxy 可能为 undefined，直接取 .enable 会抛错并连带
   // 把托盘图标状态刷新整条链路打断（TunStatus 已经是可选链写法）。
-  return appConfig?.sysProxy?.enable === true
+  return Boolean(appConfig?.proxyRunning) && appConfig?.sysProxy?.enable === true
 }
 
 export const TunStatus = async (): Promise<boolean> => {
-  const config = await getControledMihomoConfig()
-  return config?.tun?.enable === true
+  const [appConfig, config] = await Promise.all([getAppConfig(), getControledMihomoConfig()])
+  return Boolean(appConfig?.proxyRunning) && config?.tun?.enable === true
 }
 
 export function calculateTrayIconStatus(

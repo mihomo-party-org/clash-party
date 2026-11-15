@@ -68,6 +68,7 @@ import {
 import {
   quitWithoutCore,
   restartCore,
+  triggerProxy,
   checkTunPermissions,
   grantTunPermissions,
   manualGrantCorePermition,
@@ -356,6 +357,7 @@ const asyncHandlers: Record<string, AsyncFn> = {
   readTextFile,
   // Core
   restartCore,
+  triggerProxy,
   getSmartModelStatus,
   downloadSmartModel,
   mihomoHotReloadConfig,

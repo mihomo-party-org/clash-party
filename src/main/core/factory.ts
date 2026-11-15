@@ -165,7 +165,8 @@ export async function generateProfile(
     controlDns: controlDnsSetting = DEFAULT_CONTROL_DNS,
     disableDnsOverrideGuard = false,
     controlSniff = DEFAULT_CONTROL_SNIFF,
-    useNameserverPolicy
+    useNameserverPolicy,
+    proxyRunning = false
   } = appConfig
   const diffWorkDir = local ? false : diffWorkDirSetting
   // DNS 保护先于覆写和脚本处理，开关在内核应用成功后同步。本地配置的 DNS 由其模块自持，不参与保护。
@@ -208,6 +209,10 @@ export async function generateProfile(
   // 关闭 DNS 覆写时，如果最终配置没有启用的 DNS 配置，清空 dns-hijack 避免请求被劫持但无法处理
   if (!controlDns && profile.tun && !profile.dns?.enable) {
     profile.tun = { ...profile.tun, 'dns-hijack': [] }
+  }
+  // 总开关关闭时，运行时禁用 TUN，但保留配置文件中的 tun.enable 偏好设置
+  if (!proxyRunning && profile.tun) {
+    profile.tun = { ...profile.tun, enable: false }
   }
   // Smart Override JS 早于受控 TUN 配置合并执行；最终配置写出前再排除代理服务器 IP。
   const addedProxyServerRouteExcludes = ensureSmartProxyServerTunExclude(

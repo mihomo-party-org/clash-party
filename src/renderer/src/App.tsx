@@ -2,6 +2,7 @@ import { useTheme } from 'next-themes'
 import { Suspense, lazy, useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { NavigateFunction, useLocation, useNavigate, useRoutes } from 'react-router-dom'
 import OutboundModeSwitcher from '@renderer/components/sider/outbound-mode-switcher'
+import ProxyControlSwitcher from '@renderer/components/sider/proxy-control-switcher'
 import { Button, Divider } from '@heroui/react'
 import { IoSettings } from 'react-icons/io5'
 import routes, { useDeferredRoutePreload } from '@renderer/routes'
@@ -244,6 +245,9 @@ const App: React.FC = () => {
                 <UpdaterButton iconOnly />
               </div>
               <div className="px-2 flex justify-center">
+                <ProxyControlSwitcher iconOnly expanded={siderExpandedOnHover} />
+              </div>
+              <div className="px-2 flex justify-center">
                 <OutboundModeSwitcher iconOnly expanded={siderExpandedOnHover} />
               </div>
               <SiderItem
@@ -282,6 +286,9 @@ const App: React.FC = () => {
                   <IoSettings className="text-[20px]" />
                 </Button>
               </div>
+            </div>
+            <div className="mt-2 mx-2">
+              <ProxyControlSwitcher />
             </div>
             <div className="mt-2 mx-2">
               <OutboundModeSwitcher />

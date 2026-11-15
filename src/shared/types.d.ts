@@ -374,6 +374,7 @@ interface IAppConfig {
   silentStart: boolean
   autoCloseConnection: boolean
   autoCloseConnectionOnlyGroup?: boolean
+  proxyRunning?: boolean
   sysProxy: ISysProxyConfig
   maxLogDays: number
   maxLogFileSize: number

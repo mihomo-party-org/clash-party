@@ -173,6 +173,7 @@ interface IpcApi {
   openFile: (type: 'profile' | 'override', id: string, ext?: 'yaml' | 'js') => Promise<void>
   // Core
   restartCore: () => Promise<void>
+  triggerProxy: (enable: boolean) => Promise<boolean>
   getSmartModelStatus: () => Promise<ISmartModelStatus>
   downloadSmartModel: (variant: SmartModelVariant) => Promise<ISmartModelStatus>
   mihomoHotReloadConfig: () => Promise<void>
@@ -375,6 +376,7 @@ export const {
   openFile,
   // Core
   restartCore,
+  triggerProxy,
   getSmartModelStatus,
   downloadSmartModel,
   mihomoHotReloadConfig,

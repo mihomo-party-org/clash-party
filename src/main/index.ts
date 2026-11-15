@@ -235,10 +235,19 @@ const initPromise = (async () => {
   const appConfigPromise = (async () => {
     try {
       const cfg = await getAppConfig()
+      const targetProxyRunning = process.argv.includes('--admin-restart-for-tun')
+      const startupPatch: Partial<IAppConfig> = {}
       if (!cfg.language) {
         const systemLanguage = getSystemLanguage()
-        await patchAppConfig({ language: systemLanguage })
+        startupPatch.language = systemLanguage
         cfg.language = systemLanguage
+      }
+      if (cfg.proxyRunning !== targetProxyRunning) {
+        startupPatch.proxyRunning = targetProxyRunning
+        cfg.proxyRunning = targetProxyRunning
+      }
+      if (Object.keys(startupPatch).length > 0) {
+        await patchAppConfig(startupPatch)
       }
       await initI18n({ lng: cfg.language })
       return cfg

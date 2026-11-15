@@ -39,7 +39,8 @@ import {
   quitWithoutCore,
   checkMihomoCorePermissions,
   requestTunPermissions,
-  restartAsAdmin
+  restartAsAdmin,
+  triggerProxy
 } from '../core/manager'
 import { trayLogger } from '../utils/logger'
 import { writeClipboardText } from '../utils/clipboard'
@@ -69,6 +70,7 @@ export const buildContextMenu = async (): Promise<Menu> => {
 
   const { mode, tun } = await getControledMihomoConfig()
   const {
+    proxyRunning = false,
     sysProxy,
     envType = process.platform === 'win32' ? ['powershell'] : ['bash'],
     autoCloseConnection,
@@ -231,6 +233,22 @@ export const buildContextMenu = async (): Promise<Menu> => {
     },
     { type: 'separator' },
     {
+      id: 'proxy-running',
+      type: 'checkbox',
+      label: t('tray.proxyRunning'),
+      checked: Boolean(proxyRunning),
+      click: async (item): Promise<void> => {
+        try {
+          await triggerProxy(item.checked)
+        } catch {
+          // ignore
+        } finally {
+          ipcMain.emit('updateTrayMenu')
+          await updateTrayIcon()
+        }
+      }
+    },
+    {
       type: 'checkbox',
       label: t('tray.systemProxy'),
       accelerator: triggerSysProxyShortcut,
@@ -238,10 +256,15 @@ export const buildContextMenu = async (): Promise<Menu> => {
       click: async (item): Promise<void> => {
         const enable = item.checked
         try {
-          await triggerSysProxy(enable)
+          if (proxyRunning) {
+            await triggerSysProxy(enable)
+          }
           await patchAppConfig({ sysProxy: { enable } })
           mainWindow?.webContents.send('appConfigUpdated')
           floatingWindow?.webContents.send('appConfigUpdated')
+          if (proxyRunning && !enable && !(tun?.enable ?? false)) {
+            await triggerProxy(false)
+          }
         } catch {
           // ignore
         } finally {
@@ -259,37 +282,39 @@ export const buildContextMenu = async (): Promise<Menu> => {
         const enable = item.checked
         try {
           if (enable) {
-            // 检查权限
-            try {
-              const hasPermissions = await checkMihomoCorePermissions()
+            if (proxyRunning) {
+              // 检查权限
+              try {
+                const hasPermissions = await checkMihomoCorePermissions()
 
-              if (!hasPermissions) {
-                if (process.platform === 'win32') {
-                  try {
-                    await restartAsAdmin()
-                    return
-                  } catch (error) {
-                    await trayLogger.error('Failed to restart as admin from tray', error)
-                    item.checked = false
-                    ipcMain.emit('updateTrayMenu')
-                    return
-                  }
-                } else {
-                  try {
-                    await requestTunPermissions()
-                  } catch (error) {
-                    await trayLogger.error('Failed to grant TUN permissions from tray', error)
-                    item.checked = false
-                    ipcMain.emit('updateTrayMenu')
-                    return
+                if (!hasPermissions) {
+                  if (process.platform === 'win32') {
+                    try {
+                      await restartAsAdmin()
+                      return
+                    } catch (error) {
+                      await trayLogger.error('Failed to restart as admin from tray', error)
+                      item.checked = false
+                      ipcMain.emit('updateTrayMenu')
+                      return
+                    }
+                  } else {
+                    try {
+                      await requestTunPermissions()
+                    } catch (error) {
+                      await trayLogger.error('Failed to grant TUN permissions from tray', error)
+                      item.checked = false
+                      ipcMain.emit('updateTrayMenu')
+                      return
+                    }
                   }
                 }
+              } catch (error) {
+                await trayLogger.warn('Permission check failed in tray', error)
+                item.checked = false
+                ipcMain.emit('updateTrayMenu')
+                return
               }
-            } catch (error) {
-              await trayLogger.warn('Permission check failed in tray', error)
-              item.checked = false
-              ipcMain.emit('updateTrayMenu')
-              return
             }
 
             await patchControledMihomoConfig({ tun: { enable }, dns: { enable: true } })
@@ -298,6 +323,9 @@ export const buildContextMenu = async (): Promise<Menu> => {
           }
           mainWindow?.webContents.send('controledMihomoConfigUpdated')
           floatingWindow?.webContents.send('controledMihomoConfigUpdated')
+          if (proxyRunning && !enable && !sysProxy.enable) {
+            await triggerProxy(false)
+          }
         } catch {
           // ignore
         } finally {
@@ -793,8 +821,9 @@ async function updateTrayToolTip(
   if (!tray) return
 
   const [{ mode, tun }, appConfig] = await Promise.all([getControledMihomoConfig(), getAppConfig()])
-  const sysProxy = sysProxyEnabled ?? appConfig.sysProxy.enable
-  const tunStatus = tunEnabled ?? tun?.enable === true
+  const running = Boolean(appConfig.proxyRunning)
+  const sysProxy = sysProxyEnabled ?? (running && appConfig.sysProxy.enable)
+  const tunStatus = tunEnabled ?? (running && tun?.enable === true)
   const isCustomIcon =
     customIconEnabled ??
     Boolean(appConfig.customTrayIcon || hasCustomTrayIcons(appConfig.customTrayIcons))
@@ -834,27 +863,29 @@ function setTrayImage(iconPath: string): void {
 export function updateTrayIconImmediate(sysProxyEnabled: boolean, tunEnabled: boolean): void {
   if (!tray) return
 
-  const status = calculateTrayIconStatus(sysProxyEnabled, tunEnabled)
   const iconPaths = getIconPaths()
 
   getAppConfig().then(async (appConfig) => {
     if (!tray) return
     try {
-      const { disableTrayIconColor = false } = appConfig
+      const { disableTrayIconColor = false, proxyRunning = false } = appConfig
+      const activeSysProxy = Boolean(proxyRunning) && sysProxyEnabled
+      const activeTun = Boolean(proxyRunning) && tunEnabled
+      const status = calculateTrayIconStatus(activeSysProxy, activeTun)
       const customIcon = createCustomTrayImageForStatus(appConfig, status)
       if (customIcon) {
         tray.setImage(customIcon)
-        await updateTrayToolTip(sysProxyEnabled, tunEnabled, true)
+        await updateTrayToolTip(activeSysProxy, activeTun, true)
         return
       }
       // macOS 流量显示开启时，由 trayIconUpdate 负责图标更新
       if (process.platform === 'darwin' && macTrafficIconEnabled) {
-        await updateTrayToolTip(sysProxyEnabled, tunEnabled, false)
+        await updateTrayToolTip(activeSysProxy, activeTun, false)
         return
       }
       const iconPath = disableTrayIconColor ? iconPaths.white : iconPaths[status]
       setTrayImage(iconPath)
-      await updateTrayToolTip(sysProxyEnabled, tunEnabled, false)
+      await updateTrayToolTip(activeSysProxy, activeTun, false)
     } catch {
       // Failed to update tray icon
     }

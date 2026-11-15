@@ -8,10 +8,10 @@ import { useControledMihomoConfig } from './hooks/use-controled-mihomo-config'
 const FloatingApp: React.FC = () => {
   const { appConfig } = useAppConfig()
   const { controledMihomoConfig } = useControledMihomoConfig()
-  const { sysProxy, spinFloatingIcon = true } = appConfig || {}
+  const { sysProxy, spinFloatingIcon = true, proxyRunning = false } = appConfig || {}
   const { tun } = controledMihomoConfig || {}
-  const sysProxyEnabled = sysProxy?.enable
-  const tunEnabled = tun?.enable
+  const sysProxyEnabled = Boolean(proxyRunning && sysProxy?.enable)
+  const tunEnabled = Boolean(proxyRunning && tun?.enable)
 
   const [upload, setUpload] = useState(0)
   const [download, setDownload] = useState(0)

@@ -3,7 +3,7 @@ import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-c
 import BorderSwitch from '@renderer/components/base/border-switch'
 import { TbDeviceIpadHorizontalBolt } from 'react-icons/tb'
 import { useLocation } from 'react-router-dom'
-import { updateTrayIconImmediate } from '@renderer/utils/ipc'
+import { triggerProxy, updateTrayIconImmediate } from '@renderer/utils/ipc'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import React from 'react'
@@ -22,7 +22,7 @@ const TunSwitcher: React.FC<Props> = (props) => {
   const location = useLocation()
   const match = location.pathname.includes('/tun') || false
   const { appConfig } = useAppConfig()
-  const { tunCardStatus = 'col-span-1', disableAnimations = false } = appConfig || {}
+  const { tunCardStatus = 'col-span-1', disableAnimations = false, proxyRunning = false } = appConfig || {}
   const sysProxyEnabled = appConfig?.sysProxy?.enable ?? false
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
   const { tun } = controledMihomoConfig || {}
@@ -39,6 +39,14 @@ const TunSwitcher: React.FC<Props> = (props) => {
   })
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
   const onChange = async (enable: boolean): Promise<void> => {
+    if (!proxyRunning) {
+      await patchControledMihomoConfig(
+        enable ? { tun: { enable }, dns: { enable: true } } : { tun: { enable } }
+      )
+      window.electron.ipcRenderer.send('updateTrayMenu')
+      return
+    }
+
     updateTrayIconImmediate(sysProxyEnabled, enable)
     if (enable) {
       try {
@@ -99,6 +107,9 @@ const TunSwitcher: React.FC<Props> = (props) => {
       }
     } else {
       await patchControledMihomoConfig({ tun: { enable } })
+      if (!sysProxyEnabled) {
+        await triggerProxy(false)
+      }
     }
     window.electron.ipcRenderer.send('updateFloatingWindow')
     window.electron.ipcRenderer.send('updateTrayMenu')

@@ -3,7 +3,7 @@ import { toast } from '@renderer/components/base/toast'
 import BorderSwitch from '@renderer/components/base/border-switch'
 import { useLocation } from 'react-router-dom'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { triggerSysProxy, updateTrayIconImmediate } from '@renderer/utils/ipc'
+import { triggerProxy, triggerSysProxy, updateTrayIconImmediate } from '@renderer/utils/ipc'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { AiOutlineGlobal } from 'react-icons/ai'
 import React from 'react'
@@ -24,7 +24,7 @@ const SysproxySwitcher: React.FC<Props> = (props) => {
   const match = location.pathname.includes('/sysproxy')
   const { appConfig, patchAppConfig } = useAppConfig()
   const { controledMihomoConfig } = useControledMihomoConfig()
-  const { sysProxy, sysproxyCardStatus = 'col-span-1', disableAnimations = false } = appConfig || {}
+  const { sysProxy, proxyRunning = false, sysproxyCardStatus = 'col-span-1', disableAnimations = false } = appConfig || {}
   const { tun } = controledMihomoConfig || {}
   const { enable } = sysProxy || {}
   const {
@@ -42,12 +42,25 @@ const SysproxySwitcher: React.FC<Props> = (props) => {
     const previousState = !enable
     const tunEnabled = tun?.enable ?? false
 
+    if (!proxyRunning) {
+      try {
+        await patchAppConfig({ sysProxy: { enable } })
+        window.electron.ipcRenderer.send('updateTrayMenu')
+      } catch (e) {
+        toast.error(String(e))
+      }
+      return
+    }
+
     // 立即更新图标
     updateTrayIconImmediate(enable, tunEnabled)
 
     try {
       await patchAppConfig({ sysProxy: { enable } })
       await triggerSysProxy(enable)
+      if (!enable && !tunEnabled) {
+        await triggerProxy(false)
+      }
 
       window.electron.ipcRenderer.send('updateFloatingWindow')
       window.electron.ipcRenderer.send('updateTrayMenu')

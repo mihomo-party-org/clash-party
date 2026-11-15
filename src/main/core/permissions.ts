@@ -4,7 +4,12 @@ import { stat } from 'fs/promises'
 import { existsSync } from 'fs'
 import path from 'path'
 import { app, dialog, ipcMain } from 'electron'
-import { getAppConfig, getControledMihomoConfig, patchControledMihomoConfig } from '../config'
+import {
+  getAppConfig,
+  getControledMihomoConfig,
+  patchAppConfig,
+  patchControledMihomoConfig
+} from '../config'
 import { mihomoCorePath, mihomoCoreDir } from '../utils/dirs'
 import { managerLogger } from '../utils/logger'
 import { checkAutoRun, enableAutoRun } from '../sys/autoRun'
@@ -348,9 +353,12 @@ export async function showErrorDialog(title: string, message: string): Promise<v
 export async function validateTunPermissionsOnStartup(
   _restartCore: () => Promise<void>
 ): Promise<void> {
-  const { tun } = await getControledMihomoConfig()
+  const [{ proxyRunning = false }, { tun }] = await Promise.all([
+    getAppConfig(),
+    getControledMihomoConfig()
+  ])
 
-  if (!tun?.enable) {
+  if (!proxyRunning || !tun?.enable) {
     return
   }
 
@@ -381,6 +389,7 @@ export async function checkAdminRestartForTun(restartCore: () => Promise<void>):
       if (process.platform === 'win32') {
         const hasAdminPrivileges = await checkAdminPrivileges()
         if (hasAdminPrivileges) {
+          await patchAppConfig({ proxyRunning: true })
           await patchControledMihomoConfig({ tun: { enable: true }, dns: { enable: true } })
 
           const autoRunEnabled = await checkAutoRun()
@@ -393,6 +402,7 @@ export async function checkAdminRestartForTun(restartCore: () => Promise<void>):
           managerLogger.info('TUN mode auto-enabled after admin restart')
 
           const { mainWindow } = await import('../index')
+          mainWindow?.webContents.send('appConfigUpdated')
           mainWindow?.webContents.send('controledMihomoConfigUpdated')
           ipcMain.emit('updateTrayMenu')
         } else {

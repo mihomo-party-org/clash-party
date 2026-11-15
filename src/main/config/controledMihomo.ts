@@ -180,9 +180,14 @@ export async function patchControledMihomoConfig(patch: Partial<IMihomoConfig>):
       await patchAppConfig({ controlDns: controlDnsBeforePause, controlDnsBeforePause: undefined })
     }
 
+    const hotPatch =
+      !appConfig.proxyRunning && nextPatch.tun
+        ? { ...nextPatch, tun: { ...nextPatch.tun, enable: false } }
+        : nextPatch
+
     // 优先对运行中内核进行热更新，避免无意义重启
     try {
-      await patchMihomoConfig(nextPatch)
+      await patchMihomoConfig(hotPatch)
     } catch (error) {
       controledMihomoLogger.warn(
         'Hot patch /configs failed, changes will apply on next restart',

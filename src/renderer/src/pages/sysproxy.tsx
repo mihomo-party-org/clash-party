@@ -59,7 +59,7 @@ const Sysproxy: React.FC = () => {
 
   const { t } = useTranslation()
   const { appConfig, patchAppConfig } = useAppConfig()
-  const { sysProxy } = appConfig || ({ sysProxy: { enable: false } } as IAppConfig)
+  const { sysProxy, proxyRunning = false } = appConfig || ({ sysProxy: { enable: false } } as IAppConfig)
   const [changed, setChanged] = useState(false)
   const [values, originSetValues] = useState({
     enable: sysProxy.enable,
@@ -121,7 +121,9 @@ const Sysproxy: React.FC = () => {
 
     try {
       await patchAppConfig({ sysProxy: sysProxyPatch })
-      await triggerSysProxy(true)
+      if (proxyRunning) {
+        await triggerSysProxy(true)
+      }
 
       await patchAppConfig({ sysProxy: { enable: true } })
     } catch (e) {

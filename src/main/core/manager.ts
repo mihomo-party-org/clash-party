@@ -13,6 +13,7 @@ import {
   getAppConfig,
   getControledMihomoConfig,
   getProfileItem,
+  patchAppConfig,
   patchControledMihomoConfig,
   manageSmartOverride
 } from '../config'
@@ -46,6 +47,7 @@ import {
   stopMihomoMemory,
   patchMihomoConfig,
   mihomoHotReloadConfig,
+  mihomoCloseAllConnections,
   getAxios
 } from './mihomoApi'
 import { generateProfile, getRuntimeConfig } from './factory'
@@ -53,8 +55,12 @@ import { syncControlDnsAfterApply, type DnsOverrideGuardResult } from './dnsOver
 import { syncSmartModelToTestDir } from './smartModel'
 import {
   checkAdminRestartForTun as checkAdminRestartForTunWithRestart,
+  checkMihomoCorePermissions,
   getSessionAdminStatus,
-  setStopCoreBeforeAdminRestart
+  requestTunPermissions,
+  restartAsAdmin,
+  setStopCoreBeforeAdminRestart,
+  showTunPermissionDialog
 } from './permissions'
 import {
   cleanupSocketFile,
@@ -64,6 +70,7 @@ import {
   verifyProcessOwner
 } from './process'
 import { setPublicDNS, recoverDNS } from './dns'
+import { triggerSysProxy } from '../sys/sysproxy'
 import { parseTailscaleLog } from './tailscale-auth'
 
 // 重新导出权限相关函数
@@ -540,7 +547,8 @@ async function prepareCore(detached: boolean, skipStop = false): Promise<CoreCon
     autoSetDNS = true,
     mihomoCpuPriority = 'PRIORITY_NORMAL',
     coreStartupMode = 'log',
-    testProfileOnStart = true
+    testProfileOnStart = true,
+    proxyRunning = false
   } = appConfig
 
   let { 'log-level': logLevel = 'info' as LogLevel, tun } = mihomoConfig
@@ -569,8 +577,10 @@ async function prepareCore(detached: boolean, skipStop = false): Promise<CoreCon
   }
   await cleanupSocketFile()
 
+  const effectiveTunEnabled = Boolean(proxyRunning && tun?.enable)
+
   // 设置 DNS
-  if (tun?.enable && autoSetDNS) {
+  if (effectiveTunEnabled && autoSetDNS) {
     ensureNotShuttingDown()
     try {
       await setPublicDNS()
@@ -598,7 +608,7 @@ async function prepareCore(detached: boolean, skipStop = false): Promise<CoreCon
     safePath: diffWorkDir ? mihomoWorkDir() : undefined,
     ipcPath,
     logLevel,
-    tunEnabled: tun?.enable ?? false,
+    tunEnabled: effectiveTunEnabled,
     autoSetDNS,
     cpuPriority: mihomoCpuPriority,
     ageSecretKey,
@@ -1110,8 +1120,11 @@ export function restartCore(forceStop = false): Promise<void> {
 // 这里在 resume 后自动做同一件事，省去用户手动开关。
 async function reloadCoreAfterResume(): Promise<void> {
   if (!hasCoreProcess()) return
-  const { tun } = await getControledMihomoConfig()
-  if (!tun?.enable) return
+  const [{ proxyRunning = false }, { tun }] = await Promise.all([
+    getAppConfig(),
+    getControledMihomoConfig()
+  ])
+  if (!proxyRunning || !tun?.enable) return
 
   await mihomoHotReloadConfig()
   managerLogger.info('Reloaded core config after system resume')
@@ -1238,6 +1251,136 @@ export async function checkProfileConfig(
       throw new Error(`${i18next.t('mihomo.error.profileCheckFailed')}: ${error}`)
     }
   }
+}
+
+let triggerProxyQueue: Promise<boolean> = Promise.resolve(false)
+
+/**
+ * 切换代理总开关：控制是否实际接管系统代理与虚拟网卡流量，而不修改模式偏好设置
+ */
+export function triggerProxy(enable: boolean): Promise<boolean> {
+  const run = triggerProxyQueue.then(async (): Promise<boolean> => {
+    const [appConfig, mihomoConfig] = await Promise.all([
+      getAppConfig(),
+      getControledMihomoConfig()
+    ])
+    const autoSetDNS = appConfig.autoSetDNS ?? true
+    const tunEnable = Boolean(mihomoConfig.tun?.enable)
+
+    if (enable) {
+      let sysProxyEnable = Boolean(appConfig.sysProxy?.enable)
+      let autoEnabledSysProxy = false
+      if (!sysProxyEnable && !tunEnable) {
+        sysProxyEnable = true
+        autoEnabledSysProxy = true
+      }
+
+      if (tunEnable) {
+        const hasPermissions = await checkMihomoCorePermissions()
+        if (!hasPermissions) {
+          if (process.platform === 'win32') {
+            const confirmed = await showTunPermissionDialog()
+            if (confirmed) {
+              await restartAsAdmin()
+            }
+            return false
+          }
+          await requestTunPermissions()
+        }
+      }
+
+      if (autoEnabledSysProxy) {
+        await patchAppConfig({ proxyRunning: true, sysProxy: { enable: true } })
+      } else {
+        await patchAppConfig({ proxyRunning: true })
+      }
+
+      try {
+        if (sysProxyEnable) {
+          await triggerSysProxy(true)
+        }
+
+        if (tunEnable) {
+          if (autoSetDNS) {
+            try {
+              await setPublicDNS()
+            } catch (error) {
+              managerLogger.error('set dns failed', error)
+            }
+          }
+          if (hasCoreProcess()) {
+            await mihomoHotReloadConfig()
+          } else {
+            await Promise.all(await startCore())
+          }
+        } else if (!hasCoreProcess()) {
+          await Promise.all(await startCore())
+        }
+      } catch (error) {
+        await patchAppConfig(
+          autoEnabledSysProxy ? { proxyRunning: false, sysProxy: { enable: false } } : { proxyRunning: false }
+        ).catch(() => {})
+        if (sysProxyEnable) {
+          await triggerSysProxy(false).catch(() => {})
+        }
+        throw error
+      }
+    } else {
+      await patchAppConfig({ proxyRunning: false })
+
+      try {
+        await triggerSysProxy(false)
+      } catch (error) {
+        managerLogger.warn('Failed to disable system proxy on stop', error)
+      }
+
+      if (tunEnable && hasCoreProcess()) {
+        try {
+          await patchMihomoConfig({ tun: { enable: false } })
+        } catch (error) {
+          managerLogger.warn('Failed to disable runtime TUN via patch, falling back to reload', error)
+          await mihomoHotReloadConfig().catch(() => {})
+        }
+        if (process.platform === 'darwin') {
+          try {
+            await recoverDNS()
+          } catch (error) {
+            managerLogger.warn('recover dns failed', error)
+          }
+        }
+      }
+
+      if (appConfig.autoCloseConnection && hasCoreProcess()) {
+        try {
+          await mihomoCloseAllConnections()
+        } catch (error) {
+          managerLogger.warn('Failed to close connections on stop', error)
+        }
+      }
+    }
+
+    mainWindow?.webContents.send('appConfigUpdated')
+    mainWindow?.webContents.send('controledMihomoConfigUpdated')
+    try {
+      const { floatingWindow } = await import('../resolve/floatingWindow')
+      floatingWindow?.webContents.send('appConfigUpdated')
+      floatingWindow?.webContents.send('controledMihomoConfigUpdated')
+    } catch {
+      // ignore
+    }
+    ipcMain.emit('updateTrayMenu')
+    try {
+      const { updateTrayIcon } = await import('../resolve/tray')
+      await updateTrayIcon()
+    } catch {
+      // ignore
+    }
+
+    return enable
+  })
+
+  triggerProxyQueue = run.catch(() => false)
+  return run
 }
 
 // 权限检查入口（从 permissions.ts 调用）

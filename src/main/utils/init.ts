@@ -520,19 +520,20 @@ export async function ensureRuntimeFiles(): Promise<void> {
 }
 
 export async function init(): Promise<void> {
-  const { sysProxy } = await getAppConfig()
+  const { sysProxy, proxyRunning = false } = await getAppConfig()
 
   initResumeRecovery()
 
   const initTasks: Promise<void>[] = [ensureRuntimeFiles(), startSSIDCheck()]
 
+  const shouldEnableSysProxy = Boolean(proxyRunning && sysProxy.enable)
   initTasks.push(
     (async (): Promise<void> => {
       try {
-        if (sysProxy.enable) {
+        if (shouldEnableSysProxy) {
           await startPacServer()
         }
-        await triggerSysProxy(sysProxy.enable)
+        await triggerSysProxy(shouldEnableSysProxy)
       } catch {
         // ignore
       }

@@ -7,7 +7,7 @@ import {
   patchControledMihomoConfig
 } from '../config'
 import { triggerSysProxy } from '../sys/sysproxy'
-import { quitWithoutCore } from '../core/manager'
+import { quitWithoutCore, triggerProxy } from '../core/manager'
 import i18next from '../../shared/i18n'
 import { floatingWindow, triggerFloatingWindow } from './floatingWindow'
 import { copyEnv, updateTrayIcon } from './tray'
@@ -37,20 +37,30 @@ export async function registerShortcut(
     case 'triggerSysProxyShortcut': {
       return globalShortcut.register(newShortcut, async () => {
         const {
+          proxyRunning = false,
           sysProxy: { enable }
         } = await getAppConfig()
+        const nextEnable = !enable
         try {
-          await triggerSysProxy(!enable)
-          await patchAppConfig({ sysProxy: { enable: !enable } })
+          if (proxyRunning) {
+            await triggerSysProxy(nextEnable)
+          }
+          await patchAppConfig({ sysProxy: { enable: nextEnable } })
           new Notification({
             title: i18next.t(
-              !enable
+              nextEnable
                 ? 'common.notification.systemProxyEnabled'
                 : 'common.notification.systemProxyDisabled'
             )
           }).show()
           mainWindow?.webContents.send('appConfigUpdated')
           floatingWindow?.webContents.send('appConfigUpdated')
+          if (proxyRunning && !nextEnable) {
+            const { tun } = await getControledMihomoConfig()
+            if (!tun?.enable) {
+              await triggerProxy(false)
+            }
+          }
         } catch {
           // ignore
         } finally {
@@ -61,21 +71,28 @@ export async function registerShortcut(
     }
     case 'triggerTunShortcut': {
       return globalShortcut.register(newShortcut, async () => {
-        const { tun } = await getControledMihomoConfig()
+        const [{ proxyRunning = false, sysProxy }, { tun }] = await Promise.all([
+          getAppConfig(),
+          getControledMihomoConfig()
+        ])
         const enable = tun?.enable ?? false
+        const nextEnable = !enable
         try {
-          if (!enable) {
-            await patchControledMihomoConfig({ tun: { enable: !enable }, dns: { enable: true } })
+          if (nextEnable) {
+            await patchControledMihomoConfig({ tun: { enable: nextEnable }, dns: { enable: true } })
           } else {
-            await patchControledMihomoConfig({ tun: { enable: !enable } })
+            await patchControledMihomoConfig({ tun: { enable: nextEnable } })
           }
           new Notification({
             title: i18next.t(
-              !enable ? 'common.notification.tunEnabled' : 'common.notification.tunDisabled'
+              nextEnable ? 'common.notification.tunEnabled' : 'common.notification.tunDisabled'
             )
           }).show()
           mainWindow?.webContents.send('controledMihomoConfigUpdated')
-          floatingWindow?.webContents.send('appConfigUpdated')
+          floatingWindow?.webContents.send('controledMihomoConfigUpdated')
+          if (proxyRunning && !nextEnable && !sysProxy?.enable) {
+            await triggerProxy(false)
+          }
         } catch {
           // ignore
         } finally {
