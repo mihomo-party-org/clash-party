@@ -5,11 +5,14 @@ import { existsSync } from 'fs'
 import { promisify } from 'util'
 import path from 'path'
 import { app } from 'electron'
-import { exePath, homeDir } from '../utils/dirs'
+import { dataDir, exePath, homeDir } from '../utils/dirs'
 import { managerLogger } from '../utils/logger'
 import { checkAdminPrivileges } from '../core/admin'
 
 const appName = 'mihomo-party'
+// 1.8.2 及更早版本的开机任务不直接启动应用，而是让数据目录里的 mihomo-party-run.exe 去启动当时的 exe。
+// exe 改名或换了安装位置后，这个程序找不到文件，就会在每次开机时弹出 "file does not exist"。
+const legacyRunnerName = 'mihomo-party-run.exe'
 // 1.x 通过 AppleScript 往 System Events 写登录项，这些旧条目不受 Service Management 管理，
 // 升级后必须单独清理，否则会与新登录项同时生效导致开机启动两次。
 const darwinLegacyLoginItemNames = ['Clash Party', 'Mihomo Party']
@@ -72,20 +75,53 @@ function getTaskXml(asAdmin: boolean): string {
 `
 }
 
+// 查询开机任务：不存在、旧版（启动的是失效的旧程序）或当前版本
+async function queryAutoRunTask(): Promise<'none' | 'legacy' | 'current'> {
+  try {
+    const { stdout } = await promisify(exec)(
+      `chcp 437 && %SystemRoot%\\System32\\schtasks.exe /query /tn "${appName}" /xml`,
+      { windowsHide: true }
+    )
+    // 输出可能是 UTF-16，去掉空字符后再查找
+    return stdout.replace(/\0/g, '').includes(legacyRunnerName) ? 'legacy' : 'current'
+  } catch {
+    return 'none'
+  }
+}
+
+// 删除旧版的启动程序，让残留的旧任务静默失败而不是开机弹窗；以管理员运行时顺便把任务改写成启动当前程序
+export async function cleanupLegacyAutoRun(): Promise<void> {
+  if (process.platform !== 'win32') return
+  // 便携版和安装版的数据目录不同，旧程序也可能留在安装版的数据目录里
+  const runners = [...new Set([dataDir(), path.join(app.getPath('appData'), appName)])]
+    .map((dir) => path.join(dir, 'tasks', legacyRunnerName))
+    .filter((runner) => existsSync(runner))
+  if (runners.length === 0) return
+
+  try {
+    if ((await queryAutoRunTask()) === 'legacy' && (await checkAdminPrivileges())) {
+      await enableAutoRun()
+    }
+  } catch (error) {
+    await managerLogger.warn('Failed to rewrite legacy auto-run task:', error)
+  }
+
+  for (const runner of runners) {
+    try {
+      await rm(runner, { force: true })
+      await managerLogger.info(`Removed legacy auto-run runner: ${runner}`)
+    } catch (error) {
+      await managerLogger.warn('Failed to remove legacy auto-run runner:', error)
+    }
+  }
+}
+
 export async function checkAutoRun(): Promise<boolean> {
   if (process.platform === 'win32') {
-    const execPromise = promisify(exec)
     const execFilePromise = promisify(execFile)
-    // 先检查任务计划程序
-    try {
-      const { stdout } = await execPromise(
-        `chcp 437 && %SystemRoot%\\System32\\schtasks.exe /query /tn "${appName}"`
-      )
-      if (stdout.includes(appName)) {
-        return true
-      }
-    } catch {
-      // 任务计划程序中不存在，继续检查注册表
+    // 先检查任务计划程序；旧版任务启动的是失效的旧程序，不算已开启
+    if ((await queryAutoRunTask()) === 'current') {
+      return true
     }
 
     // 检查注册表备用方案
@@ -147,17 +183,10 @@ export async function enableAutoRun(): Promise<void> {
     }
 
     if (!taskCreated) {
-      try {
-        const { stdout } = await execPromise(
-          `chcp 437 && %SystemRoot%\\System32\\schtasks.exe /query /tn "${appName}"`
-        )
-        const created = stdout.includes(appName)
-        taskCreated = created
-        if (!created) {
-          await managerLogger.warn('Scheduled task creation may have failed or been rejected')
-        }
-      } catch {
-        // ignore
+      // 拒绝 UAC 时旧版任务仍在，不能当作创建成功，否则会跳过注册表备用方案
+      taskCreated = (await queryAutoRunTask()) === 'current'
+      if (!taskCreated) {
+        await managerLogger.warn('Scheduled task creation may have failed or been rejected')
       }
     }
 
