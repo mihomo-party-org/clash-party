@@ -20,10 +20,19 @@ class Logger {
     return new Date().toISOString()
   }
 
+  private formatError(error: unknown): string {
+    if (error === undefined || error === null) return ''
+    return String(error)
+  }
+
+  private formatErrorSuffix(error: unknown): string {
+    const formattedError = this.formatError(error)
+    return formattedError ? `: ${formattedError}` : ''
+  }
+
   private formatLogMessage(level: LogLevel, message: string, error?: unknown): string {
     const timestamp = this.formatTimestamp()
-    const errorStr = error ? `: ${String(error)}` : ''
-    return `[${timestamp}] [${level.toUpperCase()}] [${this.moduleName}] ${message}${errorStr}\n`
+    return `[${timestamp}] [${level.toUpperCase()}] [${this.moduleName}] ${message}${this.formatErrorSuffix(error)}\n`
   }
 
   private async writeToFile(level: LogLevel, message: string, error?: unknown): Promise<void> {
@@ -34,29 +43,28 @@ class Logger {
       await appendToFileWithLimit(appLogPath, logMessage)
     } catch (logError) {
       // 如果写入日志文件失败，仍然输出到控制台
-      console.error(`[Logger] Failed to write to log file:`, logError)
+      console.error(`[Logger] Failed to write to log file: ${this.formatError(logError)}`)
       console.error(
-        `[Logger] Original message: [${level.toUpperCase()}] [${this.moduleName}] ${message}`,
-        error
+        `[Logger] Original message: [${level.toUpperCase()}] [${this.moduleName}] ${message}${this.formatErrorSuffix(error)}`
       )
     }
   }
 
   private logToConsole(level: LogLevel, message: string, error?: unknown): void {
-    const prefix = `[${this.moduleName}] ${message}`
+    const formattedMessage = `[${this.moduleName}] ${message}${this.formatErrorSuffix(error)}`
 
     switch (level) {
       case 'debug':
-        console.debug(prefix, error || '')
+        console.debug(formattedMessage)
         break
       case 'info':
-        console.log(prefix, error || '')
+        console.log(formattedMessage)
         break
       case 'warn':
-        console.warn(prefix, error || '')
+        console.warn(formattedMessage)
         break
       case 'error':
-        console.error(prefix, error || '')
+        console.error(formattedMessage)
         break
     }
   }
