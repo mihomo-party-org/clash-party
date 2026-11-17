@@ -659,6 +659,21 @@ function spawnCoreProcess(config: CoreConfig): ChildProcess {
   return proc
 }
 
+// 内核就绪后的收尾。Gist 同步要经本地代理请求 GitHub 两次，慢的时候要好几秒，而界面刷新并不依赖它：
+// 日志级别恢复后就通知界面，不再等同步完成，否则切换订阅后代理组会一直停在旧订阅上。
+export async function completeCoreStartup(logLevel: LogLevel): Promise<void> {
+  const gistSync = uploadRuntimeConfigIfChanged().catch((error) => {
+    managerLogger.warn('Failed to sync runtime config to Gist', error)
+  })
+  try {
+    await patchMihomoConfig({ 'log-level': logLevel })
+  } finally {
+    mainWindow?.webContents.send('groupsUpdated')
+    mainWindow?.webContents.send('rulesUpdated')
+  }
+  await gistSync
+}
+
 // 设置核心进程事件监听
 function setupCoreListeners(
   proc: ChildProcess,
@@ -704,20 +719,6 @@ function setupCoreListeners(
       startMihomoLogs(),
       startMihomoMemory()
     ])
-  }
-
-  const completeCoreStartup = async (): Promise<void> => {
-    try {
-      await uploadRuntimeConfigIfChanged()
-    } catch (error) {
-      managerLogger.warn('Failed to sync runtime config to Gist', error)
-    }
-    try {
-      await patchMihomoConfig({ 'log-level': logLevel })
-    } finally {
-      mainWindow?.webContents.send('groupsUpdated')
-      mainWindow?.webContents.send('rulesUpdated')
-    }
   }
 
   proc.once('error', (error) => {
@@ -843,7 +844,7 @@ function setupCoreListeners(
                 .toLowerCase()
                 .includes('start initial compatible provider default')
             ) {
-              completeCoreStartup()
+              completeCoreStartup(logLevel)
                 .then(() => innerResolve())
                 .catch((error) => {
                   managerLogger.warn('Failed to complete core startup', error)
@@ -868,7 +869,7 @@ function setupCoreListeners(
       .then(async () => {
         managerLogger.info('Core post-up hook triggered')
         await startMihomoApiStreams()
-        resolveStartup([completeCoreStartup()])
+        resolveStartup([completeCoreStartup(logLevel)])
       })
       .catch(rejectStartup)
   }
