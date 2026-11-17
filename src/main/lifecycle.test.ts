@@ -1,11 +1,16 @@
 import { EventEmitter } from 'events'
+import { mkdtempSync, rmSync, writeFileSync } from 'fs'
+import { tmpdir } from 'os'
+import path from 'path'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
 const h = vi.hoisted(() => ({
   app: null as unknown as EventEmitter & {
     exit: ReturnType<typeof vi.fn>
+    disableHardwareAcceleration: ReturnType<typeof vi.fn>
     whenReady: () => Promise<void>
   },
+  configPath: '',
   powerMonitor: null as unknown as EventEmitter,
   windows: [] as { options: Record<string, unknown>; window: EventEmitter }[],
   legacyElectron: false,
@@ -18,6 +23,7 @@ vi.mock('electron', async () => {
   const { EventEmitter } = await import('events')
   h.app = Object.assign(new EventEmitter(), {
     exit: vi.fn(),
+    disableHardwareAcceleration: vi.fn(),
     whenReady: (): Promise<void> => Promise.resolve()
   })
   h.powerMonitor = new EventEmitter()
@@ -46,7 +52,10 @@ vi.mock('./sys/sysproxy', () => ({
   disableSysProxySync: h.disableSysProxySync
 }))
 vi.mock('./traffic/recorder', () => ({ closeTrafficUsage: h.closeTrafficUsage }))
-vi.mock('./utils/dirs', () => ({ exePath: () => 'C:\\Clash Party\\Clash Party.exe' }))
+vi.mock('./utils/dirs', () => ({
+  exePath: () => 'C:\\Clash Party\\Clash Party.exe',
+  appConfigPath: () => h.configPath
+}))
 vi.mock('./window', () => ({ saveMainWindowState: vi.fn() }))
 
 const originalPlatform = process.platform
@@ -71,6 +80,7 @@ beforeEach(() => {
 afterEach(() => {
   h.app?.removeAllListeners()
   h.app?.exit.mockReset()
+  h.app?.disableHardwareAcceleration.mockReset()
   h.powerMonitor?.removeAllListeners()
   Object.defineProperty(process, 'platform', { value: originalPlatform })
 })
@@ -128,4 +138,56 @@ describe('Windows session end', () => {
       expect(h.windows).toHaveLength(0)
     }
   )
+})
+
+describe('hardware acceleration setting', () => {
+  let dir: string
+
+  beforeEach(() => {
+    dir = mkdtempSync(path.join(tmpdir(), 'lifecycle-test-'))
+    h.configPath = path.join(dir, 'config.yaml')
+  })
+
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('turns hardware acceleration off before the function returns', async () => {
+    writeFileSync(h.configPath, 'language: en-US\ndisableHardwareAcceleration: true\n')
+    const { applyHardwareAccelerationConfig } = await import('./lifecycle')
+
+    // Electron only accepts the call before `ready`, so it must not wait for anything.
+    const result: unknown = applyHardwareAccelerationConfig()
+
+    expect(result).toBeUndefined()
+    expect(h.app.disableHardwareAcceleration).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    ['the switch is off', 'disableHardwareAcceleration: false\n'],
+    ['the key is missing', 'language: en-US\n'],
+    ['the file is empty', '']
+  ])('leaves hardware acceleration on when %s', async (_name, content) => {
+    writeFileSync(h.configPath, content)
+    const { applyHardwareAccelerationConfig } = await import('./lifecycle')
+
+    applyHardwareAccelerationConfig()
+
+    expect(h.app.disableHardwareAcceleration).not.toHaveBeenCalled()
+  })
+
+  it('does nothing on first launch, when there is no config file yet', async () => {
+    const { applyHardwareAccelerationConfig } = await import('./lifecycle')
+
+    expect(() => applyHardwareAccelerationConfig()).not.toThrow()
+    expect(h.app.disableHardwareAcceleration).not.toHaveBeenCalled()
+  })
+
+  it('reports a config file that cannot be parsed', async () => {
+    writeFileSync(h.configPath, 'disableHardwareAcceleration: [true\n')
+    const { applyHardwareAccelerationConfig } = await import('./lifecycle')
+
+    expect(() => applyHardwareAccelerationConfig()).toThrow()
+    expect(h.app.disableHardwareAcceleration).not.toHaveBeenCalled()
+  })
 })
