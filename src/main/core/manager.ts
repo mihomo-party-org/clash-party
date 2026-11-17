@@ -28,6 +28,7 @@ import {
 } from '../utils/dirs'
 import { uploadRuntimeConfigIfChanged } from '../resolve/gistApi'
 import { startMonitor } from '../resolve/trafficMonitor'
+import { switchPacSysProxyToManual } from '../sys/sysproxy'
 import { isLocalProfile } from '../../shared/local-config'
 import { ensureRuntimeFiles, safeShowErrorBox } from '../utils/init'
 import { parseAgeSecretKeys } from '../utils/age'
@@ -1155,6 +1156,14 @@ export async function quitWithoutCore(): Promise<void> {
   managerLogger.info(`Starting lightweight mode on platform: ${process.platform}`)
   if (!(await keepCoreAlive())) return
   await startMonitor(true)
+  const switchedToManual = switchPacSysProxyToManual().catch((error) => {
+    managerLogger.warn('Failed to switch PAC system proxy to manual', error)
+    return false
+  })
+  // 排在前面的系统代理操作可能卡在 macOS helper 上，不让它无限期拖住退出
+  if (await Promise.race([switchedToManual, delay(10000, false)])) {
+    managerLogger.info('PAC server stops with the main process, system proxy set to manual')
+  }
   managerLogger.info('Exiting main process, core will continue running in background')
   app.exit()
 }
