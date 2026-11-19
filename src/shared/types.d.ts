@@ -384,7 +384,7 @@ interface IAppConfig {
   delayTestUrl?: string
   delayTestTimeout?: number
   networkLatencyTargets?: INetworkLatencyTarget[]
-  networkIPProvider?: 'ip.sb' | 'ipwho.is' | 'ipapi.is'
+  networkIPProvider?: 'ip.sb' | 'ipwho.is' | 'ipapi.is' | 'internetdata'
   networkInfoCardOrder?: NetworkInfoCardKey[]
   subscriptionTimeout?: number
   yamlMaxAliasCount?: number

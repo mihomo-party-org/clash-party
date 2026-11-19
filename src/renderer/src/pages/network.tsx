@@ -27,7 +27,7 @@ import { fetchIPInfo, measureLatency } from '@renderer/utils/ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { DEFAULT_NETWORK_INFO_CARD_ORDER } from '../../../shared/appConfig'
 
-type IPProvider = 'ip.sb' | 'ipwho.is' | 'ipapi.is'
+type IPProvider = 'ip.sb' | 'ipwho.is' | 'ipapi.is' | 'internetdata'
 
 interface IPInfo {
   ip: string
@@ -48,7 +48,8 @@ interface IPInfo {
 const IP_ENDPOINTS: Record<IPProvider, string> = {
   'ip.sb': 'https://api.ip.sb/geoip',
   'ipwho.is': 'https://ipwho.is/',
-  'ipapi.is': 'https://api.ipapi.is/'
+  'ipapi.is': 'https://api.ipapi.is/',
+  internetdata: 'https://api.internetdata.io/myip'
 }
 
 const CountryFlag: React.FC<{ code?: string; className?: string }> = ({ code, className }) => {
@@ -89,6 +90,23 @@ function parseProvider(provider: IPProvider, data: Record<string, unknown>): IPI
       timezone: tz?.id as string | undefined,
       latitude: data.latitude as number | undefined,
       longitude: data.longitude as number | undefined
+    }
+  }
+  if (provider === 'internetdata') {
+    const loc = data.location as Record<string, unknown> | undefined
+    const asn = data.asn as Record<string, unknown> | undefined
+    const company = data.company as Record<string, unknown> | undefined
+    return {
+      ip: data.ip as string,
+      country: loc?.country_name as string | undefined,
+      countryCode: loc?.country as string | undefined,
+      city: loc?.city as string | undefined,
+      region: loc?.region as string | undefined,
+      asn: asn?.asn as number | undefined,
+      org: (company?.name ?? asn?.name) as string | undefined,
+      timezone: loc?.timezone as string | undefined,
+      latitude: loc?.latitude as number | undefined,
+      longitude: loc?.longitude as number | undefined
     }
   }
   const loc = data.location as Record<string, unknown> | undefined
@@ -247,7 +265,8 @@ function latencyBarColor(latency: number | null): string {
 const providers: { value: IPProvider; label: string }[] = [
   { value: 'ip.sb', label: 'IP.SB' },
   { value: 'ipwho.is', label: 'ipwho.is' },
-  { value: 'ipapi.is', label: 'ipapi.is' }
+  { value: 'ipapi.is', label: 'ipapi.is' },
+  { value: 'internetdata', label: 'InternetData' }
 ]
 
 interface InfoRowProps {
