@@ -2,6 +2,7 @@ import { existsSync } from 'fs'
 import { mkdir, readFile, rm } from 'fs/promises'
 import path from 'path'
 import { isDeepStrictEqual } from 'util'
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { BrowserWindow } from 'electron'
 import { atomicWriteFile, WriteQueue } from '../utils/safeFile'
 import { parse, stringify } from '../utils/yaml'
@@ -32,6 +33,12 @@ import {
 } from './references'
 
 export const localWriteQueue = new WriteQueue()
+const localProfileScope = new AsyncLocalStorage<string>()
+
+export function withLocalProfileScope<T>(profileId: string, run: () => Promise<T>): Promise<T> {
+  if (!/^[a-zA-Z0-9_-]+$/.test(profileId)) throw new Error('Invalid local profile ID')
+  return localProfileScope.run(profileId, run)
+}
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T
@@ -61,6 +68,8 @@ function mergeDraft(value: unknown, base: LocalDraft): LocalDraft {
   }
 }
 async function activeLocalProfileId(): Promise<string> {
+  const scopedId = localProfileScope.getStore()
+  if (scopedId) return scopedId
   const { getProfileConfig, getProfileItem } = await import('../config/profile')
   const { current } = await getProfileConfig()
   const item = await getProfileItem(current)
@@ -172,6 +181,8 @@ export async function compileAndWriteLocal(
 export async function isLocalProfileActive(): Promise<boolean> {
   const { getProfileConfig, getProfileItem } = await import('../config/profile')
   const { current } = await getProfileConfig()
+  const scopedId = localProfileScope.getStore()
+  if (scopedId && current !== scopedId) return false
   return isLocalProfile(await getProfileItem(current))
 }
 
@@ -217,7 +228,6 @@ export async function commitLocalState(
     import('../core/mihomoApi')
   ])
   const appConfig = await getAppConfig()
-  const active = await isLocalProfileActive()
   const candidate = path.join(mihomoWorkDir(), '.local-candidate.yaml')
   await mkdir(mihomoWorkDir(), { recursive: true })
   try {
@@ -236,7 +246,9 @@ export async function commitLocalState(
   try {
     if (sharedChanged) await writeLocalSharedConfig(shared)
     await saveLocalState(next)
-    if (active) await mihomoHotReloadConfig()
+    // Runtime generation must follow the actual current profile, not this edit's file scope.
+    if (await isLocalProfileActive()) await localProfileScope.exit(() => mihomoHotReloadConfig())
+    const active = await isLocalProfileActive()
     for (const window of BrowserWindow.getAllWindows()) {
       window.webContents.send('localConfigUpdated')
       if (active) {
@@ -249,7 +261,7 @@ export async function commitLocalState(
     try {
       if (sharedChanged) await writeLocalSharedConfig(previousShared)
       await saveLocalState(state)
-      if (active) await mihomoHotReloadConfig()
+      if (await isLocalProfileActive()) await localProfileScope.exit(() => mihomoHotReloadConfig())
     } catch (restoreError) {
       return {
         ...result,
