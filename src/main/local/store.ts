@@ -89,7 +89,9 @@ function stateFromProfileConfig(value: unknown): LocalState {
   state.published.modules.general = stringify(general)
   for (const key of Object.keys(LOCAL_MODULES).filter((key) => key !== 'general')) {
     if (config[key] === undefined) continue
-    const serialized = stringify(config[key])
+    // Optional YAML collections may be null (e.g. provider-only profiles with no inline nodes).
+    const empty = ['proxies', 'proxy-groups', 'rules'].includes(key) ? [] : {}
+    const serialized = stringify(config[key] ?? empty)
     state.draft.modules[key as keyof typeof state.draft.modules] = serialized
     state.published.modules[key as keyof typeof state.published.modules] = serialized
   }
@@ -265,10 +267,10 @@ export async function commitLocalState(
     } catch (restoreError) {
       return {
         ...result,
-        errors: [`应用失败: ${String(error)}`, `恢复配置或内核失败: ${String(restoreError)}`]
+        errors: [`应用失败：${String(error)}`, `恢复配置或内核失败：${String(restoreError)}`]
       }
     }
-    return { ...result, errors: [`应用失败，已恢复原配置: ${String(error)}`] }
+    return { ...result, errors: [`应用失败，已恢复原配置：${String(error)}`] }
   }
 }
 

@@ -61,6 +61,76 @@ afterEach(async () => {
   await rm(state.root, { recursive: true, force: true })
 })
 
+describe('local YAML profile import', () => {
+  it.each(['null', '~', ''])(
+    'loads provider-only profiles with an empty proxies value: %j',
+    async (empty) => {
+      const content = `
+dns: {enable: true, nameserver: [223.5.5.5]}
+provider: &provider {type: http, url: "https://subscription.invalid/profile", interval: 3600}
+group: &group {type: select, use: [Sub]}
+proxy-providers:
+  Sub: {<<: *provider}
+proxies: ${empty}
+proxy-groups:
+  - {name: PROXY, <<: *group}
+rules: ["MATCH,PROXY"]
+`
+      const file = path.join(state.root, 'profiles/a.yaml')
+      await writeFile(file, content)
+      const local = await getLocalState()
+      for (const draft of [local.draft, local.published]) {
+        const result = compileLocalConfig(draft)
+        expect(result.errors).toEqual([])
+        const config = parse(result.yaml)
+        expect(config.proxies).toEqual([])
+        expect(config['proxy-providers'].Sub).toMatchObject({
+          type: 'http',
+          url: 'https://subscription.invalid/profile',
+          interval: 3600
+        })
+        expect(config['proxy-groups']).toEqual([{ name: 'PROXY', type: 'select', use: ['Sub'] }])
+        expect(config.dns).toEqual({ enable: true, nameserver: ['223.5.5.5'] })
+        expect(config.rules).toEqual(['MATCH,PROXY'])
+      }
+      expect(await readFile(file, 'utf8')).toBe(content)
+    }
+  )
+
+  it('imports null optional modules as empty collections without enabling editor defaults', async () => {
+    await writeFile(
+      path.join(state.root, 'profiles/a.yaml'),
+      'proxies: null\nproxy-groups: null\nrules: null\nproxy-providers: null\nrule-providers: null\nsub-rules: null\ndns: null\nhosts: null\ntun: null\nsniffer: null\n'
+    )
+    const local = await getLocalState()
+    for (const draft of [local.draft, local.published]) {
+      const result = compileLocalConfig(draft)
+      expect(result.errors).toEqual([])
+      const config = parse(result.yaml)
+      for (const key of ['proxies', 'proxy-groups', 'rules']) expect(config[key]).toEqual([])
+      for (const key of [
+        'proxy-providers',
+        'rule-providers',
+        'sub-rules',
+        'dns',
+        'hosts',
+        'tun',
+        'sniffer'
+      ])
+        expect(config[key]).toEqual({})
+    }
+  })
+
+  it.each(['false', '{}', '"null"', 'not-a-list'])(
+    'still rejects non-null invalid proxies values: %s',
+    async (value) => {
+      await writeFile(path.join(state.root, 'profiles/a.yaml'), `proxies: ${value}\n`)
+      const local = await getLocalState()
+      expect(compileLocalConfig(local.draft).errors).toContain('节点: Error: 应为 YAML 列表')
+    }
+  )
+})
+
 describe('local edit profile scope and validation', () => {
   it('keeps writes on the requested file if the UI changes the active profile', async () => {
     const otherBefore = await readFile(path.join(state.root, 'profiles/b.yaml'), 'utf8')
