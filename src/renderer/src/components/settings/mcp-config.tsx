@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Button, Input, Switch } from '@heroui/react'
+import { Button, Input, Switch, Tooltip } from '@heroui/react'
+import { IoIosHelpCircle } from 'react-icons/io'
 import { toast } from '@renderer/components/base/toast'
 import SettingItem from '@renderer/components/base/base-setting-item'
 import SettingCard from '@renderer/components/base/base-setting-card'
@@ -21,6 +22,7 @@ const McpConfig: React.FC = () => {
   const {
     mcpEnabled = false,
     mcpAllowWrites = false,
+    mcpAutoApprove = false,
     mcpPort = 28765,
     mcpToken = ''
   } = appConfig || {}
@@ -88,6 +90,36 @@ const McpConfig: React.FC = () => {
           onValueChange={async (value) => {
             try {
               await patchAppConfig({ mcpAllowWrites: value })
+            } catch (error) {
+              toast.error(String(error))
+            }
+          }}
+        />
+      </SettingItem>
+      <SettingItem
+        title={t('settings.mcp.autoApprove')}
+        actions={
+          <Tooltip content={t('settings.mcp.autoApproveHint')}>
+            <Button
+              isIconOnly
+              size="sm"
+              variant="light"
+              aria-label={t('settings.mcp.autoApproveHint')}
+            >
+              <IoIosHelpCircle className="text-lg" />
+            </Button>
+          </Tooltip>
+        }
+        divider
+      >
+        <Switch
+          size="sm"
+          aria-label={t('settings.mcp.autoApprove')}
+          isDisabled={!mcpEnabled || !mcpAllowWrites || !!importing}
+          isSelected={mcpAutoApprove}
+          onValueChange={async (value) => {
+            try {
+              await patchAppConfig({ mcpAutoApprove: value })
             } catch (error) {
               toast.error(String(error))
             }

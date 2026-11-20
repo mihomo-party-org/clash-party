@@ -19,6 +19,8 @@ import {
 
 export const defaultConfig: IAppConfig = {
   mcpEnabled: false,
+  mcpAllowWrites: false,
+  mcpAutoApprove: false,
   mcpPort: 28765,
   mcpToken: '',
   core: 'mihomo',

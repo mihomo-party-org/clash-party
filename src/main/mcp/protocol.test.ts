@@ -79,10 +79,10 @@ const sessions: {
 }[] = []
 const httpServers: Server[] = []
 
-async function connect(expectedToken?: string) {
+async function connect(expectedToken?: string, requestSignal?: AbortSignal) {
   const { createMcpServer } = await import('./index')
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
-  const server = createMcpServer(expectedToken)
+  const server = createMcpServer(expectedToken, requestSignal)
   const client = new Client({ name: 'security-test', version: '1.0.0' })
   sessions.push({ client, server })
   await server.connect(serverTransport)
@@ -278,13 +278,16 @@ describe('explicit MCP tools and security boundary', () => {
     }
   )
 
-  it('does not accept client-supplied confirmation as local consent', async () => {
-    appConfig.mcpAllowWrites = true
-    const result = await call(await connect(), 'restart_core', { confirm: true })
-    expect(result.isError).toBe(true)
-    expect(backend.showMessageBox).not.toHaveBeenCalled()
-    expect(backend.restartCore).not.toHaveBeenCalled()
-  })
+  it.each(['confirm', 'autoApprove', 'mcpAutoApprove'])(
+    'does not accept client-supplied %s as local consent',
+    async (field) => {
+      appConfig.mcpAllowWrites = true
+      const result = await call(await connect(), 'restart_core', { [field]: true })
+      expect(result.isError).toBe(true)
+      expect(backend.showMessageBox).not.toHaveBeenCalled()
+      expect(backend.restartCore).not.toHaveBeenCalled()
+    }
+  )
 
   it('requires a local decision with cancel selected by default', async () => {
     appConfig.mcpAllowWrites = true
@@ -306,6 +309,129 @@ describe('explicit MCP tools and security boundary', () => {
       ['rulesUpdated']
     ])
     expect(backend.info).toHaveBeenCalledWith('Tool select_profile completed')
+  })
+
+  it.each([undefined, false, 'true', 1])(
+    'requires local confirmation unless auto-approval is explicitly true: %s',
+    async (setting) => {
+      Object.assign(appConfig, { mcpAllowWrites: true, mcpAutoApprove: setting })
+      const client = await connect()
+      expect(value(await call(client, 'get_state')).permissions).toMatchObject({
+        localConfirmationRequired: true
+      })
+      expect((await call(client, 'restart_core')).isError).not.toBe(true)
+      expect(backend.showMessageBox).toHaveBeenCalledOnce()
+      expect(backend.restartCore).toHaveBeenCalledOnce()
+    }
+  )
+
+  it('runs writes without a dialog only when local settings allow automatic approval', async () => {
+    Object.assign(appConfig, { mcpAllowWrites: true, mcpAutoApprove: true })
+    const client = await connect('mcp-secret')
+    expect(value(await call(client, 'get_state')).permissions).toEqual({
+      allowWrites: true,
+      localConfirmationRequired: false
+    })
+    expect((await call(client, 'select_profile', { profileId: 'local' })).isError).not.toBe(true)
+    expect(backend.changeCurrentProfile).toHaveBeenCalledWith('local')
+    expect(backend.showMessageBox).not.toHaveBeenCalled()
+    expect(backend.send).toHaveBeenCalledWith('profileConfigUpdated')
+    expect(backend.info).toHaveBeenCalledWith('Tool select_profile completed')
+  })
+
+  it('does not grant write permission through automatic approval alone', async () => {
+    appConfig.mcpAutoApprove = true
+    expect(errorCode(await call(await connect(), 'restart_core'))).toBe('READ_ONLY')
+    expect(backend.restartCore).not.toHaveBeenCalled()
+    expect(backend.showMessageBox).not.toHaveBeenCalled()
+  })
+
+  it('restores local confirmation for an existing client after automatic approval is disabled', async () => {
+    Object.assign(appConfig, { mcpAllowWrites: true, mcpAutoApprove: true })
+    const client = await connect('mcp-secret')
+    expect((await call(client, 'restart_core')).isError).not.toBe(true)
+    appConfig.mcpAutoApprove = false
+    backend.showMessageBox.mockResolvedValueOnce({ response: 0 })
+    expect(errorCode(await call(client, 'restart_core'))).toBe('USER_DENIED')
+    expect(backend.restartCore).toHaveBeenCalledOnce()
+    expect(backend.showMessageBox).toHaveBeenCalledOnce()
+    expect(value(await call(client, 'get_state')).permissions).toMatchObject({
+      localConfirmationRequired: true
+    })
+  })
+
+  it.each([
+    ['mcpAutoApprove', false, 'APPROVAL_REQUIRED'],
+    ['mcpAllowWrites', false, 'READ_ONLY'],
+    ['mcpEnabled', false, 'READ_ONLY'],
+    ['mcpToken', 'rotated', 'UNAUTHORIZED']
+  ])('rechecks %s before an automatically approved operation starts', async (field, next, code) => {
+    Object.assign(appConfig, { mcpAllowWrites: true, mcpAutoApprove: true })
+    const granted = { ...appConfig }
+    backend.getAppConfig
+      .mockResolvedValueOnce(granted) // Initial write permission.
+      .mockResolvedValueOnce(granted) // Confirmation policy after preparing the operation.
+      .mockResolvedValueOnce({ ...granted, [field]: next }) // Execution permission.
+    expect(errorCode(await call(await connect(), 'restart_core'))).toBe(code)
+    expect(backend.restartCore).not.toHaveBeenCalled()
+    expect(backend.showMessageBox).not.toHaveBeenCalled()
+    // A rejected operation must release the mutation lock.
+    expect((await call(await connect(), 'restart_core')).isError).not.toBe(true)
+    expect(backend.restartCore).toHaveBeenCalledOnce()
+  })
+
+  it.each([false, true])(
+    'checks cancellation after reading the confirmation policy (auto-approval=%s)',
+    async (autoApprove) => {
+      Object.assign(appConfig, { mcpAllowWrites: true, mcpAutoApprove: autoApprove })
+      const controller = new AbortController()
+      const client = await connect(undefined, controller.signal)
+      backend.getAppConfig.mockResolvedValueOnce(appConfig).mockImplementationOnce(async () => {
+        controller.abort()
+        return appConfig
+      })
+      expect(errorCode(await call(client, 'restart_core'))).toBe('CANCELLED')
+      expect(backend.restartCore).not.toHaveBeenCalled()
+      expect(backend.showMessageBox).not.toHaveBeenCalled()
+    }
+  )
+
+  it('checks cancellation after the final automatic-approval permission read', async () => {
+    Object.assign(appConfig, { mcpAllowWrites: true, mcpAutoApprove: true })
+    const controller = new AbortController()
+    const client = await connect(undefined, controller.signal)
+    backend.getAppConfig
+      .mockResolvedValueOnce(appConfig)
+      .mockResolvedValueOnce(appConfig)
+      .mockImplementationOnce(async () => {
+        controller.abort()
+        return appConfig
+      })
+    expect(errorCode(await call(client, 'restart_core'))).toBe('CANCELLED')
+    expect(backend.restartCore).not.toHaveBeenCalled()
+    expect(backend.showMessageBox).not.toHaveBeenCalled()
+  })
+
+  it('preserves serialization across clients in automatic-approval mode', async () => {
+    Object.assign(appConfig, { mcpAllowWrites: true, mcpAutoApprove: true })
+    let finish!: () => void
+    backend.restartCore.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve
+        })
+    )
+    const first = await connect()
+    const second = await connect()
+    const pending = call(first, 'restart_core')
+    await vi.waitFor(() => expect(backend.restartCore).toHaveBeenCalledOnce())
+    try {
+      expect(errorCode(await call(second, 'restart_core'))).toBe('BUSY')
+    } finally {
+      finish()
+      expect((await pending).isError).not.toBe(true)
+    }
+    expect(backend.showMessageBox).not.toHaveBeenCalled()
   })
 
   it.each(['mcpAllowWrites', 'mcpEnabled'])(
@@ -411,6 +537,10 @@ describe('explicit MCP tools and security boundary', () => {
     [
       'edit_profile',
       { profileId: 'remote', revision: 'a'.repeat(64), patch: { mcpAllowWrites: true } }
+    ],
+    [
+      'edit_profile',
+      { profileId: 'remote', revision: 'a'.repeat(64), patch: { mcpAutoApprove: true } }
     ],
     [
       'edit_local_node',

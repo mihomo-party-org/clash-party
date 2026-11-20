@@ -163,7 +163,9 @@ function refresh(channels: RefreshChannel[]): void {
   }
 }
 
-async function requireWriteAccess(expectedToken?: string): Promise<string | undefined> {
+async function requireWriteAccess(
+  expectedToken?: string
+): Promise<{ token: string | undefined; autoApprove: boolean }> {
   const config = await getAppConfig()
   if (expectedToken !== undefined && config.mcpToken?.trim() !== expectedToken) {
     throw new ToolError(
@@ -177,7 +179,7 @@ async function requireWriteAccess(expectedToken?: string): Promise<string | unde
       'READ_ONLY'
     )
   }
-  return config.mcpToken?.trim()
+  return { token: config.mcpToken?.trim(), autoApprove: config.mcpAutoApprove === true }
 }
 
 async function approveMutation(summary: string): Promise<void> {
@@ -229,7 +231,9 @@ export function createMcpServer(expectedToken?: string, requestSignal?: AbortSig
     mcp.registerTool<z.ZodRawShape, z.ZodObject<S>>(
       name,
       {
-        description,
+        description: mutation
+          ? `${description} Requires write permission. Local confirmation is required unless auto-approval is enabled in Clash Party settings.`
+          : description,
         inputSchema: schema,
         annotations: {
           readOnlyHint: !mutation,
@@ -254,7 +258,7 @@ export function createMcpServer(expectedToken?: string, requestSignal?: AbortSig
             }
           }
           if (mutation) {
-            const approvedToken = await requireWriteAccess(expectedToken)
+            const { token: approvedToken } = await requireWriteAccess(expectedToken)
             if (mutationPending)
               throw new ToolError('Another MCP operation is awaiting completion.', 'BUSY')
             mutationPending = true
@@ -262,11 +266,22 @@ export function createMcpServer(expectedToken?: string, requestSignal?: AbortSig
             const summary = await mutation.summary(args)
             if (extra.signal.aborted || requestSignal?.aborted)
               throw new ToolError('Operation was cancelled.', 'CANCELLED')
-            await approveMutation(summary)
+            const policy = await requireWriteAccess(approvedToken)
             if (extra.signal.aborted || requestSignal?.aborted)
               throw new ToolError('Operation was cancelled.', 'CANCELLED')
-            // Settings may have changed while the local confirmation dialog was open.
-            await requireWriteAccess(approvedToken)
+            if (!policy.autoApprove) await approveMutation(summary)
+            if (extra.signal.aborted || requestSignal?.aborted)
+              throw new ToolError('Operation was cancelled.', 'CANCELLED')
+            // Recheck settings even when no confirmation dialog was needed.
+            const current = await requireWriteAccess(approvedToken)
+            if (policy.autoApprove && !current.autoApprove) {
+              throw new ToolError(
+                'Automatic approval was disabled. Retry and confirm the operation in Clash Party.',
+                'APPROVAL_REQUIRED'
+              )
+            }
+            if (extra.signal.aborted || requestSignal?.aborted)
+              throw new ToolError('Operation was cancelled.', 'CANCELLED')
           }
           const output = result(await run(args))
           if (mutation) {
@@ -310,7 +325,7 @@ export function createMcpServer(expectedToken?: string, requestSignal?: AbortSig
         currentProfile: current ? profileSummary(current) : null,
         permissions: {
           allowWrites: config.mcpAllowWrites === true,
-          localConfirmationRequired: true
+          localConfirmationRequired: config.mcpAutoApprove !== true
         }
       }
     }
@@ -406,7 +421,7 @@ export function createMcpServer(expectedToken?: string, requestSignal?: AbortSig
 
   register(
     'select_profile',
-    'Activate an existing saved profile. Requires local confirmation.',
+    'Activate an existing saved profile.',
     z.strictObject({ profileId: profileIdSchema }),
     async ({ profileId }) => {
       await requireProfile(profileId)
@@ -441,7 +456,7 @@ export function createMcpServer(expectedToken?: string, requestSignal?: AbortSig
 
   register(
     'select_proxy',
-    'Select a member of an existing proxy group. Requires local confirmation.',
+    'Select a member of an existing proxy group.',
     z.strictObject({ group: nameSchema, proxy: nameSchema }),
     async ({ group, proxy }) => {
       const target = await requireGroup(group)
@@ -578,7 +593,7 @@ export function createMcpServer(expectedToken?: string, requestSignal?: AbortSig
 
   register(
     'restart_core',
-    'Restart the Mihomo core. Requires local confirmation.',
+    'Restart the Mihomo core.',
     z.strictObject({}),
     async () => {
       await restartCore()
