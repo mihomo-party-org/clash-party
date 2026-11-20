@@ -566,20 +566,16 @@ const Profiles: React.FC = () => {
             {sortedItems.map((item) => (
               <ProfileItem
                 key={item.id}
-                isCurrent={item.id === current && !localSourceIds.has(item.id)}
+                isCurrent={item.id === current}
                 isSource={localSourceIds.has(item.id)}
                 addProfileItem={addProfileItem}
                 removeProfileItem={removeProfileItem}
                 mutateProfileConfig={mutateProfileConfig}
                 updateProfileItem={updateProfileItem}
                 info={item}
-                onPress={
-                  localSourceIds.has(item.id)
-                    ? undefined
-                    : async () => {
-                        await changeCurrentProfile(item.id)
-                      }
-                }
+                onPress={async () => {
+                  await changeCurrentProfile(item.id)
+                }}
               />
             ))}
           </SortableContext>
