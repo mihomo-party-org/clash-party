@@ -6,6 +6,25 @@
 
 此接口面向原生 MCP 客户端，只监听 IPv4 loopback，检查 Host，并拒绝含 Origin 的浏览器请求。Token 不能代替操作前的本机授权；拥有 Token 的客户端可以读取下述公开状态，也可以使用应用中已经保存的测速地址进行测速。
 
+## Agent 一键导入
+
+在「设置 → MCP → 一键导入 Agent」选择客户端。导入前会先保存当前端口和 Token；必须已启用 MCP。
+
+| 客户端      | 导入方式                                                                                                                                     |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cursor      | 调用原生 `cursor://…/mcp/install` 协议，在 Cursor 确认安装                                                                                   |
+| VS Code     | 调用原生 `vscode:mcp/install` 协议，在 VS Code 确认安装                                                                                      |
+| Claude Code | 本机确认后，在 `~/.claude.json` 的 `mcpServers.clash-party` 添加或替换 HTTP 服务；设置了 `CLAUDE_CONFIG_DIR` 时使用该目录下的 `.claude.json` |
+| Codex       | 本机确认后，在 `~/.codex/config.toml` 的 `mcp_servers.clash-party` 添加或替换 HTTP 服务；设置了 `CODEX_HOME` 时使用该目录下的 `config.toml`  |
+
+配置只包含本机 MCP 地址和 Bearer 鉴权头，不会开启 MCP 写权限。导入接口仅接受上述客户端标识，不接受自定义链接、命令、路径或配置内容，也不会作为 MCP 工具暴露。Cursor / VS Code 的安装链接直接交给本机协议处理程序，不经过网页跳转；需预先安装客户端并注册其协议处理程序。Token 随安装配置交给所选客户端，请只导入可信客户端。
+
+Claude Code / Codex 导入会保留其他配置；Codex 使用 TOML AST 定位编辑，保留其他部分的注释和格式。目标 `clash-party` 项会整体替换，旧的命令、环境变量、鉴权和禁用设置不会残留。文件导入会显示路径并要求本机确认，默认取消。配置损坏、结构不支持、文件链接、超过 8 MiB、权限不足及检测到的并发修改均会返回明确错误。写入使用同目录临时文件和原子发布，新文件及更新后的文件使用 `0600` 权限（Windows 使用系统 ACL）。
+
+导入前请关闭 Codex / Claude Code，完成后重新启动；其他进程在最终检查与原子替换之间的写入仍无法完全排除。更换 MCP 端口或 Token 后需重新导入。导入的客户端须在同一台电脑上运行，远程或云端 Agent 无法通过自身的 `127.0.0.1` 访问此服务。
+
+实现格式参考：[Cursor 安装链接](https://cursor.com/docs/mcp/install-links)、[VS Code MCP 开发文档](https://code.visualstudio.com/api/extension-guides/ai/mcp)、[Claude Code MCP](https://code.claude.com/docs/en/mcp)、[Claude Code 配置目录](https://code.claude.com/docs/en/claude-directory)、[Codex MCP 配置](https://developers.openai.com/codex/mcp/)。
+
 ## 工具
 
 工具通过标准 `tools/list` 自描述。参数是具名字段，额外字段会被拒绝。
@@ -106,5 +125,7 @@ MCP 错误和审计日志不会直接输出后端异常对象、请求参数、�
 `src/main/mcp/protocol.test.ts` 使用内存传输和真实 loopback HTTP 传输的官方 SDK 客户端，覆盖工具发现、参数校验、来源检查、权限撤回、确认/取消、并发限制、编辑版本冲突、凭据不回显和错误分类。业务依赖及本机确认窗口在该测试中 mock。
 
 `src/main/local/store.test.ts` 使用临时目录和真实 YAML 编译/文件写入，覆盖配置作用域隔离、界面切换期间写入目标固定、失败校验不发布及运行时重载退出编辑作用域。内核校验和重载在该测试中 mock。
+
+`src/main/mcp/agents.test.ts` 使用临时目录和真实 JSON/TOML 编辑，覆盖导入链接编码、客户端白名单、鉴权配置、配置保留、损坏/链接/大文件拒绝、确认取消、设置撤回、并发冲突及文件权限。协议启动器和本机确认窗口在测试中 mock，不会导入开发者正在使用的 Agent。
 
 这些自动检查不代替实际 Electron 确认窗口、真实运行内核和第三方 MCP 客户端的人工验收。
