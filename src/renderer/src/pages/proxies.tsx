@@ -1075,7 +1075,10 @@ const Proxies: React.FC = () => {
             groupCounts={groupCounts}
             defaultItemHeight={80}
             increaseViewportBy={{ top: 150, bottom: 150 }}
-            overscan={200}
+            // overscan 写成数字时只向滚动方向多渲染，渲染范围取决于方向。一次跨度较大的滚动越过
+            // 一批折叠的代理组后，两个方向算出的范围会来回切换、同步递归，直到
+            // "Maximum call stack size exceeded"。两个方向取相同的值，范围就与方向无关。
+            overscan={{ main: 200, reverse: 200 }}
             computeItemKey={(index, groupIndex) => `${groupIndex}-${index}`}
             groupContent={renderGroupContent}
             itemContent={renderItemContent}

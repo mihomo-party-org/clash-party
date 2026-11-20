@@ -110,12 +110,37 @@ export async function triggerSysProxy(
   return operation
 }
 
-async function enableSysProxy(helperTimeout?: number): Promise<void> {
-  await startPacServer()
+// 轻量模式（仅保留内核）会退出主进程，而 PAC 文件由主进程里的 HTTP 服务提供：退出后系统仍指向
+// 已经不存在的 PAC 地址，代理随之失效。退出前把系统代理改成直接指向本机的内核端口
+// （默认 PAC 脚本指向的也是 127.0.0.1）；下次启动时 init() 会按配置重新设回 PAC。
+export async function switchPacSysProxyToManual(): Promise<boolean> {
   const { sysProxy } = await getAppConfig()
-  const { mode, host, bypass = defaultBypass } = sysProxy
+  if (!sysProxy.enable || sysProxy.mode !== 'auto') return false
+
+  ++triggerSysProxySequence
+  if (triggerSysProxyTimer) {
+    clearTimeout(triggerSysProxyTimer)
+    triggerSysProxyTimer = null
+  }
+
+  // 即将退出：macOS 上 helper 不可用时不做修复（修复会弹管理员密码框），失败交给调用方记录
+  const helperTimeout = 3000
+  const operation = triggerSysProxyQueue.then(async () => {
+    await disableSysProxy(helperTimeout)
+    await enableSysProxy(helperTimeout, true)
+  })
+  triggerSysProxyQueue = operation.catch(() => {})
+  await operation
+  return true
+}
+
+async function enableSysProxy(helperTimeout?: number, forceManual = false): Promise<void> {
+  if (!forceManual) await startPacServer()
+  const { sysProxy } = await getAppConfig()
+  const { host, bypass = defaultBypass } = sysProxy
+  const mode = forceManual ? 'manual' : sysProxy.mode
   const { 'mixed-port': port = DEFAULT_MIHOMO_PORTS.mixed } = await getControledMihomoConfig()
-  const proxyHost = host || '127.0.0.1'
+  const proxyHost = forceManual ? '127.0.0.1' : host || '127.0.0.1'
   const formattedBypass = bypass
     .map((entry) => entry.trim())
     .filter(Boolean)
@@ -132,12 +157,14 @@ async function enableSysProxy(helperTimeout?: number): Promise<void> {
         )
       )
     } else {
-      await helperRequest(() =>
-        axios.post(
-          'http://localhost/global',
-          { host: proxyHost, port: port.toString(), bypass: formattedBypass },
-          helperAxiosOptions(helperTimeout)
-        )
+      await helperRequest(
+        () =>
+          axios.post(
+            'http://localhost/global',
+            { host: proxyHost, port: port.toString(), bypass: formattedBypass },
+            helperAxiosOptions(helperTimeout)
+          ),
+        forceManual ? 0 : 2
       )
     }
   } else {
