@@ -9,7 +9,12 @@ import { useTranslation } from 'react-i18next'
 const McpConfig: React.FC = () => {
   const { t } = useTranslation()
   const { appConfig, patchAppConfig } = useAppConfig()
-  const { mcpEnabled = false, mcpPort = 28765, mcpToken = '' } = appConfig || {}
+  const {
+    mcpEnabled = false,
+    mcpAllowWrites = false,
+    mcpPort = 28765,
+    mcpToken = ''
+  } = appConfig || {}
   const [port, setPort] = useState(String(mcpPort))
   const [token, setToken] = useState(mcpToken)
 
@@ -27,6 +32,19 @@ const McpConfig: React.FC = () => {
           onValueChange={async (value) => {
             try {
               await patchAppConfig({ mcpEnabled: value })
+            } catch (error) {
+              toast.error(String(error))
+            }
+          }}
+        />
+      </SettingItem>
+      <SettingItem title={t('settings.mcp.allowWrites')} divider>
+        <Switch
+          size="sm"
+          isSelected={mcpAllowWrites}
+          onValueChange={async (value) => {
+            try {
+              await patchAppConfig({ mcpAllowWrites: value })
             } catch (error) {
               toast.error(String(error))
             }

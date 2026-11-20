@@ -87,6 +87,7 @@
   "settings.silentStart": "靜默啟動",
   "settings.mcp.title": "MCP",
   "settings.mcp.enabled": "啟用 MCP 服務",
+  "settings.mcp.allowWrites": "允許 MCP 編輯和操作（每次在應用程式內確認）",
   "settings.mcp.confirmTitle": "確認 MCP 操作",
   "settings.mcp.confirmMessage": "外部 MCP 用戶端請求執行以下操作，是否允許？",
   "settings.mcp.action.selectProfile": "切換到設定檔：{{id}}",

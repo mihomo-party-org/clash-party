@@ -87,6 +87,7 @@
   "settings.silentStart": "Silent Start",
   "settings.mcp.title": "MCP",
   "settings.mcp.enabled": "Enable MCP Server",
+  "settings.mcp.allowWrites": "Allow MCP edits and operations (confirm each in the app)",
   "settings.mcp.confirmTitle": "MCP operation approval",
   "settings.mcp.confirmMessage": "An external MCP client requests this operation. Allow it?",
   "settings.mcp.action.selectProfile": "Activate profile: {{id}}",
