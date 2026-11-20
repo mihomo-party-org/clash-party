@@ -225,6 +225,7 @@ describe('explicit MCP tools and security boundary', () => {
       'call',
       'list_capabilities',
       'patchAppConfig',
+      'importMcpAgent',
       'getProfileStr',
       'setOverride'
     ]) {

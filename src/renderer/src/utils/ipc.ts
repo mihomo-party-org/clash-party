@@ -1,4 +1,5 @@
 import { TitleBarOverlayOptions } from 'electron'
+import type { McpAgent, McpAgentImportResult } from '../../../shared/mcp-agents'
 import type {
   TrafficUsageAggregate,
   TrafficUsageBreakdownQuery,
@@ -62,6 +63,7 @@ interface IpcApi {
   // Config
   getAppConfig: (force?: boolean) => Promise<IAppConfig>
   patchAppConfig: (patch: Partial<IAppConfig>) => Promise<void>
+  importMcpAgent: (agent: McpAgent) => Promise<McpAgentImportResult>
   setControlDns: (enabled: boolean, confirmation?: string) => Promise<IControlDnsApplyResult>
   takeDnsOverrideAutoDisabledNotice: () => Promise<boolean>
   getControledMihomoConfig: (force?: boolean) => Promise<Partial<IMihomoConfig>>
@@ -313,6 +315,7 @@ export const {
   // Config
   getAppConfig,
   patchAppConfig,
+  importMcpAgent,
   setControlDns,
   takeDnsOverrideAutoDisabledNotice,
   getControledMihomoConfig,

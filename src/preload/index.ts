@@ -35,6 +35,7 @@ const validInvokeChannels = [
   // Config
   'getAppConfig',
   'patchAppConfig',
+  'importMcpAgent',
   'getControledMihomoConfig',
   'patchControledMihomoConfig',
   'setControlDns',

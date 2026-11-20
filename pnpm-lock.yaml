@@ -65,6 +65,9 @@ importers:
       js-yaml:
         specifier: ^5.5.0
         version: 5.5.0
+      jsonc-parser:
+        specifier: ^3.3.1
+        version: 3.3.1
       plist:
         specifier: ^5.1.1
         version: 5.1.1
@@ -74,6 +77,9 @@ importers:
       sysproxy-rs:
         specifier: file:src\native\sysproxy
         version: file:src/native/sysproxy
+      toml-eslint-parser:
+        specifier: ^0.10.1
+        version: 0.10.1
       validator:
         specifier: ^13.15.35
         version: 13.15.35
@@ -5580,6 +5586,10 @@ packages:
     resolution: {integrity: sha512-o5sSPKEkg/DIQNmH43V0/uerLrpzVedkUh8tGNvaeXpfpuwjKenlSox/2O/BTlZUtEe+JG7s5YhEz608PlAHRA==}
     engines: {node: '>=0.6'}
 
+  toml-eslint-parser@0.10.1:
+    resolution: {integrity: sha512-9mjy3frhioGIVGcwamlVlUyJ9x+WHw/TXiz9R4YOlmsIuBN43r9Dp8HZ35SF9EKjHrn3BUZj04CF+YqZ2oJ+7w==}
+    engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
+
   trim-lines@3.0.1:
     resolution: {integrity: sha512-kRj8B+YHZCc9kQYdWfJB2/oUl9rA99qbowYYBtr4ui4mZyAQ2JpvVBd/6U2YloATfqBhBTSMhTpgBHtU0Mf3Rg==}
 
@@ -10992,7 +11002,7 @@ snapshots:
       es6-error: 4.1.1
       matcher: 3.0.0
       roarr: 2.15.4
-      semver: 7.7.4
+      semver: 7.8.6
       serialize-error: 7.0.1
     optional: true
 
@@ -11863,11 +11873,11 @@ snapshots:
 
   node-abi@4.40.0:
     dependencies:
-      semver: 7.7.4
+      semver: 7.8.6
 
   node-api-version@0.2.1:
     dependencies:
-      semver: 7.7.4
+      semver: 7.8.6
 
   node-domexception@1.0.0: {}
 
@@ -11891,7 +11901,7 @@ snapshots:
       graceful-fs: 4.2.12
       nopt: 9.0.0
       proc-log: 6.1.0
-      semver: 7.7.4
+      semver: 7.8.6
       tar: 7.5.23
       tinyglobby: 0.2.17
       undici: 6.29.1
@@ -12750,6 +12760,10 @@ snapshots:
   tmp@0.2.7: {}
 
   toidentifier@1.0.1: {}
+
+  toml-eslint-parser@0.10.1:
+    dependencies:
+      eslint-visitor-keys: 3.4.3
 
   trim-lines@3.0.1: {}
 

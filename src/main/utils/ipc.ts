@@ -3,6 +3,7 @@ import v8 from 'v8'
 import { readFile } from 'fs/promises'
 import { app, ipcMain } from 'electron'
 import i18next from 'i18next'
+import type { McpAgent } from '../../shared/mcp-agents'
 import {
   mihomoChangeProxy,
   mihomoCloseAllConnections,
@@ -297,6 +298,7 @@ const asyncHandlers: Record<string, AsyncFn> = {
   // Config
   getAppConfig,
   patchAppConfig,
+  importMcpAgent: async (agent: McpAgent) => (await import('../mcp/agents')).importMcpAgent(agent),
   getControledMihomoConfig,
   patchControledMihomoConfig,
   setControlDns,
