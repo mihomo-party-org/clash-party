@@ -1,7 +1,6 @@
 export type LocalObject = Record<string, unknown>
 
 export const LOCAL_PROFILE_ID = 'local'
-export const LEGACY_SIMPLE_PROFILE_ID = 'simple-mode'
 
 export function isLocalProfile(item?: { id?: string; type?: string; pluginId?: string }): boolean {
   return item?.type === 'local' && item.id !== 'default' && !item.pluginId
@@ -15,23 +14,6 @@ export const LOCAL_BUILTIN_OUTBOUNDS: readonly string[] = [
   'PASS-RULE',
   'COMPATIBLE'
 ]
-
-// These Mihomo fields are owned by the application and shared by both modes.
-export const LOCAL_SHARED_CONFIG_KEYS = [
-  'dns',
-  'hosts',
-  'tun',
-  'sniffer',
-  'geox-url',
-  'geodata-mode',
-  'geo-auto-update',
-  'geo-update-interval',
-  'lgbm-auto-update',
-  'lgbm-update-interval',
-  'lgbm-url'
-] as const
-
-export type LocalSharedConfigKey = (typeof LOCAL_SHARED_CONFIG_KEYS)[number]
 
 // Top-level Mihomo settings edited by the kernel settings page.
 export const LOCAL_GENERAL_CONFIG_KEYS = [
@@ -88,6 +70,14 @@ export interface LocalSubscriptionOptions {
   providerOptions?: LocalObject
 }
 
+export interface LocalSourceBinding {
+  localProfileId: string
+  name: string
+  mode: LocalSource['mode']
+  prefix: string
+  nodeNames?: string[]
+}
+
 export interface LocalSource {
   id: string
   name: string
@@ -105,6 +95,7 @@ export interface LocalSource {
   proxies: LocalObject[]
   updated?: number
   profileId?: string
+  localProfileId?: string
   // Per-node cleanup of references from linked subscription content; no profile rewrite.
   removedDialerProxies?: Record<string, string[]>
 }
@@ -114,14 +105,6 @@ export interface LocalDraft {
   modules: Record<LocalModule, string>
   // Standard Mihomo fields without a dedicated local config module.
   preserved?: LocalObject
-  moduleOrder?: LocalModule[]
-}
-
-export interface LocalState {
-  version: 2
-  revision: number
-  draft: LocalDraft
-  published: LocalDraft
 }
 
 export interface LocalPreview {
@@ -171,7 +154,6 @@ export function defaultLocalDraft(): LocalDraft {
       tun: 'enable: false\nstack: mixed\nauto-route: true\nauto-detect-interface: true\ndns-hijack:\n  - any:53\n',
       sniffer: 'enable: false\n'
     },
-    preserved: {},
-    moduleOrder: Object.keys(LOCAL_MODULES) as LocalModule[]
+    preserved: {}
   }
 }

@@ -1,17 +1,13 @@
-import React, { ReactNode, useCallback, useRef, useState } from 'react'
+import React, { ReactNode, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { showError } from '@renderer/utils/error-display'
-import BaseConfirmModal from '@renderer/components/base/base-confirm-modal'
 import {
   addProfileItem as add,
   changeCurrentProfile as change,
   getProfileConfig,
-  localSwitchNeedsDnsConfirm,
   removeProfileItem as remove,
-  setProfileConfig as set,
-  updateProfileItem as update
+  setProfileConfig as set
 } from '@renderer/utils/ipc'
-import { isLocalProfile } from '../../../shared/local-config'
 import { createConfigContext } from './create-config-context'
 
 const { Provider, useConfig } = createConfigContext<IProfileConfig>({
@@ -25,10 +21,8 @@ interface ProfileConfigContextType {
   setProfileConfig: (config: IProfileConfig) => Promise<void>
   mutateProfileConfig: () => void
   addProfileItem: (item: Partial<IProfileItem>) => Promise<void>
-  updateProfileItem: (item: IProfileItem) => Promise<void>
   removeProfileItem: (id: string) => Promise<void>
-  // 用户在 DNS 提示中取消时返回 false。
-  changeCurrentProfile: (id: string) => Promise<boolean>
+  changeCurrentProfile: (id: string) => Promise<void>
 }
 
 const ProfileConfigContext = React.createContext<ProfileConfigContextType | undefined>(undefined)
@@ -46,9 +40,6 @@ const ProfileConfigContextWrapper: React.FC<{ children: ReactNode }> = ({ childr
   const { t } = useTranslation()
   const targetProfileId = useRef<string | null>(null)
   const pendingTask = useRef<Promise<void> | null>(null)
-  // 切到本地配置前的 DNS 确认，保存弹窗的结果回调。
-  const [resolveDnsConfirm, setResolveDnsConfirm] = useState<((ok: boolean) => void) | null>(null)
-  const confirmingDns = useRef(false)
 
   const withErrorHandling = useCallback(
     (action: () => Promise<void>, errorKey: string, updateTray = true) =>
@@ -86,12 +77,6 @@ const ProfileConfigContextWrapper: React.FC<{ children: ReactNode }> = ({ childr
     [withErrorHandling]
   )
 
-  const updateProfileItem = useCallback(
-    (item: IProfileItem) =>
-      withErrorHandling(() => update(item), 'common.error.updateProfileFailed')(),
-    [withErrorHandling]
-  )
-
   const processChange = useCallback(async () => {
     if (pendingTask.current) return
 
@@ -116,35 +101,17 @@ const ProfileConfigContextWrapper: React.FC<{ children: ReactNode }> = ({ childr
     }
   }, [mutate, t])
 
-  const confirmLocalSwitch = useCallback(
-    async (id: string): Promise<boolean> => {
-      if (!isLocalProfile(config?.items.find((item) => item.id === id))) return true
-      if (confirmingDns.current) return false
-      confirmingDns.current = true
-      try {
-        if (!(await localSwitchNeedsDnsConfirm(id))) return true
-        return await new Promise<boolean>((resolve) => setResolveDnsConfirm(() => resolve))
-      } finally {
-        setResolveDnsConfirm(null)
-        confirmingDns.current = false
-      }
-    },
-    [config]
-  )
-
   const changeCurrentProfile = useCallback(
     async (id: string) => {
-      if (targetProfileId.current === id) return true
-      if (!(await confirmLocalSwitch(id))) return false
+      if (targetProfileId.current === id) return
 
       mutate((prev) => (prev ? { ...prev, current: id } : prev), false)
       window.electron.ipcRenderer.send('updateTrayMenu')
 
       targetProfileId.current = id
       await processChange()
-      return true
     },
-    [confirmLocalSwitch, mutate, processChange]
+    [mutate, processChange]
   )
 
   React.useEffect(() => {
@@ -161,20 +128,10 @@ const ProfileConfigContextWrapper: React.FC<{ children: ReactNode }> = ({ childr
         mutateProfileConfig: mutate,
         addProfileItem,
         removeProfileItem,
-        updateProfileItem,
         changeCurrentProfile
       }}
     >
       {children}
-      <BaseConfirmModal
-        isOpen={resolveDnsConfirm !== null}
-        title={t('dns.overrideGuard.confirmTitle')}
-        content={t('dns.overrideGuard.confirmContent')}
-        cancelText={t('dns.overrideGuard.keepOff')}
-        confirmText={t('dns.overrideGuard.enableAnyway')}
-        onCancel={() => resolveDnsConfirm?.(false)}
-        onConfirm={() => resolveDnsConfirm?.(true)}
-      />
     </ProfileConfigContext.Provider>
   )
 }

@@ -70,7 +70,6 @@ interface IpcApi {
   patchControledMihomoConfig: (patch: Partial<IMihomoConfig>) => Promise<void>
   resetAppConfig: () => Promise<void>
   // Profile
-  localSwitchNeedsDnsConfirm: (targetId: string) => Promise<boolean>
   getProfileConfig: (force?: boolean) => Promise<IProfileConfig>
   setProfileConfig: (config: IProfileConfig) => Promise<void>
   getCurrentProfileItem: () => Promise<IProfileItem>
@@ -118,7 +117,7 @@ interface IpcApi {
   getRuntimeConfigStr: () => Promise<string>
   getRuleStr: (id: string) => Promise<string>
   setRuleStr: (id: string, str: string) => Promise<void>
-  getLocalConfig: () => Promise<import('../../../shared/local-config').LocalState>
+  getLocalConfig: (id?: string) => Promise<import('../../../shared/local-config').LocalDraft>
   getLocalNode: (name?: string) => Promise<import('../../../shared/local-config').LocalObject>
   createLocalNodes: (values: import('../../../shared/local-config').LocalObject[]) => Promise<void>
   saveLocalNode: (
@@ -157,18 +156,17 @@ interface IpcApi {
     name: string,
     expected: import('../../../shared/local-config').LocalObject
   ) => Promise<void>
-  saveLocalDraft: (
-    draft: import('../../../shared/local-config').LocalDraft
-  ) => Promise<import('../../../shared/local-config').LocalPreview>
-  previewLocalConfig: () => Promise<import('../../../shared/local-config').LocalPreview>
-  publishLocalConfig: (
-    draft?: import('../../../shared/local-config').LocalDraft
-  ) => Promise<import('../../../shared/local-config').LocalPreview>
+  saveLocalProvider: (
+    kind: 'proxy-providers' | 'rule-providers',
+    name: string | undefined,
+    nextName: string,
+    value: import('../../../shared/local-config').LocalObject,
+    expected?: import('../../../shared/local-config').LocalObject
+  ) => Promise<void>
+  previewLocalConfig: (id?: string) => Promise<import('../../../shared/local-config').LocalPreview>
   exportLocalConfig: () => Promise<
     import('../../../shared/local-config').LocalPreview & { path?: string }
   >
-  refreshLocalSource: (id: string) => Promise<import('../../../shared/local-config').LocalPreview>
-  removeLocalSource: (id: string) => Promise<import('../../../shared/local-config').LocalPreview>
   getFilePath: (ext: string[], title?: string, filterName?: string) => Promise<string[] | undefined>
   readTextFile: (filePath: string) => Promise<string>
   readImageFileDataURL: (filePath: string) => Promise<string>
@@ -322,7 +320,6 @@ export const {
   patchControledMihomoConfig,
   resetAppConfig,
   // Profile
-  localSwitchNeedsDnsConfirm,
   getProfileConfig,
   setProfileConfig,
   getCurrentProfileItem,
@@ -366,12 +363,9 @@ export const {
   saveLocalProxyGroup,
   removeLocalProxyGroup,
   reorderLocalProxyGroups,
-  saveLocalDraft,
+  saveLocalProvider,
   previewLocalConfig,
-  publishLocalConfig,
   exportLocalConfig,
-  refreshLocalSource,
-  removeLocalSource,
   getFilePath,
   readTextFile,
   readImageFileDataURL,

@@ -200,14 +200,6 @@ export function mihomoWorkConfigPath(id: string | undefined): string {
   }
 }
 
-export function localConfigPath(): string {
-  return path.join(dataDir(), 'local-config.yaml')
-}
-
-export function localOutputPath(): string {
-  return path.join(dataDir(), 'local-config.generated.yaml')
-}
-
 export function logDir(): string {
   return path.join(dataDir(), 'logs')
 }

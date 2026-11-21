@@ -268,7 +268,7 @@ const ProxyProvider: React.FC<{ editing?: boolean }> = ({ editing: editingProp }
                 </Button>
               </div>
             </SettingItem>
-            {!localMode && provider.subscriptionInfo && (
+            {provider.subscriptionInfo && (
               <SettingItem
                 divider={index !== providers.length - 1}
                 title={

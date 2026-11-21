@@ -879,14 +879,12 @@
     "outdatedFile": "قالب فایل افزونه قدیمی است؛ لطفاً نسخه جدید را از سرویس‌دهنده دریافت کنید",
     "fileTooLarge": "فایل افزونه بیش از حد بزرگ است"
   },
-  "profiles.sections.configs": "پیکربندی‌ها",
-  "profiles.sections.sources": "منابع",
   "profiles.localProfile": "پیکربندی محلی",
   "profiles.localNodes": "گره‌های محلی",
   "profiles.exportLocal": "خروجی پیکربندی",
   "profiles.editInfo.source.title": "روش وارد کردن",
+  "profiles.editInfo.source.remote": "اشتراک کامل راه دور",
+  "profiles.editInfo.source.local": "پیکربندی کامل محلی",
   "profiles.editInfo.source.group": "مجموعه پروکسی",
-  "profiles.editInfo.source.nodes": "گره‌های جداگانه",
-  "profiles.saveDraft": "ذخیره پیش‌نویس",
-  "profiles.publish": "انتشار"
+  "profiles.editInfo.source.nodes": "گره‌های جداگانه"
 }

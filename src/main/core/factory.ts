@@ -26,8 +26,6 @@ import { createLogger } from '../utils/logger'
 import { decryptAgeContent } from '../utils/age'
 import { DEFAULT_CONTROL_DNS, DEFAULT_CONTROL_SNIFF } from '../../shared/appConfig'
 import { atomicWriteFile } from '../utils/safeFile'
-import { compileLocalRuntime } from '../local/service'
-import { isLocalProfile } from '../../shared/local-config'
 import { evaluateDnsOverrideGuard, type DnsOverrideGuardResult } from './dnsOverrideGuard'
 
 const factoryLogger = createLogger('Factory')
@@ -142,42 +140,30 @@ export async function generateProfile(
   const { current } = profileConfig
   const profileId = options.profileId ?? current
   // 第二阶段：仅依赖 profileId 的读取并行执行。
-  const [currentProfileItem, overrideIds, fetchedControledMihomoConfig] = await Promise.all([
-    getProfileItem(profileId),
-    getOrderedOverrideIds(profileId, options.profileOverrideIds, options.globalOverrideIds),
-    getControledMihomoConfig()
-  ])
-  const local = isLocalProfile(currentProfileItem)
-  let baseProfile: IMihomoConfig
-  if (local) {
-    const result = await compileLocalRuntime()
-    if (result.errors.length > 0) {
-      throw new Error(`配置无效：\n${result.errors.join('\n')}`)
-    }
-    baseProfile = parse(result.yaml) as IMihomoConfig
-  } else {
-    baseProfile = options.baseProfile ?? (await getProfile(profileId))
-  }
+  const [currentProfileItem, baseProfile, overrideIds, fetchedControledMihomoConfig] =
+    await Promise.all([
+      getProfileItem(profileId),
+      options.baseProfile ?? getProfile(profileId),
+      getOrderedOverrideIds(profileId, options.profileOverrideIds, options.globalOverrideIds),
+      getControledMihomoConfig()
+    ])
   const ageSecretKey = options.ageSecretKey ?? currentProfileItem?.ageSecretKey ?? ''
   let controledMihomoConfig = pendingControledMihomoConfig ?? fetchedControledMihomoConfig
   const {
-    diffWorkDir: diffWorkDirSetting = false,
+    diffWorkDir = false,
     controlDns: controlDnsSetting = DEFAULT_CONTROL_DNS,
     disableDnsOverrideGuard = false,
     controlSniff = DEFAULT_CONTROL_SNIFF,
     useNameserverPolicy
   } = appConfig
-  const diffWorkDir = local ? false : diffWorkDirSetting
-  // DNS 保护先于覆写和脚本处理，开关在内核应用成功后同步。本地配置的 DNS 由其模块自持，不参与保护。
-  const dnsGuard = local
-    ? { controlDns: false, autoDisabled: false, fingerprint: null, request: null }
-    : evaluateDnsOverrideGuard(
-        profileId ?? 'default',
-        baseProfile,
-        controlDnsSetting,
-        options.updateRuntimeConfig !== false,
-        !disableDnsOverrideGuard
-      )
+  // DNS 保护先于覆写和脚本处理，开关在内核应用成功后同步。
+  const dnsGuard = evaluateDnsOverrideGuard(
+    profileId ?? 'default',
+    baseProfile,
+    controlDnsSetting,
+    options.updateRuntimeConfig !== false,
+    !disableDnsOverrideGuard
+  )
   const { controlDns } = dnsGuard
   const profileWithNormalOverride = await applyOverrides(
     baseProfile,
@@ -201,7 +187,10 @@ export async function generateProfile(
     delete controledMihomoConfig.sniffer
   }
   if (!useNameserverPolicy) {
-    delete controledMihomoConfig?.dns?.['nameserver-policy']
+    if (controledMihomoConfig.dns) {
+      controledMihomoConfig.dns = { ...controledMihomoConfig.dns }
+      delete controledMihomoConfig.dns['nameserver-policy']
+    }
   }
 
   const profile = deepMerge(currentProfile, controledMihomoConfig)

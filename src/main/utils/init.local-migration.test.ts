@@ -136,6 +136,11 @@ describe('local migration', () => {
     expect(existsSync(path.join(dataDir, 'profiles', 'local.yaml'))).toBe(true)
     expect(existsSync(path.join(dataDir, 'local-config.yaml'))).toBe(false)
     expect(existsSync(path.join(dataDir, 'simple-config.yaml'))).toBe(false)
+    const config = yaml.parse(readFileSync(path.join(dataDir, 'profiles', 'local.yaml'), 'utf8'))
+    expect(config.proxies).toMatchObject([{ name: '[机场A] n1' }])
+    expect(config['proxy-groups']).toMatchObject([{ name: 'PROXY', proxies: ['DIRECT'] }])
+    expect(config.rules).toEqual(['MATCH,PROXY'])
+    expect(config.draft).toBeUndefined()
 
     const appConfig = yaml.parse(readFileSync(path.join(dataDir, 'config.yaml'), 'utf-8'))
     expect(appConfig.operationMode).toBeUndefined()
@@ -164,5 +169,29 @@ describe('local migration', () => {
     const profileConfig = yaml.parse(readFileSync(path.join(dataDir, 'profile.yaml'), 'utf-8'))
     expect(profileConfig.items.some((item: { id?: string }) => item.id === 'local')).toBe(false)
     expect(profileConfig.current).toBeUndefined()
+  })
+
+  it('keeps the original YAML and active selection when a local profile is already migrated', async () => {
+    seedLegacyData()
+    const canonical = '# edited locally\nproxies: []\nproxy-groups: []\nrules: [MATCH,DIRECT]\n'
+    writeFileSync(path.join(dataDir, 'config.yaml'), yaml.stringify({ core: 'mihomo' }))
+    writeFileSync(
+      path.join(dataDir, 'profile.yaml'),
+      yaml.stringify({
+        current: 'remote',
+        items: [
+          { id: 'local', type: 'local', name: 'Existing local' },
+          { id: 'remote', type: 'remote', name: 'Full subscription' }
+        ]
+      })
+    )
+    const file = path.join(dataDir, 'profiles', 'local.yaml')
+    writeFileSync(file, canonical)
+    const { initBasic } = await import('./init')
+    await initBasic()
+    expect(readFileSync(file, 'utf8')).toBe(canonical)
+    expect(yaml.parse(readFileSync(path.join(dataDir, 'profile.yaml'), 'utf8')).current).toBe(
+      'remote'
+    )
   })
 })

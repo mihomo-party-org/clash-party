@@ -16,7 +16,7 @@ const LocalNodes: React.FC = () => {
   const nodes = useMemo<LocalObject[]>(() => {
     if (!data) return []
     try {
-      const parsed: unknown = parse(data.draft.modules.proxies)
+      const parsed: unknown = parse(data.modules.proxies)
       return Array.isArray(parsed)
         ? parsed.filter((item): item is LocalObject => !!item && typeof item === 'object')
         : []

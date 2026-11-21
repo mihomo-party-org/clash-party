@@ -935,14 +935,12 @@
     "outdatedFile": "该插件文件格式已过期，请从机场重新获取",
     "fileTooLarge": "插件文件过大"
   },
-  "profiles.sections.configs": "配置",
-  "profiles.sections.sources": "来源",
   "profiles.localProfile": "本地配置",
   "profiles.localNodes": "本地节点",
   "profiles.exportLocal": "导出配置",
   "profiles.editInfo.source.title": "导入方式",
+  "profiles.editInfo.source.remote": "完整远程订阅",
+  "profiles.editInfo.source.local": "完整本地配置",
   "profiles.editInfo.source.group": "代理集合",
-  "profiles.editInfo.source.nodes": "独立节点",
-  "profiles.saveDraft": "保存草稿",
-  "profiles.publish": "发布"
+  "profiles.editInfo.source.nodes": "独立节点"
 }

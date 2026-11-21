@@ -93,11 +93,7 @@ import {
   setupFirewall
 } from '../sys/misc'
 import { getRuntimeConfig, getRuntimeConfigStr } from '../core/factory'
-import {
-  localSwitchNeedsDnsConfirm,
-  setControlDns,
-  takeDnsOverrideAutoDisabledNotice
-} from '../core/dnsOverrideGuard'
+import { setControlDns, takeDnsOverrideAutoDisabledNotice } from '../core/dnsOverrideGuard'
 import { getSmartModelStatus, downloadSmartModel } from '../core/smartModel'
 import {
   listWebdavBackups,
@@ -161,12 +157,9 @@ import {
   saveLocalProxyGroup,
   removeLocalProxyGroup,
   reorderLocalProxyGroups,
-  saveLocalDraft,
+  saveLocalProvider,
   previewLocalConfig,
-  publishLocalConfig,
-  exportLocalConfig,
-  refreshLocalSource,
-  removeLocalSource
+  exportLocalConfig
 } from '../local/service'
 import { getImageDataURL } from './image'
 import { get as httpGet } from './chromeRequest'
@@ -304,7 +297,6 @@ const asyncHandlers: Record<string, AsyncFn> = {
   setControlDns,
   takeDnsOverrideAutoDisabledNotice,
   // Profile
-  localSwitchNeedsDnsConfirm,
   getProfileConfig,
   setProfileConfig,
   getCurrentProfileItem,
@@ -349,12 +341,9 @@ const asyncHandlers: Record<string, AsyncFn> = {
   saveLocalProxyGroup,
   removeLocalProxyGroup,
   reorderLocalProxyGroups,
-  saveLocalDraft,
+  saveLocalProvider,
   previewLocalConfig,
-  publishLocalConfig,
   exportLocalConfig,
-  refreshLocalSource,
-  removeLocalSource,
   readTextFile,
   // Core
   restartCore,

@@ -935,14 +935,12 @@
     "outdatedFile": "This plugin file format is outdated; please obtain the new one from your provider",
     "fileTooLarge": "Plugin file is too large"
   },
-  "profiles.sections.configs": "Configs",
-  "profiles.sections.sources": "Sources",
   "profiles.localProfile": "Local Config",
   "profiles.localNodes": "Local Nodes",
   "profiles.exportLocal": "Export Config",
   "profiles.editInfo.source.title": "Import mode",
+  "profiles.editInfo.source.remote": "Full Remote Profile",
+  "profiles.editInfo.source.local": "Full Local Config",
   "profiles.editInfo.source.group": "Proxy Provider",
-  "profiles.editInfo.source.nodes": "Individual Nodes",
-  "profiles.saveDraft": "Save Draft",
-  "profiles.publish": "Publish"
+  "profiles.editInfo.source.nodes": "Individual Nodes"
 }

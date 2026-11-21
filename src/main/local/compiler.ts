@@ -4,23 +4,16 @@ export { ruleParts } from '../../shared/local-rules'
 import {
   LOCAL_BUILTIN_OUTBOUNDS,
   LOCAL_MODULES,
-  LOCAL_SHARED_CONFIG_KEYS,
-  type LocalSharedConfigKey,
   type LocalDraft,
   type LocalObject,
   type LocalPreview
 } from '../../shared/local-config'
 
-export type LocalSharedConfig = Partial<Pick<IMihomoConfig, LocalSharedConfigKey>>
-
 export function isObject(value: unknown): value is LocalObject {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
-export function compileLocalConfig(
-  draft: LocalDraft,
-  shared: LocalSharedConfig = {}
-): LocalPreview {
+export function compileLocalConfig(draft: LocalDraft): LocalPreview {
   const errors: string[] = []
   const config: LocalObject = structuredClone(draft.preserved || {})
   for (const key of Object.keys(LOCAL_MODULES)) {
@@ -30,10 +23,7 @@ export function compileLocalConfig(
       if (list ? !Array.isArray(value) : !isObject(value)) {
         throw new Error(list ? '应为 YAML 列表' : '应为 YAML 对象')
       }
-      const sharedValue = shared[key as keyof LocalSharedConfig]
-      if (sharedValue !== undefined && ['dns', 'hosts', 'tun', 'sniffer'].includes(key)) {
-        config[key] = structuredClone(sharedValue) as LocalObject
-      } else if (key === 'general') {
+      if (key === 'general') {
         for (const [field, fieldValue] of Object.entries(value as LocalObject)) {
           config[field] = fieldValue
         }
@@ -42,12 +32,6 @@ export function compileLocalConfig(
       errors.push(`${LOCAL_MODULES[key]}: ${String(e)}`)
       if (key !== 'general')
         config[key] = ['proxies', 'proxy-groups', 'rules'].includes(key) ? [] : {}
-    }
-  }
-  for (const key of LOCAL_SHARED_CONFIG_KEYS) {
-    const value = shared[key]
-    if (value !== undefined && !['dns', 'hosts', 'tun', 'sniffer'].includes(key)) {
-      config[key] = structuredClone(value) as LocalObject
     }
   }
   const proxies = config.proxies as LocalObject[]

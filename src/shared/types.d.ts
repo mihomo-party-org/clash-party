@@ -605,6 +605,7 @@ interface IProfileItem {
   id: string
   type: 'remote' | 'local'
   name: string
+  nodeSource?: false | import('./local-config').LocalSourceBinding
   url?: string // remote
   file?: string // local
   interval?: number | string

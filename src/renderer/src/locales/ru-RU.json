@@ -885,14 +885,12 @@
     "outdatedFile": "Формат файла плагина устарел; получите новый у провайдера",
     "fileTooLarge": "Файл плагина слишком большой"
   },
-  "profiles.sections.configs": "Конфигурации",
-  "profiles.sections.sources": "Источники",
   "profiles.localProfile": "Локальная конфигурация",
   "profiles.localNodes": "Локальные узлы",
   "profiles.exportLocal": "Экспорт конфигурации",
   "profiles.editInfo.source.title": "Режим импорта",
+  "profiles.editInfo.source.remote": "Полная удалённая конфигурация",
+  "profiles.editInfo.source.local": "Полная локальная конфигурация",
   "profiles.editInfo.source.group": "Прокси-провайдер",
-  "profiles.editInfo.source.nodes": "Отдельные узлы",
-  "profiles.saveDraft": "Сохранить черновик",
-  "profiles.publish": "Опубликовать"
+  "profiles.editInfo.source.nodes": "Отдельные узлы"
 }

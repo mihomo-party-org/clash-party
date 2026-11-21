@@ -11,10 +11,9 @@ import {
   Textarea
 } from '@heroui/react'
 import { toast } from '@renderer/components/base/toast'
-import { getLocalConfig, publishLocalConfig, saveLocalDraft } from '@renderer/utils/ipc'
-import { parse, stringify } from 'yaml'
+import { getLocalConfig, saveLocalProvider } from '@renderer/utils/ipc'
+import { stringify } from 'yaml'
 import { useEffect, useState } from 'react'
-import type { LocalModule, LocalState } from '../../../../shared/local-config'
 import { parseYaml } from '../../../../shared/yaml'
 
 /* eslint-disable react/prop-types */
@@ -49,7 +48,8 @@ const ruleFormats = [
 ]
 
 const ProviderModal: React.FC<Props> = ({ kind, name: editingName, onClose, onSaved }) => {
-  const [state, setState] = useState<LocalState>()
+  const [loaded, setLoaded] = useState(false)
+  const [currentProvider, setCurrentProvider] = useState<ProviderValue>()
   const [name, setName] = useState(editingName || '')
   const [type, setType] = useState('http')
   const [url, setUrl] = useState('')
@@ -60,28 +60,15 @@ const ProviderModal: React.FC<Props> = ({ kind, name: editingName, onClose, onSa
   const [format, setFormat] = useState('yaml')
   const [payload, setPayload] = useState(kind === 'rule-providers' ? '' : '[]')
   const [saving, setSaving] = useState(false)
-  const module = kind as LocalModule
   const isRuleProvider = kind === 'rule-providers'
 
   useEffect(() => {
     getLocalConfig()
       .then((next) => {
-        setState(next)
-        const providers = (parse(next.draft.modules[module]) || {}) as Record<string, ProviderValue>
-        const source =
-          kind === 'proxy-providers'
-            ? next.draft.sources.find((item) => item.name === editingName)
-            : undefined
-        const current: ProviderValue | undefined = source
-          ? {
-              type: source.mode,
-              url: source.url,
-              interval: source.interval,
-              payload: source.proxies
-            }
-          : editingName
-            ? providers[editingName]
-            : undefined
+        const providers = (parseYaml(next.modules[kind]) || {}) as Record<string, ProviderValue>
+        const current = editingName ? providers[editingName] : undefined
+        setCurrentProvider(current)
+        setLoaded(true)
         if (!current) return
         setType(String(current.type || 'http'))
         setUrl(String(current.url || ''))
@@ -97,10 +84,10 @@ const ProviderModal: React.FC<Props> = ({ kind, name: editingName, onClose, onSa
         )
       })
       .catch((error) => toast.error(String(error)))
-  }, [editingName, module, kind, isRuleProvider])
+  }, [editingName, kind, isRuleProvider])
 
-  const save = async (publish: boolean): Promise<void> => {
-    if (!state || !name.trim()) {
+  const save = async (): Promise<void> => {
+    if (!loaded || !name.trim()) {
       toast.error('名称不能为空')
       return
     }
@@ -146,24 +133,7 @@ const ProviderModal: React.FC<Props> = ({ kind, name: editingName, onClose, onSa
         }
       }
     }
-    const currentProviders = (parse(state.draft.modules[module]) || {}) as Record<
-      string,
-      ProviderValue
-    >
-    const nextProviders = { ...currentProviders }
-    const source = !isRuleProvider
-      ? state.draft.sources.find((item) => item.name === editingName)
-      : undefined
-    if (
-      name.trim() !== editingName &&
-      (Object.hasOwn(nextProviders, name.trim()) ||
-        (!isRuleProvider && state.draft.sources.some((item) => item.name === name.trim())))
-    ) {
-      toast.error('名称已存在')
-      return
-    }
-    if (editingName && editingName !== name.trim()) delete nextProviders[editingName]
-    const retained = { ...(editingName ? currentProviders[editingName] : {}) }
+    const retained = { ...currentProvider }
     for (const key of ['type', 'url', 'path', 'interval', 'proxy', 'behavior', 'format'])
       delete retained[key]
     const value: ProviderValue = {
@@ -177,34 +147,10 @@ const ProviderModal: React.FC<Props> = ({ kind, name: editingName, onClose, onSa
         ? { behavior, ...(type !== 'inline' && format.trim() ? { format: format.trim() } : {}) }
         : {})
     }
-    if (!source) nextProviders[name.trim()] = value
-    const draft = {
-      ...state.draft,
-      sources: source
-        ? state.draft.sources.map((item) =>
-            item.id === source.id
-              ? {
-                  ...item,
-                  name: name.trim(),
-                  mode: type as 'http' | 'inline',
-                  url: type === 'http' ? url.trim() : item.url,
-                  interval: type === 'http' ? Number(interval) : item.interval,
-                  proxies:
-                    type === 'inline' ? (parsedPayload as Record<string, unknown>[]) : item.proxies
-                }
-              : item
-          )
-        : state.draft.sources,
-      modules: { ...state.draft.modules, [module]: stringify(nextProviders) }
-    }
     setSaving(true)
     try {
-      const result = publish ? await publishLocalConfig(draft) : await saveLocalDraft(draft)
-      if (result.errors.length) {
-        toast.error(result.errors.join('\n'))
-        return
-      }
-      toast.success(publish ? '已发布' : '已保存草稿')
+      await saveLocalProvider(kind, editingName, name.trim(), value, currentProvider)
+      toast.success('已保存')
       onSaved()
       onClose()
     } catch (error) {
@@ -228,9 +174,6 @@ const ProviderModal: React.FC<Props> = ({ kind, name: editingName, onClose, onSa
               label="类型"
               disallowEmptySelection
               selectedKeys={[type]}
-              disabledKeys={
-                state?.draft.sources.some((item) => item.name === editingName) ? ['file'] : []
-              }
               onChange={(e) => setType(e.target.value)}
             >
               {providerTypes.map((item) => (
@@ -240,15 +183,14 @@ const ProviderModal: React.FC<Props> = ({ kind, name: editingName, onClose, onSa
             {type === 'http' && (
               <Input className="col-span-2" label="URL" value={url} onValueChange={setUrl} />
             )}
-            {type !== 'inline' &&
-              !state?.draft.sources.some((item) => item.name === editingName) && (
-                <Input
-                  className="col-span-2"
-                  label={type === 'http' ? '缓存路径（可选）' : '路径'}
-                  value={path}
-                  onValueChange={setPath}
-                />
-              )}
+            {type !== 'inline' && (
+              <Input
+                className="col-span-2"
+                label={type === 'http' ? '缓存路径（可选）' : '路径'}
+                value={path}
+                onValueChange={setPath}
+              />
+            )}
             {type === 'http' && (
               <Input
                 label="更新间隔（秒）"
@@ -257,9 +199,7 @@ const ProviderModal: React.FC<Props> = ({ kind, name: editingName, onClose, onSa
                 onValueChange={setInterval}
               />
             )}
-            {type === 'http' && !state?.draft.sources.some((item) => item.name === editingName) && (
-              <Input label="下载代理" value={proxy} onValueChange={setProxy} />
-            )}
+            {type === 'http' && <Input label="下载代理" value={proxy} onValueChange={setProxy} />}
             {isRuleProvider && (
               <>
                 <Select
@@ -305,11 +245,8 @@ const ProviderModal: React.FC<Props> = ({ kind, name: editingName, onClose, onSa
           <Button variant="light" onPress={onClose}>
             取消
           </Button>
-          <Button variant="flat" isDisabled={!state} isLoading={saving} onPress={() => save(false)}>
-            保存草稿
-          </Button>
-          <Button color="primary" isDisabled={!state} isLoading={saving} onPress={() => save(true)}>
-            发布
+          <Button color="primary" isDisabled={!loaded} isLoading={saving} onPress={save}>
+            保存
           </Button>
         </ModalFooter>
       </ModalContent>

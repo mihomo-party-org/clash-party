@@ -4,14 +4,12 @@ import BorderSwitch from '@renderer/components/base/border-switch'
 import BaseConfirmModal from '@renderer/components/base/base-confirm-modal'
 import { LuServer } from 'react-icons/lu'
 import { useLocation } from 'react-router-dom'
-import { patchControledMihomoConfig, setControlDns, getLocalConfig } from '@renderer/utils/ipc'
+import { setControlDns } from '@renderer/utils/ipc'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { useActiveProfile } from '@renderer/hooks/use-active-profile'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import useSWR from 'swr'
 import { DEFAULT_CONTROL_DNS } from '../../../../shared/appConfig'
 import SiderItem from './sider-item'
 
@@ -22,11 +20,6 @@ interface Props {
 const DNSCard: React.FC<Props> = (props) => {
   const { t } = useTranslation()
   const { appConfig, mutateAppConfig } = useAppConfig()
-  const { isLocalActive } = useActiveProfile()
-  const { data: localState, mutate: mutateLocalState } = useSWR(
-    isLocalActive ? 'getLocalConfig' : null,
-    getLocalConfig
-  )
   const { iconOnly, expanded } = props
   const [applying, setApplying] = useState(false)
   // 弹窗保存待确认指纹，开关以后端状态为准。
@@ -38,9 +31,6 @@ const DNSCard: React.FC<Props> = (props) => {
   } = appConfig || {}
   const location = useLocation()
   const match = location.pathname.includes('/dns')
-  const localDnsEnabled = localState
-    ? !/^enable:\s*false\s*$/m.test(localState.published.modules.dns || '')
-    : true
   const {
     attributes,
     listeners,
@@ -56,11 +46,6 @@ const DNSCard: React.FC<Props> = (props) => {
     if (applying) return
     setApplying(true)
     try {
-      if (isLocalActive) {
-        await patchControledMihomoConfig({ dns: { enable: enabled } })
-        await mutateLocalState()
-        return
-      }
       const result = await setControlDns(enabled, confirmed)
       // 来源变化时保留弹窗，换用新指纹。
       setConfirmation(result.status === 'confirm-required' ? result.confirmation : null)
@@ -97,15 +82,16 @@ const DNSCard: React.FC<Props> = (props) => {
       <>
         <SiderItem
           className={dnsCardStatus}
-          title={isLocalActive ? 'DNS' : t('sider.cards.dns')}
+          title={t('sider.cards.dns')}
           route="/dns"
           icon={<LuServer className="text-[20px]" />}
           expanded={expanded}
         >
           <BorderSwitch
-            aria-label={isLocalActive ? 'DNS' : t('sider.cards.dns')}
-            isShowBorder={match && (isLocalActive ? localDnsEnabled : controlDns)}
-            isSelected={isLocalActive ? localDnsEnabled : controlDns}
+            aria-label={t('sider.cards.dns')}
+            isShowBorder={match && controlDns}
+            isSelected={controlDns}
+            isDisabled={applying}
             onValueChange={onChange}
           />
         </SiderItem>
@@ -144,8 +130,9 @@ const DNSCard: React.FC<Props> = (props) => {
               />
             </Button>
             <BorderSwitch
-              isShowBorder={match && (isLocalActive ? localDnsEnabled : controlDns)}
-              isSelected={isLocalActive ? localDnsEnabled : controlDns}
+              isShowBorder={match && controlDns}
+              isSelected={controlDns}
+              isDisabled={applying}
               onValueChange={onChange}
             />
           </div>
@@ -154,7 +141,7 @@ const DNSCard: React.FC<Props> = (props) => {
           <h3
             className={`text-md font-bold sider-card-title ${match ? 'text-primary-foreground' : 'text-foreground'}`}
           >
-            {isLocalActive ? 'DNS' : t('sider.cards.dns')}
+            {t('sider.cards.dns')}
           </h3>
         </CardFooter>
       </Card>

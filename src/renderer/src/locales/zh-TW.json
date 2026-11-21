@@ -935,14 +935,12 @@
     "outdatedFile": "該外掛檔案格式已過期，請從機場重新取得",
     "fileTooLarge": "外掛檔案過大"
   },
-  "profiles.sections.configs": "設定",
-  "profiles.sections.sources": "來源",
   "profiles.localProfile": "本機設定",
   "profiles.localNodes": "本機節點",
   "profiles.exportLocal": "匯出設定",
   "profiles.editInfo.source.title": "匯入方式",
+  "profiles.editInfo.source.remote": "完整遠端訂閱",
+  "profiles.editInfo.source.local": "完整本機設定",
   "profiles.editInfo.source.group": "代理集合",
-  "profiles.editInfo.source.nodes": "獨立節點",
-  "profiles.saveDraft": "儲存草稿",
-  "profiles.publish": "發布"
+  "profiles.editInfo.source.nodes": "獨立節點"
 }

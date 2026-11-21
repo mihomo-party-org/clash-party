@@ -34,7 +34,7 @@ export function toolFailure(error: unknown): CallToolResult {
       message = 'The saved upstream credentials were rejected. Update them in Clash Party.'
     } else if (
       typeof backend.message === 'string' &&
-      /已被修改|已变化|草稿尚未发布/.test(backend.message)
+      /已被修改|已变化|已变更/.test(backend.message)
     ) {
       code = 'CONFLICT'
       message = 'The configuration changed. Read the target again before editing.'

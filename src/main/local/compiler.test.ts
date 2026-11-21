@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { parse } from 'yaml'
+import { parse, stringify } from 'yaml'
 import { defaultLocalDraft } from '../../shared/local-config'
 import type { LocalDraft, LocalSource } from '../../shared/local-config'
+import { findProfileSource } from '../../shared/profile-source'
 import { compileLocalConfig } from './compiler'
 
 function draftWith(
@@ -24,6 +25,79 @@ function source(partial: Partial<LocalSource>): LocalSource {
     ...partial
   }
 }
+
+describe('profile source resolution from canonical YAML', () => {
+  const item = { id: 'subscription', name: 'Airport', url: 'https://example.test/sub' }
+
+  it('prefers an explicit profile link over inferred names', () => {
+    const linked = source({ profileId: item.id, name: 'Linked provider' })
+    const draft = draftWith({
+      sources: [linked],
+      modules: { 'proxy-providers': 'Airport: {type: inline, payload: []}\n' }
+    })
+    expect(findProfileSource(draft, item)).toBe(linked)
+  })
+
+  it.each(['http', 'inline'] as const)(
+    'recognizes a compiled %s provider without legacy source metadata',
+    (mode) => {
+      const draft = draftWith({
+        sources: [
+          source({
+            name: 'Airport',
+            mode,
+            prefix: mode === 'http' ? '' : '[Airport] ',
+            url: item.url,
+            proxies: [{ name: 'Node', type: 'http', server: '127.0.0.1', port: 8080 }]
+          })
+        ]
+      })
+      const config = parse(compileLocalConfig(draft).yaml)
+      const canonical = draftWith({
+        modules: { 'proxy-providers': stringify(config['proxy-providers']) }
+      })
+      expect(findProfileSource(canonical, item)).toMatchObject({
+        profileId: item.id,
+        name: 'Airport',
+        mode,
+        prefix: mode === 'http' ? '' : '[Airport] ',
+        providerOptions: config['proxy-providers'].Airport
+      })
+    }
+  )
+
+  it('resolves a renamed provider by its URL', () => {
+    const draft = draftWith({
+      modules: {
+        'proxy-providers':
+          'Renamed: {type: http, url: "https://example.test/sub", override: {additional-prefix: "[Custom] "}}\n'
+      }
+    })
+    expect(findProfileSource(draft, item)?.name).toBe('Renamed')
+    expect(findProfileSource(draft, item)?.prefix).toBe('[Custom] ')
+    expect(findProfileSource(draft, { ...item, url: undefined })).toBeUndefined()
+  })
+
+  it('recognizes extracted nodes and removes only their source prefix', () => {
+    const node = { name: '[Airport] Node', type: 'http', server: '127.0.0.1', port: 8080 }
+    const draft = draftWith({
+      modules: { proxies: stringify([node, { ...node, name: 'Unrelated' }]) }
+    })
+    expect(findProfileSource(draft, item)).toMatchObject({
+      mode: 'extract',
+      prefix: '[Airport] ',
+      proxies: [{ ...node, name: 'Node' }]
+    })
+  })
+
+  it('does not classify full profiles or plugin profiles as node sources', () => {
+    expect(findProfileSource(defaultLocalDraft(), item)).toBeUndefined()
+    const draft = draftWith({
+      modules: { 'proxy-providers': 'Airport: {type: inline, payload: []}\n' }
+    })
+    expect(findProfileSource(draft, { ...item, pluginId: 'plugin' })).toBeUndefined()
+  })
+})
 
 describe('compileLocalConfig', () => {
   it('compiles the default draft without errors', () => {
@@ -88,16 +162,6 @@ describe('compileLocalConfig', () => {
     expect(provider.override['additional-prefix']).toBe('[A] ')
     expect(provider.header['User-Agent']).toEqual(['UA'])
     expect(provider.header.Authorization).toEqual(['token'])
-  })
-
-  it('shared dns/hosts/tun/sniffer override the corresponding modules', () => {
-    const draft = draftWith({
-      modules: { dns: 'enable: false\n' }
-    })
-    const result = compileLocalConfig(draft, { dns: { enable: true, listen: '0.0.0.0:1053' } })
-    const config = parse(result.yaml)
-    expect(config.dns.enable).toBe(true)
-    expect(config.dns.listen).toBe('0.0.0.0:1053')
   })
 
   it('keeps preserved standard fields and flattens the general module', () => {

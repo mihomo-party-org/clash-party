@@ -197,7 +197,7 @@ const Proxies: React.FC = () => {
   const { configuredGroups, groupConfigError } = useMemo(() => {
     if (!localState) return { configuredGroups: [] }
     try {
-      const parsed: unknown = parse(localState.draft.modules['proxy-groups'])
+      const parsed: unknown = parse(localState.modules['proxy-groups'])
       if (
         !Array.isArray(parsed) ||
         parsed.some((group) => !group || typeof group.name !== 'string')

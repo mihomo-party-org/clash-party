@@ -14,16 +14,11 @@ import { setAppLogDisabled } from '../utils/logger'
 import { normalizeYamlMaxAliasCount } from '../../shared/appConfig'
 
 let appConfig: IAppConfig // config.yaml
-let legacyOperationMode: unknown
 const appConfigWriteQueue = new WriteQueue()
 const appConfigListeners = new Set<(config: IAppConfig) => void>()
 
 function ensureMcpToken(config: IAppConfig): void {
   if (!config.mcpToken?.trim()) config.mcpToken = randomBytes(32).toString('hex')
-}
-
-export function getLegacyOperationMode(): unknown {
-  return legacyOperationMode
 }
 
 function notifyAppConfigListeners(): void {
@@ -45,13 +40,7 @@ export async function getAppConfig(force = false): Promise<IAppConfig> {
     await appConfigWriteQueue.run(async () => {
       const data = await readFile(appConfigPath(), 'utf-8')
       const parsedConfig = parse(data)
-      if (parsedConfig && typeof parsedConfig === 'object' && legacyOperationMode === undefined) {
-        legacyOperationMode = (parsedConfig as Record<string, unknown>).operationMode ?? null
-      }
       const mergedConfig = deepMerge(cloneDefaultConfig(), parsedConfig || {})
-      const legacy = mergedConfig as unknown as Record<string, unknown>
-      delete legacy.operationMode
-      delete legacy.modeSelected
       mergedConfig.maxLogFileSize = normalizeMaxLogFileSizeMB(mergedConfig.maxLogFileSize)
       mergedConfig.yamlMaxAliasCount = normalizeYamlMaxAliasCount(mergedConfig.yamlMaxAliasCount)
       ensureMcpToken(mergedConfig)
