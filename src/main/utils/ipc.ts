@@ -215,10 +215,17 @@ async function clearMihomoVersionCache(): Promise<void> {
 }
 
 async function getRuleStr(id: string): Promise<string> {
-  return await readFile(rulePath(id), 'utf-8')
+  if (typeof id !== 'string' || !/^[\w-]+$/.test(id)) throw new Error('Invalid profile ID')
+  try {
+    return await readFile(rulePath(id), 'utf-8')
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return ''
+    throw error
+  }
 }
 
 async function setRuleStr(id: string, str: string): Promise<void> {
+  if (typeof id !== 'string' || !/^[\w-]+$/.test(id)) throw new Error('Invalid profile ID')
   await atomicWriteFile(rulePath(id), str, { encoding: 'utf8' })
 }
 

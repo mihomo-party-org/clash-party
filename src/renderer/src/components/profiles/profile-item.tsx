@@ -32,6 +32,7 @@ import BaseConfirmModal from '../base/base-confirm-modal'
 import LocalNodes from '../local/local-nodes'
 import { isLocalProfile, type LocalSource } from '../../../../shared/local-config'
 import EditTunnelsModal from './edit-tunnels-modal'
+import EditRulesModal from './edit-rules-modal'
 import EditInfoModal from './edit-info-modal'
 import EditFileModal from './edit-file-modal'
 import QrCodeModal from './qr-code-modal'
@@ -70,6 +71,7 @@ const ProfileItem: React.FC<Props> = (props) => {
   const [updating, setUpdating] = useState(false)
   const [openInfoEditor, setOpenInfoEditor] = useState(false)
   const [openFileEditor, setOpenFileEditor] = useState(false)
+  const [openRulesEditor, setOpenRulesEditor] = useState(false)
   const [openTunnelsEditor, setOpenTunnelsEditor] = useState(false)
   const [openQrCode, setOpenQrCode] = useState(false)
   const [openLocalNodes, setOpenLocalNodes] = useState(false)
@@ -101,6 +103,13 @@ const ProfileItem: React.FC<Props> = (props) => {
       {
         key: 'edit-file',
         label: t('profiles.editFile.title'),
+        showDivider: false,
+        color: 'default',
+        className: ''
+      } as MenuItem,
+      {
+        key: 'edit-rules',
+        label: t('profiles.editRules.title'),
         showDivider: false,
         color: 'default',
         className: ''
@@ -165,7 +174,9 @@ const ProfileItem: React.FC<Props> = (props) => {
         }
       )
     }
-    return isSource ? list.filter((item) => item.key !== 'edit-tunnels') : list
+    return isSource
+      ? list.filter((item) => item.key !== 'edit-rules' && item.key !== 'edit-tunnels')
+      : list
   }, [info, t, isSource])
 
   const onMenuAction = async (key: Key): Promise<void> => {
@@ -176,6 +187,10 @@ const ProfileItem: React.FC<Props> = (props) => {
       }
       case 'edit-file': {
         setOpenFileEditor(true)
+        break
+      }
+      case 'edit-rules': {
+        setOpenRulesEditor(true)
         break
       }
       case 'edit-tunnels': {
@@ -281,6 +296,9 @@ const ProfileItem: React.FC<Props> = (props) => {
       }}
     >
       {openFileEditor && <EditFileModal id={info.id} onClose={() => setOpenFileEditor(false)} />}
+      {!isSource && openRulesEditor && (
+        <EditRulesModal id={info.id} onClose={() => setOpenRulesEditor(false)} />
+      )}
       {openLocalNodes && (
         <Modal
           size="3xl"
