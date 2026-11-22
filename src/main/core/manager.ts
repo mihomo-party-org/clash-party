@@ -1149,15 +1149,16 @@ export async function quitWithoutCore(): Promise<void> {
   managerLogger.info(`Starting lightweight mode on platform: ${process.platform}`)
   if (!(await keepCoreAlive())) return
   await startMonitor(true)
-  const switchedToManual = switchPacSysProxyToManual().catch((error) => {
-    managerLogger.warn('Failed to switch PAC system proxy to manual', error)
+  const switchedToManual = switchPacSysProxyToManual().catch(async (error) => {
+    await managerLogger.warn('Failed to switch PAC system proxy to manual', error)
     return false
   })
   // 排在前面的系统代理操作可能卡在 macOS helper 上，不让它无限期拖住退出
   if (await Promise.race([switchedToManual, delay(10000, false)])) {
-    managerLogger.info('PAC server stops with the main process, system proxy set to manual')
+    await managerLogger.info('PAC server stops with the main process, system proxy set to manual')
   }
-  managerLogger.info('Exiting main process, core will continue running in background')
+  // 日志是异步追加写入的，app.exit() 会立即结束进程，不等写完最后几行就会丢失
+  await managerLogger.info('Exiting main process, core will continue running in background')
   app.exit()
 }
 
