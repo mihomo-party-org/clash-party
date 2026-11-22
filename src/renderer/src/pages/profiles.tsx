@@ -45,8 +45,8 @@ import SubStoreIcon from '@renderer/components/base/substore-icon'
 import useSWR from 'swr'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { parse } from 'yaml'
 import { subscribePluginFile, takePendingPluginFile } from '@renderer/utils/plugin-file-open'
+import { findProfileSource } from '../../../shared/profile-source'
 import { DEFAULT_USE_SUB_STORE } from '../../../shared/appConfig'
 
 const Profiles: React.FC = () => {
@@ -55,7 +55,6 @@ const Profiles: React.FC = () => {
     profileConfig,
     setProfileConfig,
     addProfileItem,
-    updateProfileItem,
     removeProfileItem,
     changeCurrentProfile,
     mutateProfileConfig
@@ -77,44 +76,43 @@ const Profiles: React.FC = () => {
   const [url, setUrl] = useState('')
   const [, setNow] = useState(new Date())
   const { pluginConfig, mutatePluginConfig } = usePluginConfig()
-  const { data: localConfig } = useSWR('getLocalConfig', getLocalConfig)
-  const localSourceIds = useMemo(
+  const legacySources = items.some((item) => item.nodeSource === undefined && !item.pluginId)
+  const localIds = [
+    ...new Set(items.flatMap((item) => (item.nodeSource ? [item.nodeSource.localProfileId] : [])))
+  ].sort()
+  const { data: localConfigs, mutate: mutateLocalConfigs } = useSWR(
+    legacySources || localIds.length
+      ? (['profileSourceConfigs', legacySources ? (current ?? '') : null, localIds] as const)
+      : null,
+    async ([, active, ids]) => {
+      const results = await Promise.allSettled(
+        [...(active === null ? [] : ['']), ...ids].map(
+          async (id) => [id, await getLocalConfig(id || undefined)] as const
+        )
+      )
+      return new Map(
+        results.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []))
+      )
+    }
+  )
+  useEffect(
     () =>
-      new Set(
-        items
-          .filter((item) => {
-            if (!localConfig) return false
-            const providers = parse(localConfig.draft.modules['proxy-providers'])
-            const proxies = parse(localConfig.draft.modules.proxies)
-            const nodePrefix = `[${item.name}] `
-            const isProviderSource =
-              providers &&
-              typeof providers === 'object' &&
-              !Array.isArray(providers) &&
-              (Object.hasOwn(providers, item.name) ||
-                Object.values(providers).some(
-                  (provider) =>
-                    provider &&
-                    typeof provider === 'object' &&
-                    !Array.isArray(provider) &&
-                    'url' in provider &&
-                    provider.url === item.url
-                ))
-            const isNodeSource =
-              Array.isArray(proxies) &&
-              proxies.some(
-                (proxy) =>
-                  proxy &&
-                  typeof proxy === 'object' &&
-                  !Array.isArray(proxy) &&
-                  typeof proxy.name === 'string' &&
-                  proxy.name.startsWith(nodePrefix)
-              )
-            return Boolean(isProviderSource || isNodeSource)
-          })
-          .map((item) => item.id)
+      window.electron.ipcRenderer.on('localConfigUpdated', () => {
+        void mutateLocalConfigs()
+      }),
+    [mutateLocalConfigs]
+  )
+  const localSources = useMemo(
+    () =>
+      new Map(
+        items.map((item) => {
+          const localConfig = localConfigs?.get(
+            item.nodeSource ? item.nodeSource.localProfileId : ''
+          )
+          return [item.id, localConfig ? findProfileSource(localConfig, item) : undefined]
+        })
       ),
-    [items, localConfig]
+    [items, localConfigs]
   )
   const [showPluginImport, setShowPluginImport] = useState(false)
   const [pluginDropFile, setPluginDropFile] = useState<File | null>(null)
@@ -354,7 +352,6 @@ const Profiles: React.FC = () => {
         <EditInfoModal
           mode="import"
           item={importItem as IProfileItem}
-          addProfileItem={addProfileItem}
           onImported={() => {
             setUrl('')
           }}
@@ -566,20 +563,15 @@ const Profiles: React.FC = () => {
             {sortedItems.map((item) => (
               <ProfileItem
                 key={item.id}
-                isCurrent={item.id === current && !localSourceIds.has(item.id)}
-                isSource={localSourceIds.has(item.id)}
+                isCurrent={item.id === current}
+                source={localSources.get(item.id)}
                 addProfileItem={addProfileItem}
                 removeProfileItem={removeProfileItem}
                 mutateProfileConfig={mutateProfileConfig}
-                updateProfileItem={updateProfileItem}
                 info={item}
-                onPress={
-                  localSourceIds.has(item.id)
-                    ? undefined
-                    : async () => {
-                        await changeCurrentProfile(item.id)
-                      }
-                }
+                onPress={async () => {
+                  await changeCurrentProfile(item.id)
+                }}
               />
             ))}
           </SortableContext>

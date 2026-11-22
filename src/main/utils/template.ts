@@ -19,6 +19,8 @@ import {
 
 export const defaultConfig: IAppConfig = {
   mcpEnabled: false,
+  mcpAllowWrites: false,
+  mcpAutoApprove: false,
   mcpPort: 28765,
   mcpToken: '',
   core: 'mihomo',
@@ -52,7 +54,7 @@ export const defaultConfig: IAppConfig = {
   proxyDisplayOrder: 'default',
   autoCheckUpdate: true,
   autoUpdateProfileOnStart: true,
-  silentUpdate: true,
+  silentUpdate: false,
   autoCloseConnection: true,
   autoCloseConnectionOnlyGroup: false,
   subscriptionTimeout: 30000,

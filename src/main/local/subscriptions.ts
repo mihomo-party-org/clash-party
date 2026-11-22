@@ -2,16 +2,9 @@ import type { LocalDraft, LocalObject, LocalSource } from '../../shared/local-co
 import { parse, stringify } from '../utils/yaml'
 import { readLocalGroups } from './groups'
 
-export interface LocalProfileSnapshot {
-  item: IProfileItem
-  config: IMihomoConfig
-}
-
 // Resolve linked subscriptions at compile time; profile files remain the only node store.
-export async function resolveLocalDraft(
-  draft: LocalDraft,
-  candidate?: LocalProfileSnapshot
-): Promise<LocalDraft> {
+export async function resolveLocalDraft(draft: LocalDraft): Promise<LocalDraft> {
+  if (!draft.sources.some((source) => source.profileId)) return draft
   const { getProfileConfig, getProfile } = await import('../config/profile')
   const { items } = await getProfileConfig()
   const snapshots = new Map<string, Promise<IMihomoConfig>>()
@@ -21,17 +14,12 @@ export async function resolveLocalDraft(
       sources.push(source)
       continue
     }
-    const item =
-      candidate?.item.id === source.profileId
-        ? candidate.item
-        : items.find((item) => item.id === source.profileId)
+    const item = items.find((item) => item.id === source.profileId)
     if (!item) continue
     const mode = source.mode === 'http' && item.type !== 'remote' ? 'inline' : source.mode
     let proxies: LocalObject[] = []
     if (mode !== 'http') {
-      const snapshot =
-        snapshots.get(item.id) ??
-        (candidate?.item.id === item.id ? Promise.resolve(candidate.config) : getProfile(item.id))
+      const snapshot = snapshots.get(item.id) ?? getProfile(item.id)
       snapshots.set(item.id, snapshot)
       const profile = await snapshot
       if (!Array.isArray(profile?.proxies) || profile.proxies.length === 0) {

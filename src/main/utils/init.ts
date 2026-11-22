@@ -27,7 +27,6 @@ import {
   DEFAULT_MIHOMO_SKIP_AUTH_PREFIXES,
   getDefaultMihomoTunDevice
 } from '../../shared/appConfig'
-import { LEGACY_SIMPLE_PROFILE_ID, LOCAL_PROFILE_ID } from '../../shared/local-config'
 import { stringify } from './yaml'
 import {
   defaultConfig,
@@ -51,8 +50,7 @@ import {
   resourcesFilesDir,
   rulesDir,
   subStoreDir,
-  themesDir,
-  localConfigPath
+  themesDir
 } from './dirs'
 import { initLogger } from './logger'
 import { atomicWriteFile } from './safeFile'
@@ -139,11 +137,6 @@ async function initDirs(): Promise<void> {
 }
 
 async function initConfig(): Promise<void> {
-  const legacyStatePath = path.join(dataDir(), 'simple-config.yaml')
-  if (existsSync(legacyStatePath) && !existsSync(localConfigPath())) {
-    await rename(legacyStatePath, localConfigPath())
-  }
-  await rm(path.join(dataDir(), 'simple-config.generated.yaml'), { force: true })
   const configs = [
     { path: appConfigPath(), content: defaultConfig, name: 'app config' },
     { path: profileConfigPath(), content: defaultProfileConfig, name: 'profile config' },
@@ -419,46 +412,9 @@ async function migrateMihomoConfig(): Promise<void> {
   }
 }
 
-// 迁移：配置模式合并。旧简易模式状态转为 local 类型 profile。
-async function migrateLocalMode(): Promise<void> {
-  const { getLegacyOperationMode } = await import('../config/app')
-  await getAppConfig()
-  const legacySimple = getLegacyOperationMode() === 'simple'
-  const { getProfileConfig, updateProfileConfig, ensureLocalProfileItem } =
-    await import('../config/profile')
-  const { getLocalState } = await import('../local/store')
-  const { inheritLocalGeneralSettings, inheritLocalSources } = await import('../local/service')
-  const state = await getLocalState()
-  const hasContent = state.revision > 0 || state.draft.sources.length > 0
-  let config = await getProfileConfig(true)
-  const hasLocal = config.items.some(
-    (item) => item.id === LOCAL_PROFILE_ID || item.id === LEGACY_SIMPLE_PROFILE_ID
-  )
-  if (!hasLocal && (legacySimple || hasContent)) {
-    await ensureLocalProfileItem()
-    await inheritLocalGeneralSettings()
-    config = await getProfileConfig(true)
-  } else if (hasLocal && !config.items.find((item) => item.id === LOCAL_PROFILE_ID)?.name) {
-    await ensureLocalProfileItem()
-  }
-  if (config.items.some((item) => Object.hasOwn(item, 'usage'))) {
-    await updateProfileConfig((cfg) => {
-      for (const item of cfg.items) {
-        delete (item as unknown as Record<string, unknown>).usage
-      }
-      return cfg
-    })
-  }
-  await inheritLocalSources(false)
-  if (legacySimple && config.current !== LOCAL_PROFILE_ID) {
-    await updateProfileConfig((cfg) => {
-      cfg.current = LOCAL_PROFILE_ID
-      return cfg
-    })
-  }
-}
-
 async function migration(): Promise<void> {
+  const { migrateLocalProfiles } = await import('../local/migration')
+  await migrateLocalProfiles()
   await Promise.all([
     migrateSiderOrder(),
     migrateAppTheme(),
@@ -467,7 +423,6 @@ async function migration(): Promise<void> {
     migrateRemovePassword(),
     migrateMihomoConfig()
   ])
-  await migrateLocalMode()
 }
 
 function initDeeplink(): void {

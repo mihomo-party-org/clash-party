@@ -5,7 +5,6 @@ import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { useActiveProfile } from '@renderer/hooks/use-active-profile'
 import { mihomoHotReloadConfig } from '@renderer/utils/ipc'
 import React, { ReactNode, useState } from 'react'
 import { MdDeleteForever } from 'react-icons/md'
@@ -16,7 +15,6 @@ const Sniffer: React.FC = () => {
   const { t } = useTranslation()
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
   const { appConfig } = useAppConfig()
-  const { isLocalActive } = useActiveProfile()
   const { controlSniff = DEFAULT_CONTROL_SNIFF } = appConfig || {}
   const { sniffer } = controledMihomoConfig || {}
   const {
@@ -55,7 +53,7 @@ const Sniffer: React.FC = () => {
       setChanged(false)
       await patchControledMihomoConfig(patch)
 
-      if (!isLocalActive && controlSniff) {
+      if (controlSniff) {
         await mihomoHotReloadConfig()
       }
     } catch (e) {
@@ -141,23 +139,21 @@ const Sniffer: React.FC = () => {
               })
             }
           >
-            {isLocalActive || controlSniff ? t('common.save') : t('sniffer.saveOnly')}
+            {controlSniff ? t('common.save') : t('sniffer.saveOnly')}
           </Button>
         )
       }
     >
       <SettingCard>
-        {!isLocalActive && (
-          <SettingItem title={t('sniffer.enable')} divider>
-            <Switch
-              size="sm"
-              isSelected={values.enable}
-              onValueChange={(v) => {
-                setValues({ ...values, enable: v })
-              }}
-            />
-          </SettingItem>
-        )}
+        <SettingItem title={t('sniffer.enable')} divider>
+          <Switch
+            size="sm"
+            isSelected={values.enable}
+            onValueChange={(v) => {
+              setValues({ ...values, enable: v })
+            }}
+          />
+        </SettingItem>
         <SettingItem title={t('sniffer.overrideDestination')} divider>
           <Switch
             size="sm"

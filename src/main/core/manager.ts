@@ -29,7 +29,6 @@ import {
 import { uploadRuntimeConfigIfChanged } from '../resolve/gistApi'
 import { startMonitor } from '../resolve/trafficMonitor'
 import { switchPacSysProxyToManual } from '../sys/sysproxy'
-import { isLocalProfile } from '../../shared/local-config'
 import { ensureRuntimeFiles, safeShowErrorBox } from '../utils/init'
 import { parseAgeSecretKeys } from '../utils/age'
 import i18next from '../../shared/i18n'
@@ -49,7 +48,7 @@ import {
   mihomoHotReloadConfig,
   getAxios
 } from './mihomoApi'
-import { generateProfile, getRuntimeConfig } from './factory'
+import { generateProfile } from './factory'
 import { syncControlDnsAfterApply, type DnsOverrideGuardResult } from './dnsOverrideGuard'
 import { syncSmartModelToTestDir } from './smartModel'
 import {
@@ -536,16 +535,16 @@ async function prepareCore(detached: boolean, skipStop = false): Promise<CoreCon
 
   const [appConfig, mihomoConfig] = await Promise.all([getAppConfig(), getControledMihomoConfig()])
 
-  let { diffWorkDir = false } = appConfig
   const {
     core = 'mihomo',
     autoSetDNS = true,
+    diffWorkDir = false,
     mihomoCpuPriority = 'PRIORITY_NORMAL',
     coreStartupMode = 'log',
     testProfileOnStart = true
   } = appConfig
 
-  let { 'log-level': logLevel = 'info' as LogLevel, tun } = mihomoConfig
+  const { 'log-level': logLevel = 'info' as LogLevel, tun } = mihomoConfig
 
   // 清理轻量模式遗留的后台核心
   await stopPidFileCore()
@@ -555,14 +554,7 @@ async function prepareCore(detached: boolean, skipStop = false): Promise<CoreCon
 
   // generateProfile 返回实际使用的 current
   const { profileId: current, dnsGuard } = await generateProfile()
-  const currentItem = await getProfileItem(current)
-  if (isLocalProfile(currentItem)) {
-    diffWorkDir = false
-    const localRuntime = await getRuntimeConfig()
-    logLevel = localRuntime['log-level'] || 'info'
-    tun = localRuntime.tun
-  }
-  const ageSecretKey = currentItem?.ageSecretKey || ''
+  const ageSecretKey = (await getProfileItem(current))?.ageSecretKey || ''
   if (testProfileOnStart) {
     await checkProfile(current, core, diffWorkDir, ageSecretKey)
   }

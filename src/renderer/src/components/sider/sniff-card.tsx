@@ -3,18 +3,12 @@ import { toast } from '@renderer/components/base/toast'
 import BorderSwitch from '@renderer/components/base/border-switch'
 import { RiScan2Fill } from 'react-icons/ri'
 import { useLocation } from 'react-router-dom'
-import {
-  mihomoHotReloadConfig,
-  patchControledMihomoConfig,
-  getLocalConfig
-} from '@renderer/utils/ipc'
+import { mihomoHotReloadConfig } from '@renderer/utils/ipc'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { useActiveProfile } from '@renderer/hooks/use-active-profile'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import useSWR from 'swr'
 import { DEFAULT_CONTROL_SNIFF } from '../../../../shared/appConfig'
 import SiderItem from './sider-item'
 
@@ -25,11 +19,6 @@ interface Props {
 const SniffCard: React.FC<Props> = (props) => {
   const { t } = useTranslation()
   const { appConfig, patchAppConfig } = useAppConfig()
-  const { isLocalActive } = useActiveProfile()
-  const { data: localState, mutate: mutateLocalState } = useSWR(
-    isLocalActive ? 'getLocalConfig' : null,
-    getLocalConfig
-  )
   const { iconOnly, expanded } = props
   const {
     sniffCardStatus = 'col-span-1',
@@ -49,16 +38,8 @@ const SniffCard: React.FC<Props> = (props) => {
     id: 'sniff'
   })
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
-  const localSnifferEnabled = localState
-    ? !/^enable:\s*false\s*$/m.test(localState.published.modules.sniffer || '')
-    : false
   const onChange = async (controlSniff: boolean): Promise<void> => {
     try {
-      if (isLocalActive) {
-        await patchControledMihomoConfig({ sniffer: { enable: controlSniff } })
-        await mutateLocalState()
-        return
-      }
       await patchAppConfig({ controlSniff })
       await mihomoHotReloadConfig()
     } catch (e) {
@@ -70,15 +51,15 @@ const SniffCard: React.FC<Props> = (props) => {
     return (
       <SiderItem
         className={sniffCardStatus}
-        title={isLocalActive ? '嗅探' : t('sider.cards.sniff')}
+        title={t('sider.cards.sniff')}
         route="/sniffer"
         icon={<RiScan2Fill className="text-[20px]" />}
         expanded={expanded}
       >
         <BorderSwitch
-          aria-label={isLocalActive ? '嗅探' : t('sider.cards.sniff')}
-          isShowBorder={match && (isLocalActive ? localSnifferEnabled : controlSniff)}
-          isSelected={isLocalActive ? localSnifferEnabled : controlSniff}
+          aria-label={t('sider.cards.sniff')}
+          isShowBorder={match && controlSniff}
+          isSelected={controlSniff}
           onValueChange={onChange}
         />
       </SiderItem>
@@ -116,8 +97,8 @@ const SniffCard: React.FC<Props> = (props) => {
               />
             </Button>
             <BorderSwitch
-              isShowBorder={match && (isLocalActive ? localSnifferEnabled : controlSniff)}
-              isSelected={isLocalActive ? localSnifferEnabled : controlSniff}
+              isShowBorder={match && controlSniff}
+              isSelected={controlSniff}
               onValueChange={onChange}
             />
           </div>
@@ -126,7 +107,7 @@ const SniffCard: React.FC<Props> = (props) => {
           <h3
             className={`text-md font-bold text-ellipsis whitespace-nowrap overflow-hidden ${match ? 'text-primary-foreground' : 'text-foreground'}`}
           >
-            {isLocalActive ? '嗅探' : t('sider.cards.sniff')}
+            {t('sider.cards.sniff')}
           </h3>
         </CardFooter>
       </Card>

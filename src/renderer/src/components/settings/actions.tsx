@@ -65,7 +65,7 @@ const Actions: React.FC = () => {
                 const version = await checkUpdate()
                 if (version) {
                   const canSilentlyUpdate = platform === 'win32' || platform === 'darwin'
-                  if (appConfig?.silentUpdate !== false && canSilentlyUpdate) {
+                  if (appConfig?.silentUpdate === true && canSilentlyUpdate) {
                     await downloadAndInstallUpdate(version.version)
                   } else {
                     setNewVersion(version.version)

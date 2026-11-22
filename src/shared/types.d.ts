@@ -284,6 +284,8 @@ interface ISmartModelStatus {
 
 interface IAppConfig {
   mcpEnabled?: boolean
+  mcpAllowWrites?: boolean
+  mcpAutoApprove?: boolean
   mcpPort?: number
   mcpToken?: string
   core: 'mihomo' | 'mihomo-alpha' | 'mihomo-smart' | 'mihomo-specific'
@@ -384,7 +386,7 @@ interface IAppConfig {
   delayTestUrl?: string
   delayTestTimeout?: number
   networkLatencyTargets?: INetworkLatencyTarget[]
-  networkIPProvider?: 'ip.sb' | 'ipwho.is' | 'ipapi.is'
+  networkIPProvider?: 'ip.sb' | 'ipwho.is' | 'ipapi.is' | 'internetdata'
   networkInfoCardOrder?: NetworkInfoCardKey[]
   subscriptionTimeout?: number
   yamlMaxAliasCount?: number
@@ -603,6 +605,7 @@ interface IProfileItem {
   id: string
   type: 'remote' | 'local'
   name: string
+  nodeSource?: false | import('./local-config').LocalSourceBinding
   url?: string // remote
   file?: string // local
   interval?: number | string

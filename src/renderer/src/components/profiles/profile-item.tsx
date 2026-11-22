@@ -18,6 +18,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import {
   exportLocalConfig,
+  getProfileConfig,
   getProfileStr,
   openFile,
   setProfileStr,
@@ -29,8 +30,9 @@ import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import { useTranslation } from 'react-i18next'
 import BaseConfirmModal from '../base/base-confirm-modal'
 import LocalNodes from '../local/local-nodes'
-import { isLocalProfile } from '../../../../shared/local-config'
+import { isLocalProfile, type LocalSource } from '../../../../shared/local-config'
 import EditTunnelsModal from './edit-tunnels-modal'
+import EditRulesModal from './edit-rules-modal'
 import EditInfoModal from './edit-info-modal'
 import EditFileModal from './edit-file-modal'
 import QrCodeModal from './qr-code-modal'
@@ -39,9 +41,8 @@ import ProfileCardContent from './profile-card-content'
 interface Props {
   info: IProfileItem
   isCurrent: boolean
-  isSource?: boolean
+  source?: LocalSource
   addProfileItem: (item: Partial<IProfileItem>) => Promise<void>
-  updateProfileItem: (item: IProfileItem) => Promise<void>
   removeProfileItem: (id: string) => Promise<void>
   mutateProfileConfig: () => void
   onPress?: () => Promise<void>
@@ -59,17 +60,18 @@ const ProfileItem: React.FC<Props> = (props) => {
   const { changeCurrentProfile } = useProfileConfig()
   const {
     info,
-    isSource = false,
+    source,
     addProfileItem,
     removeProfileItem,
     mutateProfileConfig,
-    updateProfileItem,
     onPress,
     isCurrent
   } = props
+  const isSource = Boolean(source)
   const [updating, setUpdating] = useState(false)
   const [openInfoEditor, setOpenInfoEditor] = useState(false)
   const [openFileEditor, setOpenFileEditor] = useState(false)
+  const [openRulesEditor, setOpenRulesEditor] = useState(false)
   const [openTunnelsEditor, setOpenTunnelsEditor] = useState(false)
   const [openQrCode, setOpenQrCode] = useState(false)
   const [openLocalNodes, setOpenLocalNodes] = useState(false)
@@ -101,6 +103,13 @@ const ProfileItem: React.FC<Props> = (props) => {
       {
         key: 'edit-file',
         label: t('profiles.editFile.title'),
+        showDivider: false,
+        color: 'default',
+        className: ''
+      } as MenuItem,
+      {
+        key: 'edit-rules',
+        label: t('profiles.editRules.title'),
         showDivider: false,
         color: 'default',
         className: ''
@@ -165,7 +174,9 @@ const ProfileItem: React.FC<Props> = (props) => {
         }
       )
     }
-    return isSource ? list.filter((item) => item.key !== 'edit-tunnels') : list
+    return isSource
+      ? list.filter((item) => item.key !== 'edit-rules' && item.key !== 'edit-tunnels')
+      : list
   }, [info, t, isSource])
 
   const onMenuAction = async (key: Key): Promise<void> => {
@@ -176,6 +187,10 @@ const ProfileItem: React.FC<Props> = (props) => {
       }
       case 'edit-file': {
         setOpenFileEditor(true)
+        break
+      }
+      case 'edit-rules': {
+        setOpenRulesEditor(true)
         break
       }
       case 'edit-tunnels': {
@@ -200,13 +215,19 @@ const ProfileItem: React.FC<Props> = (props) => {
         break
       }
       case 'local-nodes': {
-        if (!isCurrent && !(await changeCurrentProfile(info.id))) break
+        if (!isCurrent) {
+          await changeCurrentProfile(info.id)
+          if ((await getProfileConfig()).current !== info.id) break
+        }
         setOpenLocalNodes(true)
         break
       }
       case 'local-export': {
-        if (!isCurrent && !(await changeCurrentProfile(info.id))) break
         try {
+          if (!isCurrent) {
+            await changeCurrentProfile(info.id)
+            if ((await getProfileConfig()).current !== info.id) break
+          }
           const result = await exportLocalConfig()
           if (result.path) toast.success(result.path)
           else if (result.errors.length) toast.error(result.errors.join('\n'))
@@ -275,6 +296,9 @@ const ProfileItem: React.FC<Props> = (props) => {
       }}
     >
       {openFileEditor && <EditFileModal id={info.id} onClose={() => setOpenFileEditor(false)} />}
+      {!isSource && openRulesEditor && (
+        <EditRulesModal id={info.id} onClose={() => setOpenRulesEditor(false)} />
+      )}
       {openLocalNodes && (
         <Modal
           size="3xl"
@@ -297,11 +321,7 @@ const ProfileItem: React.FC<Props> = (props) => {
         <QrCodeModal title={info.name} url={info.url} onClose={() => setOpenQrCode(false)} />
       )}
       {openInfoEditor && (
-        <EditInfoModal
-          item={info}
-          onClose={() => setOpenInfoEditor(false)}
-          updateProfileItem={updateProfileItem}
-        />
+        <EditInfoModal item={info} source={source} onClose={() => setOpenInfoEditor(false)} />
       )}
       {showDeleteConfirm && (
         <BaseConfirmModal

@@ -3,6 +3,7 @@ import v8 from 'v8'
 import { readFile } from 'fs/promises'
 import { app, ipcMain } from 'electron'
 import i18next from 'i18next'
+import type { McpAgent } from '../../shared/mcp-agents'
 import {
   mihomoChangeProxy,
   mihomoCloseAllConnections,
@@ -92,11 +93,7 @@ import {
   setupFirewall
 } from '../sys/misc'
 import { getRuntimeConfig, getRuntimeConfigStr } from '../core/factory'
-import {
-  localSwitchNeedsDnsConfirm,
-  setControlDns,
-  takeDnsOverrideAutoDisabledNotice
-} from '../core/dnsOverrideGuard'
+import { setControlDns, takeDnsOverrideAutoDisabledNotice } from '../core/dnsOverrideGuard'
 import { getSmartModelStatus, downloadSmartModel } from '../core/smartModel'
 import {
   listWebdavBackups,
@@ -160,12 +157,9 @@ import {
   saveLocalProxyGroup,
   removeLocalProxyGroup,
   reorderLocalProxyGroups,
-  saveLocalDraft,
+  saveLocalProvider,
   previewLocalConfig,
-  publishLocalConfig,
-  exportLocalConfig,
-  refreshLocalSource,
-  removeLocalSource
+  exportLocalConfig
 } from '../local/service'
 import { getImageDataURL } from './image'
 import { get as httpGet } from './chromeRequest'
@@ -221,10 +215,17 @@ async function clearMihomoVersionCache(): Promise<void> {
 }
 
 async function getRuleStr(id: string): Promise<string> {
-  return await readFile(rulePath(id), 'utf-8')
+  if (typeof id !== 'string' || !/^[\w-]+$/.test(id)) throw new Error('Invalid profile ID')
+  try {
+    return await readFile(rulePath(id), 'utf-8')
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return ''
+    throw error
+  }
 }
 
 async function setRuleStr(id: string, str: string): Promise<void> {
+  if (typeof id !== 'string' || !/^[\w-]+$/.test(id)) throw new Error('Invalid profile ID')
   await atomicWriteFile(rulePath(id), str, { encoding: 'utf8' })
 }
 
@@ -297,12 +298,12 @@ const asyncHandlers: Record<string, AsyncFn> = {
   // Config
   getAppConfig,
   patchAppConfig,
+  importMcpAgent: async (agent: McpAgent) => (await import('../mcp/agents')).importMcpAgent(agent),
   getControledMihomoConfig,
   patchControledMihomoConfig,
   setControlDns,
   takeDnsOverrideAutoDisabledNotice,
   // Profile
-  localSwitchNeedsDnsConfirm,
   getProfileConfig,
   setProfileConfig,
   getCurrentProfileItem,
@@ -347,12 +348,9 @@ const asyncHandlers: Record<string, AsyncFn> = {
   saveLocalProxyGroup,
   removeLocalProxyGroup,
   reorderLocalProxyGroups,
-  saveLocalDraft,
+  saveLocalProvider,
   previewLocalConfig,
-  publishLocalConfig,
   exportLocalConfig,
-  refreshLocalSource,
-  removeLocalSource,
   readTextFile,
   // Core
   restartCore,
@@ -460,114 +458,6 @@ const syncHandlers: Record<string, SyncFn> = {
     app.quit()
   },
   quitApp: () => app.quit()
-}
-
-const confirmationRequiredHandlers = new Set([
-  'closeMainWindow',
-  'downloadAndInstallUpdate',
-  'importLocalBackup',
-  'installSpecificMihomoCore',
-  'openFile',
-  'quitApp',
-  'quitWithoutCore',
-  'relaunchApp',
-  'removeLocalNode',
-  'removeLocalProxyGroup',
-  'removeLocalSource',
-  'removeOverrideItem',
-  'removePlugin',
-  'removeProfileItem',
-  'resetAppConfig',
-  'restartAsAdmin',
-  'setupFirewall',
-  'webdavDelete'
-])
-
-const mcpExposedHandlers = new Set([
-  'getAppConfig',
-  'patchAppConfig',
-  'getControledMihomoConfig',
-  'patchControledMihomoConfig',
-  'setControlDns',
-  'getProfileConfig',
-  'getCurrentProfileItem',
-  'getProfileItem',
-  'getProfileStr',
-  'getProfileImportInfo',
-  'setProfileStr',
-  'addProfileItem',
-  'removeProfileItem',
-  'updateProfileItem',
-  'changeCurrentProfile',
-  'getOverrideConfig',
-  'getOverrideItem',
-  'addOverrideItem',
-  'removeOverrideItem',
-  'updateOverrideItem',
-  'getOverride',
-  'setOverride',
-  'getRuntimeConfig',
-  'getRuntimeConfigStr',
-  'getRuleStr',
-  'setRuleStr',
-  'getLocalConfig',
-  'getLocalNode',
-  'getLocalProxyGroup',
-  'getLocalRulesEditor',
-  'previewLocalConfig',
-  'mihomoVersion',
-  'mihomoCloseConnection',
-  'mihomoCloseAllConnections',
-  'mihomoRules',
-  'mihomoRulesDisable',
-  'mihomoProxies',
-  'mihomoGroups',
-  'mihomoProxyProviders',
-  'mihomoUpdateProxyProviders',
-  'mihomoRuleProviders',
-  'mihomoUpdateRuleProviders',
-  'mihomoChangeProxy',
-  'mihomoUnfixedProxy',
-  'mihomoProxyDelay',
-  'mihomoGroupDelay',
-  'patchMihomoConfig',
-  'mihomoHotReloadConfig',
-  'mihomoSmartGroupWeights',
-  'mihomoSmartFlushCache',
-  'restartCore'
-])
-
-export interface IpcCapability {
-  name: string
-  kind: 'async' | 'sync'
-  requiresConfirmation: boolean
-}
-
-export const ipcCapabilities: IpcCapability[] = [
-  ...Object.keys(asyncHandlers).map((name) => ({
-    name,
-    kind: 'async' as const,
-    requiresConfirmation: confirmationRequiredHandlers.has(name)
-  })),
-  ...Object.keys(syncHandlers).map((name) => ({
-    name,
-    kind: 'sync' as const,
-    requiresConfirmation: confirmationRequiredHandlers.has(name)
-  }))
-]
-
-export const mcpCapabilities = ipcCapabilities.filter((capability) =>
-  mcpExposedHandlers.has(capability.name)
-)
-
-export async function invokeIpcHandler(name: string, args: unknown[]): Promise<unknown> {
-  const handler = asyncHandlers[name] ?? syncHandlers[name]
-  if (!handler) throw new Error(`Unknown IPC capability: ${name}`)
-  return await (handler as (...args: unknown[]) => unknown)(...args)
-}
-
-export function ipcHandlerRequiresConfirmation(name: string): boolean {
-  return confirmationRequiredHandlers.has(name)
 }
 
 export function registerIpcMainHandlers(): void {

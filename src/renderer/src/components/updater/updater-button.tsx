@@ -15,7 +15,7 @@ interface Props {
 const UpdaterButton: React.FC<Props> = (props) => {
   const { appConfig } = useAppConfig()
   const { iconOnly } = props
-  const { autoCheckUpdate = false, silentUpdate = true, useWindowFrame = false } = appConfig || {}
+  const { autoCheckUpdate = false, silentUpdate = false, useWindowFrame = false } = appConfig || {}
   const [openModal, setOpenModal] = useState(false)
   const silentUpdateInProgress = useRef(false)
   const { data: latest } = useSWR(

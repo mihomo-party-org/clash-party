@@ -24,8 +24,7 @@ export function changeLocalRules(
   expected: string[]
 ): LocalDraft {
   const rules = readLocalRules(draft)
-  if (!isDeepStrictEqual(rules, expected))
-    throw new Error('规则列表已变化，或草稿尚未发布，请刷新或先处理规则草稿')
+  if (!isDeepStrictEqual(rules, expected)) throw new Error('规则列表已变化，请刷新后重试')
   let next = [...rules]
   if (change.action === 'reorder') {
     const order = change.order

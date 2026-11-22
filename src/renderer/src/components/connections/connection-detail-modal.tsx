@@ -106,6 +106,7 @@ const CopyableSettingItem: React.FC<{
   const validMenuItems = menuItems.filter(
     (item): item is { key: string; text: string } => item !== null
   )
+  const ruleMenuItems = validMenuItems.filter(({ key }) => key !== 'raw')
 
   const openRuleEditor = async (key: string): Promise<void> => {
     try {
@@ -125,24 +126,21 @@ const CopyableSettingItem: React.FC<{
           </span>
         }
         actions={
-          <Dropdown>
-            <DropdownTrigger>
-              <Button
-                title={
-                  isLocalActive ? t('connections.detail.addRule') : t('connections.detail.copyRule')
-                }
-                isIconOnly
-                size="sm"
-                variant="light"
-                className="h-8 w-8 min-w-8 p-0"
-              >
-                {isLocalActive ? <IoAdd className="text-lg" /> : <BiCopy className="text-lg" />}
-              </Button>
-            </DropdownTrigger>
-            <DropdownMenu
-              onAction={(key) => {
-                if (isLocalActive) void openRuleEditor(key as string)
-                else
+          <>
+            <Dropdown>
+              <DropdownTrigger>
+                <Button
+                  title={t('connections.detail.copyRule')}
+                  isIconOnly
+                  size="sm"
+                  variant="light"
+                  className="h-8 w-8 min-w-8 p-0"
+                >
+                  <BiCopy className="text-lg" />
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                onAction={(key) => {
                   void navigator.clipboard.writeText(
                     key === 'raw'
                       ? Array.isArray(value)
@@ -150,15 +148,34 @@ const CopyableSettingItem: React.FC<{
                         : value
                       : (key as string)
                   )
-              }}
-            >
-              {validMenuItems
-                .filter((item) => !isLocalActive || item.key !== 'raw')
-                .map(({ key, text }) => (
+                }}
+              >
+                {validMenuItems.map(({ key, text }) => (
                   <DropdownItem key={key}>{text}</DropdownItem>
                 ))}
-            </DropdownMenu>
-          </Dropdown>
+              </DropdownMenu>
+            </Dropdown>
+            {isLocalActive && ruleMenuItems.length > 0 && (
+              <Dropdown>
+                <DropdownTrigger>
+                  <Button
+                    title={t('connections.detail.addRule')}
+                    isIconOnly
+                    size="sm"
+                    variant="light"
+                    className="h-8 w-8 min-w-8 p-0"
+                  >
+                    <IoAdd className="text-lg" />
+                  </Button>
+                </DropdownTrigger>
+                <DropdownMenu onAction={(key) => void openRuleEditor(String(key))}>
+                  {ruleMenuItems.map(({ key, text }) => (
+                    <DropdownItem key={key}>{text}</DropdownItem>
+                  ))}
+                </DropdownMenu>
+              </Dropdown>
+            )}
+          </>
         }
       >
         <span

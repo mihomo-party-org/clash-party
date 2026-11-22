@@ -6,7 +6,6 @@ import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { useActiveProfile } from '@renderer/hooks/use-active-profile'
 import { mihomoHotReloadConfig } from '@renderer/utils/ipc'
 import React, { Key, ReactNode, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -20,7 +19,6 @@ const DNS: React.FC = () => {
   const { t } = useTranslation()
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
   const { appConfig, patchAppConfig } = useAppConfig()
-  const { isLocalActive } = useActiveProfile()
   const {
     nameserverPolicy,
     useNameserverPolicy = DEFAULT_USE_NAMESERVER_POLICY,
@@ -47,11 +45,6 @@ const DNS: React.FC = () => {
     fallback = DEFAULT_MIHOMO_DNS_CONFIG.fallback,
     'fallback-filter': fallbackFilter = DEFAULT_MIHOMO_DNS_CONFIG['fallback-filter']
   } = dns || {}
-  const localNameserverPolicy = (dns?.['nameserver-policy'] || {}) as IAppConfig['nameserverPolicy']
-  const effectiveNameserverPolicy = isLocalActive ? localNameserverPolicy : nameserverPolicy
-  const effectiveUseNameserverPolicy = isLocalActive
-    ? Object.keys(localNameserverPolicy).length > 0
-    : useNameserverPolicy
   const [changed, setChanged] = useState(false)
   const [values, originSetValues] = useState({
     enable,
@@ -79,8 +72,8 @@ const DNS: React.FC = () => {
       fallbackFilter?.ipcidr || DEFAULT_MIHOMO_DNS_CONFIG['fallback-filter']?.ipcidr || [],
     fallbackDomain:
       fallbackFilter?.domain || DEFAULT_MIHOMO_DNS_CONFIG['fallback-filter']?.domain || [],
-    useNameserverPolicy: effectiveUseNameserverPolicy,
-    nameserverPolicy: Object.entries(effectiveNameserverPolicy || {}).map(([domain, value]) => ({
+    useNameserverPolicy,
+    nameserverPolicy: Object.entries(nameserverPolicy || {}).map(([domain, value]) => ({
       domain,
       value
     })),
@@ -164,19 +157,17 @@ const DNS: React.FC = () => {
 
   const onSave = async (patch: Partial<IMihomoConfig>): Promise<void> => {
     const nextNameserverPolicy = getNameserverPolicy()
-    if (!isLocalActive) {
+    try {
       await patchAppConfig({
         nameserverPolicy: nextNameserverPolicy,
         useNameserverPolicy: values.useNameserverPolicy
       })
-    }
-    try {
       setChanged(false)
       await patchControledMihomoConfig({
         ...patch,
         dns: patch.dns ? { ...patch.dns, 'nameserver-policy': nextNameserverPolicy } : patch.dns
       })
-      if (!isLocalActive && controlDns) {
+      if (controlDns) {
         await mihomoHotReloadConfig()
       }
     } catch (e) {
@@ -230,34 +221,30 @@ const DNS: React.FC = () => {
               onSave(result)
             }}
           >
-            {isLocalActive || controlDns ? t('common.save') : t('dns.saveOnly')}
+            {controlDns ? t('common.save') : t('dns.saveOnly')}
           </Button>
         )
       }
     >
       <SettingCard>
-        {!isLocalActive && (
-          <SettingItem title={t('dns.enable')} divider>
-            <Switch
-              size="sm"
-              isSelected={values.enable}
-              onValueChange={(v) => {
-                setValues({ ...values, enable: v })
-              }}
-            />
-          </SettingItem>
-        )}
-        {!isLocalActive && (
-          <SettingItem title={t('dns.overrideGuard.disable')} divider>
-            <Switch
-              size="sm"
-              isSelected={disableDnsOverrideGuard}
-              onValueChange={(v) => {
-                void patchAppConfig({ disableDnsOverrideGuard: v })
-              }}
-            />
-          </SettingItem>
-        )}
+        <SettingItem title={t('dns.enable')} divider>
+          <Switch
+            size="sm"
+            isSelected={values.enable}
+            onValueChange={(v) => {
+              setValues({ ...values, enable: v })
+            }}
+          />
+        </SettingItem>
+        <SettingItem title={t('dns.overrideGuard.disable')} divider>
+          <Switch
+            size="sm"
+            isSelected={disableDnsOverrideGuard}
+            onValueChange={(v) => {
+              void patchAppConfig({ disableDnsOverrideGuard: v })
+            }}
+          />
+        </SettingItem>
         <SettingItem title={t('dns.enhancedMode.title')} divider>
           <Tabs
             size="sm"

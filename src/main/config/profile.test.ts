@@ -6,6 +6,7 @@ import { addProfileUpdater } from '../core/profileUpdater'
 import { getOverrideConfig, updateOverrideConfig } from './override'
 import {
   addProfileItem,
+  changeCurrentProfile,
   createProfile,
   getProfileImportInfo,
   getProfileConfig,
@@ -90,7 +91,6 @@ vi.mock('../utils/dirs', () => ({
     return join(testDir, 'profile.yaml')
   },
   profilePath: (id: string) => join(testDir, 'profiles', `${id}.yaml`),
-  localConfigPath: () => join(testDir, 'local-config.yaml'),
   overrideConfigPath: () => join(testDir, 'override.yaml'),
   overridePath: (id: string, ext: string) => join(testDir, 'overrides', `${id}.${ext}`)
 }))
@@ -254,6 +254,48 @@ describe('remote profile candidate validation', () => {
     expect(readFileSync(join(testDir, 'profiles', 'remote.yaml'), 'utf8')).toBe(newProfile)
     expect(mocks.hotReload).toHaveBeenCalledOnce()
   })
+})
+
+describe('full profile import', () => {
+  it.each(['remote', 'local'] as const)(
+    'keeps a complete %s profile selectable with its overrides',
+    async (type) => {
+      const content = `${newProfile}
+proxy-groups:
+  - name: Imported
+    type: select
+    proxies: [new]
+rules: ["MATCH,Imported"]
+`
+      if (type === 'remote') {
+        mocks.axiosGet.mockResolvedValueOnce({
+          status: 200,
+          data: content,
+          headers: { 'content-type': 'text/yaml' }
+        })
+      }
+      await updateOverrideConfig((config) => {
+        config.items.push({ ...globalOverride('custom'), global: false })
+        return config
+      })
+      const imported = await addProfileItem({
+        type,
+        name: 'Complete profile',
+        url: type === 'remote' ? 'https://example.test/full-profile' : undefined,
+        file: type === 'local' ? content : undefined,
+        override: ['custom']
+      })
+
+      expect(readFileSync(join(testDir, 'profiles', `${imported.id}.yaml`), 'utf8')).toBe(content)
+      expect(await getProfileItem(imported.id)).toMatchObject({ type, override: ['custom'] })
+      expect(addProfileUpdater).toHaveBeenCalledWith(imported)
+      expect((await getProfileConfig()).current).toBe('remote')
+      await changeCurrentProfile(imported.id)
+      expect((await getProfileConfig(true)).current).toBe(imported.id)
+      expect(mocks.restartCore).toHaveBeenCalledOnce()
+      expect(existsSync(join(testDir, 'profiles', 'local.yaml'))).toBe(false)
+    }
+  )
 })
 
 describe('custom profile homepage', () => {
