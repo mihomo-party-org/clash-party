@@ -1,22 +1,27 @@
-import { readFile, rm } from 'fs/promises'
+import { constants } from 'fs'
+import { copyFile, readFile, rm } from 'fs/promises'
 import path from 'path'
-import i18next from 'i18next'
+import { resources } from '../../shared/i18n'
 import {
   defaultLocalDraft,
   LOCAL_PROFILE_ID,
   type LocalDraft,
+  type LocalSource,
   type LocalSourceBinding
 } from '../../shared/local-config'
 import { bindProfileSource } from '../../shared/profile-source'
 import { getProfileConfig, updateProfileConfig } from '../config/profile'
 import { getAppConfig } from '../config/app'
 import { appConfigPath, dataDir, profilePath } from '../utils/dirs'
+import { createLogger } from '../utils/logger'
 import { atomicWriteFile } from '../utils/safeFile'
 import { parse, stringify } from '../utils/yaml'
+import { parseYaml } from '../../shared/yaml'
 import { compileLocalConfig } from './compiler'
 import { resolveLocalDraft } from './subscriptions'
 
 const legacyProfileId = 'simple-mode'
+const migrationLogger = createLogger('Migration')
 
 async function readOptional(file: string): Promise<string | undefined> {
   try {
@@ -27,8 +32,91 @@ async function readOptional(file: string): Promise<string | undefined> {
   }
 }
 
+function isWrappedLocalConfig(content: string): boolean {
+  return /^draft:|^published:/m.test(content)
+}
+
+function defaultLocalProfileName(language: unknown): string {
+  const normalized =
+    typeof language === 'string' ? language.trim().replace('_', '-').toLowerCase() : ''
+  const localeKeys = Object.keys(resources) as Array<keyof typeof resources>
+  const key =
+    localeKeys.find((candidate) => candidate.toLowerCase() === normalized) ||
+    localeKeys.find(
+      (candidate) => candidate.split('-')[0].toLowerCase() === normalized.split('-')[0]
+    )
+  const locale = key ? resources[key] : resources['zh-CN']
+  return locale.translation['profiles.localProfile'] || '本地配置'
+}
+
+async function compileLegacyDraft(
+  saved: Partial<LocalDraft>
+): Promise<{ yaml: string; sources: LocalSource[] }> {
+  const base = defaultLocalDraft()
+  const config: LocalDraft = { ...base, ...saved, modules: { ...base.modules, ...saved.modules } }
+  const resolved = await resolveLocalDraft(config)
+  const result = compileLocalConfig(resolved)
+  if (result.errors.length) throw new Error(result.errors.join('\n'))
+  return { yaml: result.yaml, sources: resolved.sources }
+}
+
+async function backupLegacyFile(file: string | undefined): Promise<void> {
+  if (!file) return
+  try {
+    await copyFile(file, `${file}.bak`, constants.COPYFILE_EXCL)
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code
+    if (code !== 'ENOENT' && code !== 'EEXIST') {
+      await migrationLogger.warn(`Failed to back up legacy local config ${file}`, error)
+    }
+  }
+}
+
+interface LegacyFile {
+  file: string
+  content: string
+}
+
+async function validLegacyYaml(
+  source: LegacyFile | undefined,
+  maxAliasCount: number | undefined
+): Promise<string | undefined> {
+  if (!source) return undefined
+  try {
+    if (!source.content.trim()) throw new Error('empty YAML content')
+    const parsed = parseYaml(source.content, { maxAliasCount })
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
+      throw new Error('local config must be a YAML object')
+    return source.content
+  } catch (error) {
+    await migrationLogger.warn(`Failed to parse fallback local config ${source.file}`, error)
+    await backupLegacyFile(source.file)
+    return undefined
+  }
+}
+
+async function firstValidLegacyYaml(
+  sources: LegacyFile[],
+  maxAliasCount: number | undefined
+): Promise<string | undefined> {
+  for (const source of sources) {
+    const yaml = await validLegacyYaml(source, maxAliasCount)
+    if (yaml !== undefined) return yaml
+  }
+  return undefined
+}
+
 export async function migrateLocalProfiles(): Promise<void> {
-  const appConfig = parse<Record<string, unknown>>(await readFile(appConfigPath(), 'utf8'))
+  let appConfig: Record<string, unknown> = {}
+  try {
+    const content = await readFile(appConfigPath(), 'utf8')
+    const parsed = parseYaml(content)
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed))
+      appConfig = parsed as Record<string, unknown>
+    else throw new Error('app config must be a YAML object')
+  } catch (error) {
+    await migrationLogger.warn('Failed to parse app config during local profile migration', error)
+  }
   const profileConfig = await getProfileConfig(true)
   const local = profileConfig.items.find((item) => item.id === LOCAL_PROFILE_ID)
   const legacy = profileConfig.items.find((item) => item.id === legacyProfileId)
@@ -40,39 +128,100 @@ export async function migrateLocalProfiles(): Promise<void> {
   const oldConfigs = ['local-config.yaml', 'simple-config.yaml'].map((name) =>
     path.join(dataDir(), name)
   )
-  const [current, previous, localState, simpleState] = await Promise.all(
-    [target, oldProfile, ...oldConfigs].map(readOptional)
+  const oldGenerated = ['local-config.generated.yaml', 'simple-config.generated.yaml'].map((name) =>
+    path.join(dataDir(), name)
   )
-  const content = current ?? localState ?? simpleState ?? previous
+  const [current, previous, localState, simpleState, localGenerated, simpleGenerated] =
+    await Promise.all([target, oldProfile, ...oldConfigs, ...oldGenerated].map(readOptional))
+  const contentSource: LegacyFile | undefined =
+    current !== undefined
+      ? { file: target, content: current }
+      : localState !== undefined
+        ? { file: oldConfigs[0], content: localState }
+        : simpleState !== undefined
+          ? { file: oldConfigs[1], content: simpleState }
+          : previous !== undefined
+            ? { file: oldProfile, content: previous }
+            : undefined
+  const content = contentSource?.content
+  const generatedSources: LegacyFile[] = [
+    localGenerated !== undefined ? { file: oldGenerated[0], content: localGenerated } : undefined,
+    simpleGenerated !== undefined ? { file: oldGenerated[1], content: simpleGenerated } : undefined
+  ].filter((source): source is LegacyFile => source !== undefined)
   const bindings = new Map<string, LocalSourceBinding>()
-  if (local || legacy || content !== undefined || activateLocal) {
+  if (local || legacy || content !== undefined || generatedSources.length > 0 || activateLocal) {
     // A normal profile should remain readable by the usual loader, even when its YAML needs repair.
-    const parsed =
-      content !== undefined && (current === undefined || /^draft:|^published:/m.test(current))
-        ? parse(content, { maxAliasCount: appConfig.yamlMaxAliasCount as number | undefined })
-        : undefined
-    const wrapped =
-      parsed && typeof parsed === 'object'
-        ? (parsed as { draft?: Partial<LocalDraft>; published?: Partial<LocalDraft> })
-        : {}
-    const saved = wrapped.draft ?? wrapped.published
-    if (saved || content === undefined) {
-      const base = defaultLocalDraft()
-      const config = { ...base, ...saved, modules: { ...base.modules, ...saved?.modules } }
-      const resolved = await resolveLocalDraft(config)
-      const result = compileLocalConfig(resolved)
-      if (result.errors.length) throw new Error(result.errors.join('\n'))
-      await atomicWriteFile(target, result.yaml)
-      for (const source of resolved.sources) {
-        if (source.profileId)
-          bindings.set(source.profileId, bindProfileSource(source, LOCAL_PROFILE_ID))
+    const shouldInspectContent =
+      content !== undefined && (current === undefined || isWrappedLocalConfig(current))
+    if (shouldInspectContent) {
+      let parsed: unknown
+      let parseFailed = false
+      try {
+        parsed = parseYaml(content, {
+          maxAliasCount: appConfig.yamlMaxAliasCount as number | undefined
+        })
+      } catch (error) {
+        parseFailed = true
+        await migrationLogger.warn('Failed to parse legacy local profile config', error)
       }
-    } else if (current === undefined) {
-      await atomicWriteFile(target, content)
+      const wrapped =
+        parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+          ? (parsed as { draft?: Partial<LocalDraft>; published?: Partial<LocalDraft> })
+          : {}
+      // Prefer the applied published snapshot over an unapplied draft; fall back if needed.
+      const candidates = [...new Set([wrapped.published, wrapped.draft])].filter(
+        (candidate): candidate is Partial<LocalDraft> =>
+          Boolean(candidate && typeof candidate === 'object' && !Array.isArray(candidate))
+      )
+      let compiled: { yaml: string; sources: LocalSource[] } | undefined
+      for (const candidate of candidates) {
+        try {
+          compiled = await compileLegacyDraft(candidate)
+          break
+        } catch (error) {
+          await migrationLogger.warn('Failed to compile legacy local profile candidate', error)
+        }
+      }
+      if (compiled) {
+        await atomicWriteFile(target, compiled.yaml)
+        for (const source of compiled.sources) {
+          if (source.profileId)
+            bindings.set(source.profileId, bindProfileSource(source, LOCAL_PROFILE_ID))
+        }
+      } else if (
+        parseFailed ||
+        candidates.length > 0 ||
+        isWrappedLocalConfig(content) ||
+        !content.trim() ||
+        !parsed ||
+        typeof parsed !== 'object' ||
+        Array.isArray(parsed)
+      ) {
+        await backupLegacyFile(contentSource?.file)
+        const fallbackSources = [
+          ...generatedSources,
+          previous !== undefined && !isWrappedLocalConfig(previous)
+            ? { file: oldProfile, content: previous }
+            : undefined
+        ].filter((source): source is LegacyFile => source !== undefined)
+        const fallbackYaml = await firstValidLegacyYaml(
+          fallbackSources,
+          appConfig.yamlMaxAliasCount as number | undefined
+        )
+        await atomicWriteFile(target, fallbackYaml ?? compileLocalConfig(defaultLocalDraft()).yaml)
+      } else if (current === undefined) {
+        await atomicWriteFile(target, content)
+      }
+    } else if (content === undefined) {
+      const fallbackYaml = await firstValidLegacyYaml(
+        generatedSources,
+        appConfig.yamlMaxAliasCount as number | undefined
+      )
+      await atomicWriteFile(target, fallbackYaml ?? compileLocalConfig(defaultLocalDraft()).yaml)
     }
   }
   const needsLocalEntry =
-    (activateLocal || local || legacy || content !== undefined) &&
+    (activateLocal || local || legacy || content !== undefined || generatedSources.length > 0) &&
     (!local?.name || local.type !== 'local')
   if (
     needsLocalEntry ||
@@ -84,15 +233,11 @@ export async function migrateLocalProfiles(): Promise<void> {
     await updateProfileConfig((config) => {
       config.items = config.items.filter((item) => item.id !== legacyProfileId)
       if (needsLocalEntry) {
-        const translated = i18next.t('profiles.localProfile')
         const item: IProfileItem = {
           ...(local ?? legacy),
           id: LOCAL_PROFILE_ID,
           type: 'local',
-          name:
-            local?.name ||
-            legacy?.name ||
-            (translated && translated !== 'profiles.localProfile' ? translated : '本地配置'),
+          name: local?.name || legacy?.name || defaultLocalProfileName(appConfig.language),
           updated: local?.updated ?? legacy?.updated ?? Date.now()
         }
         const index = config.items.findIndex((entry) => entry.id === LOCAL_PROFILE_ID)
@@ -116,11 +261,6 @@ export async function migrateLocalProfiles(): Promise<void> {
     await getAppConfig(true)
   }
   await Promise.all(
-    [
-      ...oldConfigs,
-      oldProfile,
-      path.join(dataDir(), 'simple-config.generated.yaml'),
-      path.join(dataDir(), 'local-config.generated.yaml')
-    ].map((file) => rm(file, { force: true }))
+    [...oldConfigs, oldProfile, ...oldGenerated].map((file) => rm(file, { force: true }))
   )
 }

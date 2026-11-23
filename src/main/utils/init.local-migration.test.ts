@@ -160,7 +160,7 @@ describe('local migration', () => {
     await initBasic()
     const profileConfig = yaml.parse(readFileSync(path.join(dataDir, 'profile.yaml'), 'utf-8'))
     const local = profileConfig.items.find((item: { id?: string }) => item.id === 'local')
-    expect(local.name).toBeTruthy()
+    expect(local.name).toBe('本地配置')
   })
 
   it('leaves a fresh standard install untouched', async () => {
@@ -193,5 +193,77 @@ describe('local migration', () => {
     expect(yaml.parse(readFileSync(path.join(dataDir, 'profile.yaml'), 'utf8')).current).toBe(
       'remote'
     )
+  })
+
+  it('prefers valid published snapshot over a broken unapplied draft', async () => {
+    seedLegacyData()
+    const simplePath = path.join(dataDir, 'simple-config.yaml')
+    const raw = yaml.parse(readFileSync(simplePath, 'utf8')) as {
+      draft: { modules: Record<string, string> }
+      published: Record<string, unknown>
+    }
+    raw.draft = structuredClone(raw.draft)
+    raw.draft.modules['proxy-groups'] = '- name: BROKEN\n  type: select\n'
+    writeFileSync(simplePath, yaml.stringify(raw))
+
+    const { initBasic } = await import('./init')
+    await initBasic()
+
+    expect(existsSync(simplePath)).toBe(false)
+    expect(existsSync(`${simplePath}.bak`)).toBe(false)
+    const config = yaml.parse(readFileSync(path.join(dataDir, 'profiles', 'local.yaml'), 'utf8'))
+    expect(config['proxy-groups']).toMatchObject([{ name: 'PROXY', proxies: ['DIRECT'] }])
+  })
+
+  it('falls back to legacy generated YAML and backs up source when all snapshots fail', async () => {
+    seedLegacyData()
+    writeFileSync(path.join(dataDir, 'profiles', 'sub-a.yaml'), yaml.stringify({ proxies: [] }))
+    const generatedYaml = 'proxies: []\nproxy-groups: []\nrules:\n  - MATCH,DIRECT\n'
+    writeFileSync(path.join(dataDir, 'simple-config.generated.yaml'), generatedYaml)
+
+    const { initBasic } = await import('./init')
+    await initBasic()
+
+    expect(readFileSync(path.join(dataDir, 'profiles', 'local.yaml'), 'utf8')).toBe(generatedYaml)
+    expect(existsSync(path.join(dataDir, 'simple-config.yaml'))).toBe(false)
+    expect(existsSync(path.join(dataDir, 'simple-config.yaml.bak'))).toBe(true)
+    expect(existsSync(path.join(dataDir, 'simple-config.generated.yaml'))).toBe(false)
+  })
+
+  it('skips invalid generated YAML and preserves an existing backup', async () => {
+    seedLegacyData()
+    writeFileSync(path.join(dataDir, 'profiles', 'sub-a.yaml'), yaml.stringify({ proxies: [] }))
+    const simplePath = path.join(dataDir, 'simple-config.yaml')
+    const generatedPath = path.join(dataDir, 'simple-config.generated.yaml')
+    writeFileSync(`${simplePath}.bak`, 'keep this backup')
+    writeFileSync(generatedPath, 'proxies: [unterminated')
+
+    const { initBasic } = await import('./init')
+    await initBasic()
+
+    const config = yaml.parse(readFileSync(path.join(dataDir, 'profiles', 'local.yaml'), 'utf8'))
+    expect(config.rules).toEqual(['MATCH,PROXY'])
+    expect(readFileSync(`${simplePath}.bak`, 'utf8')).toBe('keep this backup')
+    expect(existsSync(`${generatedPath}.bak`)).toBe(true)
+  })
+
+  it('does not block startup on corrupt legacy YAML syntax', async () => {
+    writeFileSync(
+      path.join(dataDir, 'config.yaml'),
+      yaml.stringify({ core: 'mihomo', operationMode: 'simple', language: 'en-us' })
+    )
+    writeFileSync(path.join(dataDir, 'profile.yaml'), yaml.stringify({ items: [] }))
+    writeFileSync(path.join(dataDir, 'simple-config.yaml'), 'draft: [unterminated')
+
+    const { initBasic } = await import('./init')
+    await initBasic()
+
+    expect(existsSync(path.join(dataDir, 'simple-config.yaml'))).toBe(false)
+    expect(existsSync(path.join(dataDir, 'simple-config.yaml.bak'))).toBe(true)
+    const config = yaml.parse(readFileSync(path.join(dataDir, 'profiles', 'local.yaml'), 'utf8'))
+    expect(config.rules).toEqual(['MATCH,PROXY'])
+    const profileConfig = yaml.parse(readFileSync(path.join(dataDir, 'profile.yaml'), 'utf8'))
+    const local = profileConfig.items.find((item: { id?: string }) => item.id === 'local')
+    expect(local?.name).toBe('Local Config')
   })
 })
