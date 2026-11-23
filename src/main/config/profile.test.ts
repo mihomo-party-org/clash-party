@@ -296,6 +296,47 @@ rules: ["MATCH,Imported"]
       expect(existsSync(join(testDir, 'profiles', 'local.yaml'))).toBe(false)
     }
   )
+
+  it('does not hijack an unbound legacy subscription whose URL also appears in a local profile', async () => {
+    const localYaml = [
+      'proxies: []',
+      'proxy-providers:',
+      '  Shared:',
+      '    type: http',
+      '    url: https://example.test/shared',
+      'proxy-groups:',
+      '  - name: PROXY',
+      '    type: select',
+      '    use: [Shared]',
+      'rules:',
+      '  - MATCH,PROXY',
+      ''
+    ].join('\n')
+    writeFileSync(
+      join(testDir, 'profile.yaml'),
+      [
+        'current: local',
+        'items:',
+        '  - id: local',
+        '    type: local',
+        '    name: Local',
+        '  - id: remote',
+        '    type: remote',
+        '    name: Remote',
+        '    url: https://example.test/shared',
+        ''
+      ].join('\n')
+    )
+    writeFileSync(join(testDir, 'profiles', 'local.yaml'), localYaml)
+    await getProfileConfig(true)
+
+    const refreshed = await addProfileItem(await requireProfileItem('remote'))
+
+    expect(refreshed.nodeSource).toBeUndefined()
+    expect((await requireProfileItem('remote')).nodeSource).toBeUndefined()
+    expect(readFileSync(join(testDir, 'profiles', 'local.yaml'), 'utf8')).toBe(localYaml)
+    expect(readFileSync(join(testDir, 'profiles', 'remote.yaml'), 'utf8')).toBe(newProfile)
+  })
 })
 
 describe('custom profile homepage', () => {

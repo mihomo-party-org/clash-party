@@ -76,19 +76,14 @@ const Profiles: React.FC = () => {
   const [url, setUrl] = useState('')
   const [, setNow] = useState(new Date())
   const { pluginConfig, mutatePluginConfig } = usePluginConfig()
-  const legacySources = items.some((item) => item.nodeSource === undefined && !item.pluginId)
   const localIds = [
     ...new Set(items.flatMap((item) => (item.nodeSource ? [item.nodeSource.localProfileId] : [])))
   ].sort()
   const { data: localConfigs, mutate: mutateLocalConfigs } = useSWR(
-    legacySources || localIds.length
-      ? (['profileSourceConfigs', legacySources ? (current ?? '') : null, localIds] as const)
-      : null,
-    async ([, active, ids]) => {
+    localIds.length ? (['profileSourceConfigs', localIds] as const) : null,
+    async ([, ids]) => {
       const results = await Promise.allSettled(
-        [...(active === null ? [] : ['']), ...ids].map(
-          async (id) => [id, await getLocalConfig(id || undefined)] as const
-        )
+        ids.map(async (id) => [id, await getLocalConfig(id)] as const)
       )
       return new Map(
         results.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []))
@@ -106,9 +101,9 @@ const Profiles: React.FC = () => {
     () =>
       new Map(
         items.map((item) => {
-          const localConfig = localConfigs?.get(
-            item.nodeSource ? item.nodeSource.localProfileId : ''
-          )
+          const localConfig = item.nodeSource
+            ? localConfigs?.get(item.nodeSource.localProfileId)
+            : undefined
           return [item.id, localConfig ? findProfileSource(localConfig, item) : undefined]
         })
       ),

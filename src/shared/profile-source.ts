@@ -18,7 +18,7 @@ export function bindProfileSource(source: LocalSource, localProfileId: string): 
   }
 }
 
-// Local profiles store plain Mihomo YAML, so source references must also be resolved from it.
+// Local profiles store plain Mihomo YAML, so bound source references are resolved from it.
 export function findProfileSource(
   draft: LocalDraft,
   item: Pick<IProfileItem, 'id' | 'name' | 'url' | 'pluginId' | 'nodeSource'>
@@ -27,57 +27,62 @@ export function findProfileSource(
   const linked = draft.sources.find((source) => source.profileId === item.id)
   if (linked) return linked
   const binding = item.nodeSource
+  if (
+    !binding ||
+    binding.localProfileId === item.id ||
+    typeof binding.localProfileId !== 'string' ||
+    typeof binding.name !== 'string' ||
+    typeof binding.prefix !== 'string' ||
+    (binding.mode === 'extract' && !Array.isArray(binding.nodeNames)) ||
+    !['extract', 'inline', 'http'].includes(binding.mode)
+  ) {
+    return undefined
+  }
 
-  const providers = parseYaml(draft.modules['proxy-providers'])
-  if (isObject(providers) && binding?.mode !== 'extract') {
-    const entry = Object.entries(providers).find(
-      ([name, value]) =>
-        isObject(value) &&
-        (binding
-          ? name === binding.name && value.type === binding.mode
-          : (Boolean(item.url) && value.url === item.url) ||
-            (name === item.name && value.type === 'inline'))
-    )
-    if (entry && isObject(entry[1])) {
-      const provider = entry[1]
+  if (binding.mode !== 'extract') {
+    const providers = parseYaml(draft.modules['proxy-providers'])
+    if (!isObject(providers)) return undefined
+    const provider = providers[binding.name]
+    if (isObject(provider) && provider.type === binding.mode) {
       const override = isObject(provider.override) ? provider.override : {}
       return {
         id: `profile-${item.id}`,
         profileId: item.id,
-        localProfileId: binding?.localProfileId,
-        name: entry[0],
+        localProfileId: binding.localProfileId,
+        name: binding.name,
         mode: provider.type === 'inline' ? 'inline' : 'http',
         prefix:
           typeof override['additional-prefix'] === 'string'
             ? override['additional-prefix']
-            : `[${entry[0]}] `,
+            : `[${binding.name}] `,
         interval: Number(provider.interval) || 3600,
         url: typeof provider.url === 'string' ? provider.url : undefined,
         providerOptions: provider,
         proxies: []
       }
     }
+    return undefined
   }
-  if (binding && binding.mode !== 'extract') return undefined
-  const prefix = binding?.prefix ?? `[${item.name}] `
-  const boundNames = binding ? new Set(binding.nodeNames ?? []) : undefined
+
+  const prefix = binding.prefix
+  const boundNames = new Set(binding.nodeNames)
   const nodes = parseYaml(draft.modules.proxies)
   const proxies = Array.isArray(nodes)
     ? nodes
         .filter(
           (node): node is LocalObject =>
-            isObject(node) &&
-            typeof node.name === 'string' &&
-            (boundNames ? boundNames.has(node.name) : node.name.startsWith(prefix))
+            isObject(node) && typeof node.name === 'string' && boundNames.has(node.name)
         )
-        .map((node) => ({ ...node, name: String(node.name).slice(prefix.length) }))
+        .map((node) => {
+          const name = String(node.name)
+          return { ...node, name: name.startsWith(prefix) ? name.slice(prefix.length) : name }
+        })
     : []
-  if (!proxies.length && !binding) return undefined
   return {
     id: `profile-${item.id}`,
     profileId: item.id,
-    localProfileId: binding?.localProfileId,
-    name: binding?.name ?? item.name,
+    localProfileId: binding.localProfileId,
+    name: binding.name,
     mode: 'extract',
     prefix,
     interval: 0,

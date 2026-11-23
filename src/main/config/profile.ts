@@ -28,7 +28,6 @@ import { createLogger } from '../utils/logger'
 import { atomicWriteFile } from '../utils/safeFile'
 import { isHttpUrl } from '../utils/url'
 import { isLocalProfile, type LocalSubscriptionOptions } from '../../shared/local-config'
-import { findProfileSource } from '../../shared/profile-source'
 import { getAppConfig } from './app'
 import { getControledMihomoConfig } from './controledMihomo'
 import { getPluginItem, pluginSchedule } from './plugin'
@@ -239,22 +238,14 @@ export async function addProfileItem(
   sourceOptions?: LocalSubscriptionOptions
 ): Promise<IProfileItem> {
   const previous = item.id ? await getProfileItem(item.id) : undefined
-  let sourceProfile = sourceOptions !== undefined || !!previous?.nodeSource
-  if (!sourceProfile && previous && previous.nodeSource === undefined && !previous.pluginId) {
-    const { getLocalState } = await import('../local/store')
-    try {
-      sourceProfile = Boolean(findProfileSource(await getLocalState(), previous))
-    } catch (error) {
-      profileLogger.warn('Failed to read legacy subscription source', error)
-    }
-  }
+  const sourceProfile = sourceOptions !== undefined || Boolean(previous?.nodeSource)
   const previousContent =
     sourceProfile && previous && existsSync(profilePath(previous.id))
       ? await getProfileStr(previous.id)
       : undefined
   const newItem = await createProfile({
     ...item,
-    nodeSource: previous ? previous.nodeSource : false
+    nodeSource: previous?.nodeSource
   })
   let shouldChangeCurrent = false
   let newProfileIsCurrentAfterUpdate = false
@@ -378,7 +369,7 @@ async function removeProfileItemSteps(id: string): Promise<IProfileItem | undefi
       removedItem = config.items?.find((i) => i.id === id)
       config.items = config.items?.filter((i) => i.id !== id)
       for (const entry of config.items) {
-        if (entry.nodeSource && entry.nodeSource.localProfileId === id) entry.nodeSource = false
+        if (entry.nodeSource && entry.nodeSource.localProfileId === id) delete entry.nodeSource
       }
       // 并发删除可能在我们切走之后又把 current 指回来（对方选 next 时我们还在列表里）：最终一步再核对一次
       if (config.current !== undefined && !config.items.some((i) => i.id === config.current)) {
