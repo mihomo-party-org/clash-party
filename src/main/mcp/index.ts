@@ -1,3 +1,4 @@
+import './web-apis'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import { createLogger } from '../utils/logger'
