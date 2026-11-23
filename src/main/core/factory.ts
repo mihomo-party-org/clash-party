@@ -131,6 +131,32 @@ function ensureSmartProxyServerTunExclude(profile: IMihomoConfig, enabled: boole
   return added
 }
 
+/**
+ * 合并 TUN 排除网段。受控配置里的 route-exclude-address 是界面上的「排除自定义网段」，默认是空数组，
+ * 与订阅合并时会把订阅和覆写（如 `+route-exclude-address`）得到的列表整个替换掉。
+ * 排除网段是叠加性质的，所以把两边合并去重，界面上的条目排在后面。
+ */
+function mergeTunRouteExcludeAddress(
+  profileList: unknown,
+  controledList: unknown
+): string[] | undefined {
+  if (!Array.isArray(profileList) && !Array.isArray(controledList)) return undefined
+
+  const merged: string[] = []
+  const existing = new Set<string>()
+  for (const list of [profileList, controledList]) {
+    if (!Array.isArray(list)) continue
+    for (const address of list) {
+      if (typeof address !== 'string') continue
+      const key = address.trim().toLowerCase()
+      if (!key || existing.has(key)) continue
+      existing.add(key)
+      merged.push(address)
+    }
+  }
+  return merged
+}
+
 export async function generateProfile(
   pendingControledMihomoConfig?: Partial<IMihomoConfig>,
   options: GenerateProfileOptions = {}
@@ -193,7 +219,16 @@ export async function generateProfile(
     }
   }
 
+  // 下面的合并会用受控配置的列表替换订阅和覆写得到的排除网段，先记下来
+  const profileRouteExcludeAddress = currentProfile.tun?.['route-exclude-address']
   const profile = deepMerge(currentProfile, controledMihomoConfig)
+  if (profile.tun) {
+    const routeExcludeAddress = mergeTunRouteExcludeAddress(
+      profileRouteExcludeAddress,
+      profile.tun['route-exclude-address']
+    )
+    if (routeExcludeAddress) profile.tun['route-exclude-address'] = routeExcludeAddress
+  }
   // 关闭 DNS 覆写时，如果最终配置没有启用的 DNS 配置，清空 dns-hijack 避免请求被劫持但无法处理
   if (!controlDns && profile.tun && !profile.dns?.enable) {
     profile.tun = { ...profile.tun, 'dns-hijack': [] }

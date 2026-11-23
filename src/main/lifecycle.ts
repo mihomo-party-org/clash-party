@@ -1,13 +1,14 @@
 import { spawn, exec, execFileSync } from 'child_process'
 import { promisify } from 'util'
 import { stat } from 'fs/promises'
-import { existsSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 import { app, BaseWindow, powerMonitor } from 'electron'
 import { stopCoreForExit, cleanupCoreWatcher } from './core/manager'
 import { primeAdminPrivilegesCache } from './core/admin'
 import { triggerSysProxy, disableSysProxySync } from './sys/sysproxy'
 import { closeTrafficUsage } from './traffic/recorder'
-import { exePath } from './utils/dirs'
+import { appConfigPath, exePath } from './utils/dirs'
+import { parse } from './utils/yaml'
 import { saveMainWindowState } from './window'
 
 export function customRelaunch(): void {
@@ -64,6 +65,24 @@ export function setupPlatformSpecifics(): void {
       primeAdminPrivilegesCache(true)
       app.commandLine.appendSwitch('disable-gpu-sandbox')
     }
+  }
+}
+
+// app.disableHardwareAcceleration() 只在 ready 之前有效。配置的异步初始化（initBasic、getAppConfig）
+// 有几十次文件操作，等它们结束时 ready 通常已经触发，调用只会抛错，开关不生效。
+// 所以在启动的同步阶段直接读一次配置文件。
+export function applyHardwareAccelerationConfig(): void {
+  let content: string
+  try {
+    content = readFileSync(appConfigPath(), 'utf-8')
+  } catch (e) {
+    // 首次启动还没有配置文件，保持默认（不关闭）
+    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return
+    throw e
+  }
+  const config = parse<Partial<IAppConfig>>(content)
+  if (config.disableHardwareAcceleration === true) {
+    app.disableHardwareAcceleration()
   }
 }
 

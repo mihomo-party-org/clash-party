@@ -37,6 +37,7 @@ import {
 import { findDeepLink, handleDeepLink } from './deeplink'
 import { findPluginFile, readPluginFile } from './resolve/plugin/file'
 import {
+  applyHardwareAccelerationConfig,
   fixUserDataPermissions,
   setupPlatformSpecifics,
   setupAppLifecycle,
@@ -119,19 +120,11 @@ initApp().catch((e) => {
 
 setupPlatformSpecifics()
 
-async function initHardwareAcceleration(): Promise<void> {
-  try {
-    await initBasic()
-    const { disableHardwareAcceleration = false } = await getAppConfig()
-    if (disableHardwareAcceleration) {
-      app.disableHardwareAcceleration()
-    }
-  } catch (e) {
-    mainLogger.warn('Failed to read hardware acceleration config', e)
-  }
+try {
+  applyHardwareAccelerationConfig()
+} catch (e) {
+  mainLogger.warn('Failed to read hardware acceleration config', e)
 }
-
-initHardwareAcceleration()
 setupAppLifecycle()
 
 type LaunchTarget = { type: 'deep-link' | 'plugin-file'; value: string }
