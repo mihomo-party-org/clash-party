@@ -10,7 +10,7 @@ import NodeCard from './node-card'
 import NodeModal from './node-modal'
 
 const LocalNodes: React.FC = () => {
-  const { data, mutate } = useSWR('getLocalConfig', getLocalConfig)
+  const { data, error, mutate } = useSWR('getLocalConfig', () => getLocalConfig())
   const [editing, setEditing] = useState<string>()
   const [creating, setCreating] = useState(false)
   const nodes = useMemo<LocalObject[]>(() => {
@@ -26,7 +26,12 @@ const LocalNodes: React.FC = () => {
   }, [data])
   return (
     <div>
-      {nodes.length === 0 && (
+      {error ? (
+        <div role="alert" className="px-2 pb-2 text-sm text-danger">
+          {String(error)}
+        </div>
+      ) : null}
+      {data && !error && nodes.length === 0 && (
         <div className="px-2 pb-2 text-sm text-foreground-500">
           还没有本地节点，可以粘贴分享链接、Clash 节点或手动填写。
         </div>
@@ -45,7 +50,7 @@ const LocalNodes: React.FC = () => {
           </div>
         ))}
         <div className="px-2 pb-2 pt-2">
-          <Card isPressable fullWidth onPress={() => setCreating(true)}>
+          <Card isPressable fullWidth isDisabled={!!error} onPress={() => setCreating(true)}>
             <CardBody className="flex h-14 flex-row items-center justify-center gap-2 text-foreground-500">
               <MdAdd className="text-xl" />
               <span className="text-sm">添加节点</span>

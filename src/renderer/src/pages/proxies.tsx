@@ -193,7 +193,7 @@ const Proxies: React.FC = () => {
     data: localState,
     error: localError,
     mutate: mutateLocal
-  } = useSWR(editing ? 'getLocalConfig' : null, getLocalConfig)
+  } = useSWR(editing ? 'getLocalConfig' : null, () => getLocalConfig())
   const { configuredGroups, groupConfigError } = useMemo(() => {
     if (!localState) return { configuredGroups: [] }
     try {
