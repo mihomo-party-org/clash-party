@@ -14,6 +14,7 @@ const { hooks, ipc, reportError, changeCurrentProfile } = vi.hoisted(() => ({
     mounted: false
   },
   ipc: {
+    getAppConfig: vi.fn<() => Promise<{ yamlMaxAliasCount?: number }>>(),
     getProfileStr: vi.fn<(id: string) => Promise<string>>(),
     getRuleStr: vi.fn<(id: string) => Promise<string>>(),
     setRuleStr: vi.fn<(id: string, content: string) => Promise<void>>(),
@@ -136,6 +137,7 @@ beforeEach(() => {
   hooks.state = []
   hooks.effects = []
   hooks.mounted = false
+  ipc.getAppConfig.mockResolvedValue({ yamlMaxAliasCount: 100 })
   ipc.getProfileStr.mockResolvedValue('rules: ["DOMAIN,base.test,DIRECT", "MATCH,DIRECT"]\n')
   ipc.getRuleStr.mockResolvedValue(stringify(legacyOverrides))
   ipc.getProfileConfig.mockResolvedValue({ current: id })
@@ -299,4 +301,55 @@ describe('subscription rule overrides', () => {
     expect(ipc.mihomoHotReloadConfig).not.toHaveBeenCalled()
     expect(close).not.toHaveBeenCalled()
   })
+
+  it.each([100, -1])(
+    'loads aliased subscriptions and rule overrides when yamlMaxAliasCount is %i',
+    async (yamlMaxAliasCount) => {
+      const aliasedProfile = [
+        'base: &base',
+        '  type: http',
+        '  server: 127.0.0.1',
+        '  port: 8080',
+        'proxies:',
+        ...Array.from({ length: 30 }, (_, i) => `  - <<: *base\n    name: p${i}`),
+        'proxy-groups:',
+        '  - name: Proxy',
+        '    type: select',
+        '    proxies:',
+        '      - p0',
+        'rules:',
+        '  - DOMAIN,base.test,Proxy',
+        '  - MATCH,DIRECT',
+        ''
+      ].join('\n')
+      const aliasedRules = [
+        'rule-base: &ruleBase DOMAIN,pre.test,Proxy',
+        'prepend:',
+        ...Array.from({ length: 30 }, () => '  - *ruleBase'),
+        ''
+      ].join('\n')
+
+      ipc.getAppConfig.mockResolvedValue({ yamlMaxAliasCount })
+      ipc.getProfileStr.mockResolvedValue(aliasedProfile)
+      ipc.getRuleStr.mockResolvedValue(aliasedRules)
+
+      const tree = await loadEditor()
+      const list = requireElement<{ data: { original: string }[] }>(tree, 'Virtuoso')
+      const proxies = elements(tree)
+        .filter((element) => element.type === 'AutocompleteItem')
+        .map((element) => element.props.children)
+
+      expect(reportError).not.toHaveBeenCalled()
+      expect(button(tree, 'common.save').isDisabled).toBe(false)
+      expect(proxies).toContain('Proxy')
+      expect(proxies).toContain('p0')
+      expect(proxies).toContain('p29')
+      expect(list.props.data).toHaveLength(32)
+      expect(list.props.data[0]?.original).toBe('DOMAIN,pre.test,Proxy')
+      expect(list.props.data.slice(-2).map((rule) => rule.original)).toEqual([
+        'DOMAIN,base.test,Proxy',
+        'MATCH,DIRECT'
+      ])
+    }
+  )
 })

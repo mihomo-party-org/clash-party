@@ -25,6 +25,7 @@ import React, {
   useDeferredValue
 } from 'react'
 import {
+  getAppConfig,
   getProfileStr,
   setRuleStr,
   getRuleStr,
@@ -643,8 +644,13 @@ const EditRulesModal: React.FC<Props> = (props) => {
       setIsLoading(true)
       setLoadFailed(false)
       try {
-        const [content, ruleContent] = await Promise.all([getProfileStr(id), getRuleStr(id)])
-        const parsed = parseYaml(content) as Record<string, unknown> | undefined
+        const [content, ruleContent, { yamlMaxAliasCount }] = await Promise.all([
+          getProfileStr(id),
+          getRuleStr(id),
+          getAppConfig()
+        ])
+        const parsed = parseYaml(content, { maxAliasCount: yamlMaxAliasCount }) as
+          Record<string, unknown> | undefined
         const initialRules = Array.isArray(parsed?.rules)
           ? parsed.rules.map((rule) => parseRuleString(Array.isArray(rule) ? rule.join(',') : rule))
           : []
@@ -677,7 +683,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
         }
 
         {
-          const ruleData = parseYaml(ruleContent) as {
+          const ruleData = parseYaml(ruleContent, { maxAliasCount: yamlMaxAliasCount }) as {
             prepend?: string[]
             append?: string[]
             delete?: string[]
