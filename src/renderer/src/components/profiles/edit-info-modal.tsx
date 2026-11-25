@@ -63,7 +63,11 @@ const EditInfoModal: React.FC<Props> = (props) => {
   const [localOptions, setLocalOptions] = useState<LocalSubscriptionOptions>({
     mode: 'group'
   })
-  const [importTarget, setImportTarget] = useState<'profile' | 'source'>('profile')
+  const isImportMode = mode === 'import'
+  const wasSource = !isImportMode && Boolean(source)
+  const [importTarget, setImportTarget] = useState<'profile' | 'source'>(
+    source ? 'source' : 'profile'
+  )
   const [localGroupNames, setLocalGroupNames] = useState<string[]>([])
   const [providerHeaders, setProviderHeaders] = useState<HeaderRow[]>([])
   const [outbounds, setOutbounds] = useState<string[]>(['DIRECT'])
@@ -74,8 +78,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
   const [values, setValues] = useState({
     ...item
   })
-  const isImportMode = mode === 'import'
-  const asSource = isImportMode ? importTarget === 'source' : Boolean(source)
+  const asSource = importTarget === 'source'
   const compact = isImportMode || asSource
   const inputWidth = compact
     ? 'w-[65%] min-w-0'
@@ -232,6 +235,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
   const onSave = async (): Promise<void> => {
     setSaving(true)
     try {
+      const unbinding = !isImportMode && !asSource && (Boolean(source) || Boolean(item.nodeSource))
       const updatedItem = asSource
         ? values
         : {
@@ -242,6 +246,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
                 !overrideItems.find((t) => t.id === i)?.global
             )
           }
+      if (unbinding) delete updatedItem.nodeSource
       let options: LocalSubscriptionOptions | undefined
       if (asSource) {
         const providerOptions: LocalObject = { ...localOptions.providerOptions }
@@ -267,11 +272,11 @@ const EditInfoModal: React.FC<Props> = (props) => {
         const imported = await importProfile(updatedItem, options)
         onImported?.(imported)
       } else {
-        await saveProfile(updatedItem, options)
+        await saveProfile(updatedItem, unbinding ? null : options)
         await addProfileUpdater(updatedItem)
         if (!asSource) await mihomoHotReloadConfig()
       }
-      if (asSource) await mutate('getLocalConfig')
+      if (wasSource || asSource || unbinding) await mutate('getLocalConfig')
       onClose()
     } catch (e) {
       toast.error(String(e))
@@ -341,7 +346,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
           onValueChange={(customHome) => setValues({ ...values, customHome })}
         />
       </SettingItem>
-      {(isImportMode || asSource) && (
+      {(isImportMode || wasSource) && (
         <SettingItem title={t('profiles.editInfo.source.title')}>
           <Tabs
             size="sm"
@@ -357,16 +362,14 @@ const EditInfoModal: React.FC<Props> = (props) => {
               }
             }}
           >
-            {isImportMode && (
-              <Tab
-                key="profile"
-                title={t(
-                  values.type === 'remote'
-                    ? 'profiles.editInfo.source.remote'
-                    : 'profiles.editInfo.source.local'
-                )}
-              />
-            )}
+            <Tab
+              key="profile"
+              title={t(
+                values.type === 'remote'
+                  ? 'profiles.editInfo.source.remote'
+                  : 'profiles.editInfo.source.local'
+              )}
+            />
             <Tab key="group" title={t('profiles.editInfo.source.group')} />
             <Tab key="nodes" title={t('profiles.editInfo.source.nodes')} />
           </Tabs>

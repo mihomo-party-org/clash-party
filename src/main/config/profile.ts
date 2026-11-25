@@ -203,16 +203,22 @@ function normalizeCustomHome(value?: string): string | undefined {
 
 export async function updateProfileItem(
   item: IProfileItem,
-  sourceOptions?: LocalSubscriptionOptions
+  sourceOptions?: LocalSubscriptionOptions | null
 ): Promise<void> {
   const customHome = normalizeCustomHome(item.customHome)
   const previous = await getProfileItem(item.id)
+  if (sourceOptions === null && previous?.nodeSource && typeof previous.nodeSource === 'object') {
+    const { removeLocalSource } = await import('../local/service')
+    await removeLocalSource(item.id)
+  }
   await updateProfileConfig((config) => {
     const index = config.items.findIndex((i) => i.id === item.id)
     if (index === -1) {
       throw new Error('Profile not found')
     }
-    config.items[index] = { ...item, customHome }
+    const nextItem: IProfileItem = { ...item, customHome }
+    if (sourceOptions === null) delete nextItem.nodeSource
+    config.items[index] = nextItem
     return config
   })
   if (sourceOptions) {
@@ -315,6 +321,10 @@ export async function removeProfileItem(id: string): Promise<void> {
     await removePluginForProfile(item.pluginId, id)
     mainWindow?.webContents.send('pluginConfigUpdated')
     return
+  }
+  if (item?.nodeSource && typeof item.nodeSource === 'object') {
+    const { removeLocalSource } = await import('../local/service')
+    await removeLocalSource(id)
   }
   await withProfileRemoval(id, () => removeProfileItemCore(id))
 }

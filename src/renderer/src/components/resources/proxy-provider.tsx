@@ -1,7 +1,9 @@
 import {
   mihomoProxyProviders,
   mihomoUpdateProxyProviders,
-  getRuntimeConfig
+  getRuntimeConfig,
+  getLocalConfig,
+  saveLocalProvider
 } from '@renderer/utils/ipc'
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import useSWR from 'swr'
@@ -18,6 +20,9 @@ import { useActiveProfile } from '@renderer/hooks/use-active-profile'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { includesIgnoreCase } from '@renderer/utils/includes'
 import { FaPlus } from 'react-icons/fa6'
+import type { LocalObject } from '../../../../shared/local-config'
+import { parseYaml } from '../../../../shared/yaml'
+import DeleteResourceButton from '../local/delete-resource-button'
 import ProviderModal from '../local/provider-modal'
 import SettingItem from '../base/base-setting-item'
 import SettingCard from '../base/base-setting-card'
@@ -67,10 +72,34 @@ const ProxyProvider: React.FC<{ editing?: boolean }> = ({ editing: editingProp }
   }, [showDetails.title])
 
   const { data, mutate } = useSWR('mihomoProxyProviders', mihomoProxyProviders)
-  useEffect(
-    () => window.electron.ipcRenderer.on('proxyProvidersUpdated', () => void mutate()),
-    [mutate]
+  const { data: localConfig, mutate: mutateLocalConfig } = useSWR(
+    editing ? 'getLocalConfig' : null,
+    () => getLocalConfig()
   )
+  const localProviders = useMemo(() => {
+    if (!localConfig) return {} as Record<string, LocalObject>
+    try {
+      const parsed = parseYaml(localConfig.modules['proxy-providers'])
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? (parsed as Record<string, LocalObject>)
+        : {}
+    } catch {
+      return {} as Record<string, LocalObject>
+    }
+  }, [localConfig])
+  useEffect(() => {
+    const unsubscribeProviders = window.electron.ipcRenderer.on('proxyProvidersUpdated', () => {
+      void mutate()
+    })
+    const unsubscribeLocal = window.electron.ipcRenderer.on('localConfigUpdated', () => {
+      void mutate()
+      if (editing) void mutateLocalConfig()
+    })
+    return () => {
+      unsubscribeProviders()
+      unsubscribeLocal()
+    }
+  }, [editing, mutate, mutateLocalConfig])
   const [filter, setFilter] = useState('')
   const providers = useMemo(() => {
     if (!data || !data.providers) return []
@@ -136,7 +165,11 @@ const ProxyProvider: React.FC<{ editing?: boolean }> = ({ editing: editingProp }
           kind="proxy-providers"
           name={editorName}
           onClose={() => setEditorOpen(false)}
-          onSaved={() => mutate()}
+          onSaved={() => {
+            void mutateLocalConfig()
+            void mutate()
+            void mutateGroups()
+          }}
         />
       )}
       {qrCode && (
@@ -203,6 +236,9 @@ const ProxyProvider: React.FC<{ editing?: boolean }> = ({ editing: editingProp }
       </div>
       {filteredProviders.map((provider) => {
         const index = providers.indexOf(provider)
+        const localProvider = Object.hasOwn(localProviders, provider.name)
+          ? localProviders[provider.name]
+          : undefined
         return (
           <Fragment key={provider.name}>
             <SettingItem
@@ -257,6 +293,29 @@ const ProxyProvider: React.FC<{ editing?: boolean }> = ({ editing: editingProp }
                     <CgLoadbarDoc className={`text-lg`} />
                   )}
                 </Button>
+                {editing &&
+                  localProvider &&
+                  typeof localProvider === 'object' &&
+                  !Array.isArray(localProvider) && (
+                    <div className="ml-2">
+                      <DeleteResourceButton
+                        label={`代理集合 ${provider.name}`}
+                        disabled={!localConfig}
+                        onDelete={async () => {
+                          await saveLocalProvider(
+                            'proxy-providers',
+                            provider.name,
+                            provider.name,
+                            null,
+                            localProvider
+                          )
+                          await mutateLocalConfig()
+                          await mutate()
+                          await mutateGroups()
+                        }}
+                      />
+                    </div>
+                  )}
                 <Button
                   isIconOnly
                   title={t('common.updater.update')}

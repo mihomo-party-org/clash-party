@@ -1,8 +1,10 @@
+import { existsSync } from 'fs'
 import path from 'path'
 import { isDeepStrictEqual } from 'node:util'
-import { app, dialog } from 'electron'
+import { app, BrowserWindow, dialog } from 'electron'
 import { parse, stringify } from '../utils/yaml'
 import { atomicWriteFile } from '../utils/safeFile'
+import { profilePath } from '../utils/dirs'
 import {
   isLocalProfile,
   LOCAL_BUILTIN_OUTBOUNDS,
@@ -118,16 +120,16 @@ export async function saveLocalProvider(
   kind: 'proxy-providers' | 'rule-providers',
   name: string | undefined,
   nextName: string,
-  value: LocalObject,
+  value: LocalObject | null,
   expected?: LocalObject
 ): Promise<void> {
   if (kind === 'rule-providers') return saveLocalRuleProvider(name, nextName, value, expected)
   await withLocalConfigWrite(async () => {
     if (
       kind !== 'proxy-providers' ||
-      typeof nextName !== 'string' ||
-      !nextName.trim() ||
-      !isRecord(value)
+      (value === null
+        ? typeof name !== 'string' || !isRecord(expected)
+        : typeof nextName !== 'string' || !nextName.trim() || !isRecord(value))
     ) {
       throw new Error('代理集合参数无效')
     }
@@ -135,22 +137,50 @@ export async function saveLocalProvider(
     const providers = parse<Record<string, LocalObject>>(state.modules[kind])
     if (
       name !== undefined &&
-      (!Object.hasOwn(providers, name) || !isDeepStrictEqual(providers[name], expected))
+      (!isRecord(providers) ||
+        !Object.hasOwn(providers, name) ||
+        !isDeepStrictEqual(providers[name], expected))
     ) {
       throw new Error('代理集合已变更，请重新打开编辑')
     }
-    if (name !== nextName && Object.hasOwn(providers, nextName)) {
+    if (value !== null && name !== nextName && Object.hasOwn(providers, nextName)) {
       throw new Error(`代理集合名称重复：${nextName}`)
     }
-    const next = {
-      ...Object.fromEntries(Object.entries(providers).filter(([key]) => key !== name)),
-      [nextName]: value
-    }
+    const entries = Object.entries(providers).filter(([key]) => key !== name)
+    const next =
+      value === null
+        ? Object.fromEntries(entries)
+        : { ...Object.fromEntries(entries), [nextName]: value }
     const result = await commitLocalState(state, {
       ...state,
       modules: { ...state.modules, [kind]: stringify(next) }
     })
     if (result.errors.length) throw new Error(result.errors.join('\n'))
+    if (value === null) {
+      const localId = await activeLocalProfileId()
+      const { updateProfileConfig } = await import('../config/profile')
+      let changed = false
+      await updateProfileConfig((config) => {
+        for (const entry of config.items) {
+          if (
+            entry.nodeSource &&
+            typeof entry.nodeSource === 'object' &&
+            entry.nodeSource.localProfileId === localId &&
+            entry.nodeSource.mode !== 'extract' &&
+            entry.nodeSource.name === name
+          ) {
+            delete entry.nodeSource
+            changed = true
+          }
+        }
+        return config
+      })
+      if (changed) {
+        for (const window of BrowserWindow?.getAllWindows?.() ?? []) {
+          window.webContents.send('profileConfigUpdated')
+        }
+      }
+    }
   })
 }
 
@@ -401,6 +431,67 @@ export async function configureLocalSource(
       })
     })
   )
+}
+
+export async function removeLocalSource(profileId: string): Promise<void> {
+  const { getProfileItem, updateProfileConfig } = await import('../config/profile')
+  const item = await getProfileItem(profileId)
+  if (!item?.nodeSource || typeof item.nodeSource !== 'object') return
+  const localId = item.nodeSource.localProfileId
+  let skipped = false
+  if (
+    typeof localId === 'string' &&
+    localId !== profileId &&
+    isLocalProfile(await getProfileItem(localId)) &&
+    existsSync(profilePath(localId))
+  ) {
+    await withLocalProfileScope(localId, () =>
+      withLocalConfigWrite(async () => {
+        const currentItem = await getProfileItem(profileId)
+        if (
+          !currentItem?.nodeSource ||
+          typeof currentItem.nodeSource !== 'object' ||
+          currentItem.nodeSource.localProfileId !== localId
+        ) {
+          skipped = true
+          return
+        }
+        const state = await getLocalState()
+        const previous = findProfileSource(state, currentItem)
+        if (!previous) return
+        const next = structuredClone(state)
+        next.sources = next.sources.filter((s) => s.profileId !== profileId && s.id !== previous.id)
+        if (previous.mode === 'extract') {
+          const removedNames = new Set(
+            previous.proxies.map((node) => `${previous.prefix}${node.name}`)
+          )
+          next.modules.proxies = stringify(
+            readLocalNodes(next).filter((node) => !removedNames.has(String(node.name)))
+          )
+        } else {
+          const providers = parse<Record<string, LocalObject>>(next.modules['proxy-providers'])
+          if (isRecord(providers)) {
+            delete providers[previous.name]
+            next.modules['proxy-providers'] = stringify(providers)
+          }
+        }
+        const result = await commitLocalState(state, next)
+        if (result.errors.length) throw new Error(result.errors.join('\n'))
+      })
+    )
+  }
+  if (skipped) return
+  await updateProfileConfig((config) => {
+    const saved = config.items.find(({ id }) => id === profileId)
+    if (
+      saved?.nodeSource &&
+      typeof saved.nodeSource === 'object' &&
+      saved.nodeSource.localProfileId === localId
+    ) {
+      delete saved.nodeSource
+    }
+    return config
+  })
 }
 
 export async function withLocalProfileRemoval<T>(

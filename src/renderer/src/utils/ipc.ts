@@ -95,7 +95,7 @@ interface IpcApi {
   removeProfileItem: (id: string) => Promise<void>
   updateProfileItem: (
     item: IProfileItem,
-    localOptions?: import('../../../shared/local-config').LocalSubscriptionOptions
+    localOptions?: import('../../../shared/local-config').LocalSubscriptionOptions | null
   ) => Promise<void>
   changeCurrentProfile: (id: string) => Promise<void>
   addProfileUpdater: (item: IProfileItem) => Promise<void>
@@ -160,7 +160,7 @@ interface IpcApi {
     kind: 'proxy-providers' | 'rule-providers',
     name: string | undefined,
     nextName: string,
-    value: import('../../../shared/local-config').LocalObject,
+    value: import('../../../shared/local-config').LocalObject | null,
     expected?: import('../../../shared/local-config').LocalObject
   ) => Promise<void>
   previewLocalConfig: (id?: string) => Promise<import('../../../shared/local-config').LocalPreview>
