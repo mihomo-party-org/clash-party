@@ -172,6 +172,10 @@ async function checkSSID(): Promise<void> {
         const { mode } = await getControledMihomoConfig()
         if (mode === 'direct') {
           await patchControledMihomoConfig({ mode: 'rule' })
+        }
+        // patchControledMihomoConfig 先落盘、热更新失败只记日志，所以重试时配置已经是 rule 而内核可能还在直连，
+        // 这时仍要把 rule 发给内核；用户自己选的就是 rule 的话，重发一次没有影响
+        if (mode === 'direct' || mode === 'rule') {
           await patchMihomoConfig({ mode: 'rule' })
         }
         await patchAppConfig({ pausedBySSID: undefined })

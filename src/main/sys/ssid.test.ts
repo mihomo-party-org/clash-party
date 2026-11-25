@@ -141,6 +141,41 @@ describe('pauseSSID', () => {
     expect(h.config.pausedBySSID).toBeUndefined()
   })
 
+  it.each(['win32', 'darwin'] as const)(
+    'retries restoring rule mode when the core rejected it (%s)',
+    async (platform) => {
+      // A core that is already paused: the config file says rule after the first attempt,
+      // which must not be taken for a mode the user picked.
+      h.config.pausedBySSID = true
+      h.mode = 'direct'
+      h.ssid = 'Office'
+      h.patchMihomoConfig.mockRejectedValueOnce(new Error('Core is still initializing'))
+      await start(platform)
+      expect(h.mode).toBe('rule')
+      expect(modeCalls()).toEqual(['rule'])
+      expect(h.config.pausedBySSID).toBe(true)
+
+      await vi.advanceTimersByTimeAsync(15000)
+      expect(modeCalls()).toEqual(['rule', 'rule'])
+      expect(h.config.pausedBySSID).toBeUndefined()
+
+      await vi.advanceTimersByTimeAsync(60000)
+      expect(modeCalls()).toEqual(['rule', 'rule'])
+    }
+  )
+
+  it('keeps a mode the user picked while restoring rule mode is being retried', async () => {
+    await start('win32')
+    h.patchMihomoConfig.mockRejectedValueOnce(new Error('Core is still initializing'))
+    await moveTo('Office')
+    h.mode = 'global'
+
+    await vi.advanceTimersByTimeAsync(15000)
+
+    expect(modeCalls()).toEqual(['direct', 'rule'])
+    expect(h.config.pausedBySSID).toBeUndefined()
+  })
+
   it.each([
     ['another Wi-Fi network', 'Office'],
     ['a network without Wi-Fi', '']
