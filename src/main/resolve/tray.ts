@@ -12,7 +12,7 @@ import {
   patchAppConfig,
   patchControledMihomoConfig
 } from '../config'
-import { DEFAULT_MIHOMO_PORTS } from '../../shared/appConfig'
+import { DEFAULT_DELAY_TEST_CONCURRENCY, DEFAULT_MIHOMO_PORTS } from '../../shared/appConfig'
 import icoIcon from '../../../resources/icon.ico?asset'
 import icoIconBlue from '../../../resources/icon_blue.ico?asset'
 import icoIconRed from '../../../resources/icon_red.ico?asset'
@@ -25,8 +25,8 @@ import templateIcon from '../../../resources/iconTemplate.png?asset'
 import {
   mihomoChangeProxy,
   mihomoCloseAllConnections,
-  mihomoGroupDelay,
   mihomoGroups,
+  mihomoProxyDelay,
   patchMihomoConfig,
   getTrayIconStatus,
   calculateTrayIconStatus
@@ -42,6 +42,7 @@ import {
 } from '../core/manager'
 import { trayLogger } from '../utils/logger'
 import { writeClipboardText } from '../utils/clipboard'
+import { mapWithConcurrency } from '../utils/concurrency'
 import { floatingWindow, triggerFloatingWindow } from './floatingWindow'
 
 export let tray: Tray | null = null
@@ -53,6 +54,27 @@ type TrayImage = Electron.NativeImage | string
 type CustomTrayIconKey = keyof ICustomTrayIcons
 const customTrayIconSize = 16
 const customTrayIconScaleFactors = [1, 1.25, 1.5, 2, 2.5, 3]
+
+// 内核的 /group/:name/delay 会把组内节点一次性全部发出去，无视"延迟测试并发数"设置，
+// 校园网等限制并发连接的网络下会全部超时（#1507）。和代理组页面一样按并发数逐个节点测。
+async function testGroupDelay(group: IMihomoMixedGroup): Promise<void> {
+  const { delayTestConcurrency } = await getAppConfig()
+  const concurrency =
+    delayTestConcurrency && delayTestConcurrency > 0
+      ? delayTestConcurrency
+      : DEFAULT_DELAY_TEST_CONCURRENCY
+  await mapWithConcurrency(group.all, concurrency, async (proxy) => {
+    try {
+      await mihomoProxyDelay(
+        proxy.name,
+        group.testUrl,
+        'provider-name' in proxy ? proxy['provider-name'] : undefined
+      )
+    } catch {
+      // 超时等失败由内核记进节点的延迟历史，不影响其余节点
+    }
+  })
+}
 
 export const buildContextMenu = async (): Promise<Menu> => {
   // 添加调试日志
@@ -103,7 +125,7 @@ export const buildContextMenu = async (): Promise<Menu> => {
               type: 'normal' as const,
               click: async (): Promise<void> => {
                 try {
-                  await mihomoGroupDelay(group.name, group.testUrl)
+                  await testGroupDelay(group)
                   mainWindow?.webContents.send('groupsUpdated')
                 } catch (error) {
                   await trayLogger.error(`Failed to test proxy group delay: ${group.name}`, error)
