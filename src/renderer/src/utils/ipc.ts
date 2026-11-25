@@ -243,6 +243,7 @@ interface IpcApi {
   triggerMainWindow: () => Promise<void>
   showFloatingWindow: () => Promise<void>
   closeFloatingWindow: () => Promise<void>
+  recreateFloatingWindow: () => Promise<void>
   showContextMenu: () => Promise<void>
   setAlwaysOnTop: (alwaysOnTop: boolean) => Promise<void>
   isAlwaysOnTop: () => Promise<boolean>
@@ -436,6 +437,7 @@ export const {
   triggerMainWindow,
   showFloatingWindow,
   closeFloatingWindow,
+  recreateFloatingWindow,
   showContextMenu,
   setAlwaysOnTop,
   isAlwaysOnTop,
