@@ -16,7 +16,8 @@ const h = vi.hoisted(() => ({
   legacyElectron: false,
   disableSysProxySync: vi.fn(),
   stopCoreForExit: vi.fn(),
-  closeTrafficUsage: vi.fn()
+  closeTrafficUsage: vi.fn(),
+  stopMonitor: vi.fn()
 }))
 
 vi.mock('electron', async () => {
@@ -52,6 +53,7 @@ vi.mock('./sys/sysproxy', () => ({
   disableSysProxySync: h.disableSysProxySync
 }))
 vi.mock('./traffic/recorder', () => ({ closeTrafficUsage: h.closeTrafficUsage }))
+vi.mock('./resolve/trafficMonitor', () => ({ stopMonitor: h.stopMonitor }))
 vi.mock('./utils/dirs', () => ({
   exePath: () => 'C:\\Clash Party\\Clash Party.exe',
   appConfigPath: () => h.configPath
@@ -75,6 +77,7 @@ beforeEach(() => {
   h.disableSysProxySync.mockReset()
   h.stopCoreForExit.mockReset().mockResolvedValue(undefined)
   h.closeTrafficUsage.mockReset().mockResolvedValue(undefined)
+  h.stopMonitor.mockReset().mockResolvedValue(undefined)
 })
 
 afterEach(() => {
@@ -105,6 +108,8 @@ describe('Windows session end', () => {
 
     await vi.waitFor(() => expect(h.app.exit).toHaveBeenCalled())
     expect(h.stopCoreForExit).toHaveBeenCalledTimes(1)
+    // A hard kill on exit would leave the taskbar shrunk by TrafficMonitor (#741).
+    expect(h.stopMonitor).toHaveBeenCalledTimes(1)
   })
 
   it('cleans up once when both a BrowserWindow and the hidden window get session-end', async () => {
