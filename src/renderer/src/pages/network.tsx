@@ -10,7 +10,12 @@ import {
   useSensors,
   DragEndEvent
 } from '@dnd-kit/core'
-import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy
+} from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import {
   IoRefresh,
@@ -129,7 +134,7 @@ function parseProvider(provider: IPProvider, data: Record<string, unknown>): IPI
 
 // ─── Latency ───────────────────────────────────────────────────────────────
 
-type LatencyStatus = 'idle' | 'pending' | 'success' | 'error'
+type LatencyStatus = 'pending' | 'success' | 'error'
 
 interface LatencyResult {
   latency: number | null
@@ -147,6 +152,7 @@ const DEFAULT_LATENCY_TARGETS: LatencyTarget[] = [
   { name: 'Cloudflare', url: 'https://www.cloudflare.com/cdn-cgi/trace' },
   { name: 'GitHub', url: 'https://github.com/' }
 ]
+const DEFAULT_LATENCY_URLS = new Set(DEFAULT_LATENCY_TARGETS.map((target) => target.url))
 
 function mergeNetworkInfoCardOrder(saved: string[] = []): NetworkInfoCardKey[] {
   const valid = saved.filter((key): key is NetworkInfoCardKey =>
@@ -246,18 +252,16 @@ function getLatencyTargetName(url: string): string {
   }
 }
 
-function latencyColor(latency: number | null): string {
-  if (latency === null) return ''
-  if (latency < 100) return 'text-success'
-  if (latency < 300) return 'text-warning'
-  return 'text-danger'
+const latencyStyles = {
+  success: { text: 'text-success', bar: 'bg-success', badge: 'bg-success/15 text-success' },
+  warning: { text: 'text-warning', bar: 'bg-warning', badge: 'bg-warning/15 text-warning' },
+  danger: { text: 'text-danger', bar: 'bg-danger', badge: 'bg-danger/15 text-danger' }
 }
 
-function latencyBarColor(latency: number | null): string {
-  if (latency === null) return 'bg-foreground/20'
-  if (latency < 100) return 'bg-success'
-  if (latency < 300) return 'bg-warning'
-  return 'bg-danger'
+function getLatencyStyle(latency: number): (typeof latencyStyles)[keyof typeof latencyStyles] {
+  if (latency < 100) return latencyStyles.success
+  if (latency < 300) return latencyStyles.warning
+  return latencyStyles.danger
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -276,10 +280,10 @@ interface InfoRowProps {
 }
 
 const InfoRow: React.FC<InfoRowProps> = ({ label, value, mono }) => (
-  <div className="flex items-center justify-between gap-3">
+  <div className="flex items-start justify-between gap-3">
     <span className="shrink-0 text-[13px] text-foreground/60">{label}</span>
     <span
-      className={`overflow-hidden text-right text-[13px] font-medium text-ellipsis whitespace-nowrap ${mono ? 'font-mono' : ''}`}
+      className={`min-w-0 text-right text-[13px] font-medium wrap-anywhere ${mono ? 'font-mono' : ''}`}
     >
       {value}
     </span>
@@ -328,9 +332,7 @@ const IPPage: React.FC = () => {
       const overIndex = cardOrder.indexOf(overId)
       if (activeIndex === -1 || overIndex === -1) return
 
-      const nextOrder = cardOrder.slice()
-      nextOrder.splice(activeIndex, 1)
-      nextOrder.splice(overIndex, 0, activeId)
+      const nextOrder = arrayMove(cardOrder, activeIndex, overIndex)
       setCardOrder(nextOrder)
       await patchAppConfig({ networkInfoCardOrder: nextOrder })
     },
@@ -343,21 +345,19 @@ const IPPage: React.FC = () => {
   )
 
   const latencyTargets = useMemo(() => {
-    const defaultUrls = new Set(DEFAULT_LATENCY_TARGETS.map((target) => target.url))
     return [
       ...DEFAULT_LATENCY_TARGETS,
       ...customLatencyTargets
-        .filter((target) => !defaultUrls.has(target.url))
+        .filter((target) => !DEFAULT_LATENCY_URLS.has(target.url))
         .map((target) => ({ ...target, custom: true }))
     ]
   }, [customLatencyTargets])
 
   const patchCustomLatencyTargets = useCallback(
     async (targets: Array<string | Partial<INetworkLatencyTarget>>) => {
-      const defaultUrls = new Set(DEFAULT_LATENCY_TARGETS.map((target) => target.url))
       await patchAppConfig({
         networkLatencyTargets: normalizeLatencyTargets(targets).filter(
-          (target) => !defaultUrls.has(target.url)
+          (target) => !DEFAULT_LATENCY_URLS.has(target.url)
         )
       })
     },
@@ -379,8 +379,7 @@ const IPPage: React.FC = () => {
     setCustomLatencyUrlError(!url)
     if (!name || !url) return
 
-    const existingUrls = new Set(DEFAULT_LATENCY_TARGETS.map((target) => target.url))
-    if (!existingUrls.has(url)) {
+    if (!DEFAULT_LATENCY_URLS.has(url)) {
       await patchCustomLatencyTargets([
         ...customLatencyTargets.filter((target) => target.url !== url),
         { name, url }
@@ -524,7 +523,7 @@ const IPPage: React.FC = () => {
               <SortableNetworkInfoCard id="ip" order={cardOrder.indexOf('ip')}>
                 <div className="rounded-xl border border-foreground/10 bg-content1 p-4 shadow-sm">
                   {/* 卡片 Header */}
-                  <div className="mb-3.5 flex items-center justify-between gap-3">
+                  <div className="mb-3.5 flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15 text-primary">
                         <IoMdGlobe size={18} />
@@ -534,7 +533,7 @@ const IPPage: React.FC = () => {
                     <div className="flex items-center gap-1.5">
                       <Select
                         size="sm"
-                        className="w-28"
+                        className="w-36"
                         selectedKeys={[provider]}
                         onSelectionChange={(keys) => {
                           const val = Array.from(keys)[0] as IPProvider
@@ -611,7 +610,7 @@ const IPPage: React.FC = () => {
                           value={
                             <span className="flex items-center justify-end gap-1.5">
                               <CountryFlag code={ipInfo.countryCode} />
-                              <span>{ipInfo.country}</span>
+                              <span className="min-w-0">{ipInfo.country}</span>
                             </span>
                           }
                         />
@@ -704,13 +703,7 @@ const IPPage: React.FC = () => {
                     <div className="flex items-center gap-2">
                       {averageLatency !== null && (
                         <span
-                          className={`rounded-md px-2 py-1 text-xs font-semibold ${
-                            averageLatency < 100
-                              ? 'bg-success/15 text-success'
-                              : averageLatency < 300
-                                ? 'bg-warning/15 text-warning'
-                                : 'bg-danger/15 text-danger'
-                          }`}
+                          className={`rounded-md px-2 py-1 text-xs font-semibold ${getLatencyStyle(averageLatency).badge}`}
                         >
                           {t('network.latency.average')}: {averageLatency}ms
                         </span>
@@ -800,6 +793,7 @@ const IPPage: React.FC = () => {
                   <div className="flex flex-col gap-3">
                     {latencyTargets.map((target) => {
                       const res = latencyResults[target.url]
+                      const style = res?.latency == null ? undefined : getLatencyStyle(res.latency)
                       return (
                         <div key={target.url} className="flex items-center gap-3">
                           <span className="w-20 shrink-0 overflow-hidden text-[13px] text-ellipsis whitespace-nowrap">
@@ -807,7 +801,7 @@ const IPPage: React.FC = () => {
                           </span>
                           <div className="h-2 flex-1 overflow-hidden rounded-full bg-foreground/10">
                             <div
-                              className={`h-full rounded-full transition-[width] duration-500 ease-out ${latencyBarColor(res?.latency ?? null)}`}
+                              className={`h-full rounded-full transition-[width] duration-500 ease-out ${style?.bar ?? 'bg-foreground/20'}`}
                               style={{
                                 width:
                                   res?.status === 'success' && res.latency !== null
@@ -817,12 +811,12 @@ const IPPage: React.FC = () => {
                             />
                           </div>
                           <span className="w-16 shrink-0 text-right font-mono text-[13px]">
-                            {!res || res.status === 'idle' ? (
+                            {!res ? (
                               <span className="text-foreground/40">-</span>
                             ) : res.status === 'pending' ? (
                               <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-foreground/10 border-t-primary" />
                             ) : res.status === 'success' ? (
-                              <span className={latencyColor(res.latency)}>{res.latency}ms</span>
+                              <span className={style?.text}>{res.latency}ms</span>
                             ) : (
                               <span className="text-danger">{t('network.latency.timeout')}</span>
                             )}
