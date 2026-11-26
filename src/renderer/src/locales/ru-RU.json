@@ -74,6 +74,8 @@
   "common.updater.update": "Обновить",
   "common.updater.verifying": "Проверка...",
   "settings.general": "Общие настройки",
+  "settings.appearance": "Внешний вид",
+  "settings.advanced": "Дополнительные настройки",
   "settings.mihomo": "Настройки Mihomo",
   "settings.language": "Язык",
   "settings.theme": "Тема",

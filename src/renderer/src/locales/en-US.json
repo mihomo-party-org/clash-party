@@ -74,6 +74,8 @@
   "common.generateSecret": "Generate Secret",
   "common.refresh": "Refresh",
   "settings.general": "General Settings",
+  "settings.appearance": "Appearance",
+  "settings.advanced": "Advanced Settings",
   "settings.mihomo": "Mihomo Settings",
   "settings.language": "Language",
   "settings.theme": "Theme",

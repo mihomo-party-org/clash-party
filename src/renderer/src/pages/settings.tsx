@@ -4,6 +4,7 @@ import { CgWebsite } from 'react-icons/cg'
 import { IoLogoGithub } from 'react-icons/io5'
 import WebdavConfig from '@renderer/components/settings/webdav-config'
 import GeneralConfig from '@renderer/components/settings/general-config'
+import AdvancedSettings from '@renderer/components/settings/advanced-settings'
 import MihomoConfig from '@renderer/components/settings/mihomo-config'
 import Actions from '@renderer/components/settings/actions'
 import ShortcutConfig from '@renderer/components/settings/shortcut-config'
@@ -62,12 +63,13 @@ const Settings: React.FC = () => {
       }
     >
       <GeneralConfig />
-      <McpConfig />
       <SubStoreConfig />
       <SiderConfig />
       <WebdavConfig />
       <MihomoConfig />
       <ShortcutConfig />
+      <McpConfig />
+      <AdvancedSettings />
       <LocalBackupConfig />
       <Actions />
     </BasePage>
