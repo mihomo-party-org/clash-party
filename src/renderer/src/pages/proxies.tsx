@@ -70,6 +70,7 @@ import DeleteResourceButton from '@renderer/components/local/delete-resource-but
 import SortableGroup from '@renderer/components/proxies/sortable-group'
 import { toast } from '@renderer/components/base/toast'
 import type { LocalObject } from '../../../shared/local-config'
+import { DEFAULT_DELAY_TEST_CONCURRENCY } from '../../../shared/appConfig'
 
 const GROUP_EXPAND_STATE_KEY = 'proxy_group_expand_state'
 const EMPTY_GROUPS: IMihomoMixedGroup[] = []
@@ -280,7 +281,7 @@ const Proxies: React.FC = () => {
     autoCloseConnection = true,
     autoCloseConnectionOnlyGroup = false,
     proxyCols = 'auto',
-    delayTestConcurrency = 50
+    delayTestConcurrency = DEFAULT_DELAY_TEST_CONCURRENCY
   } = appConfig || {}
 
   const [cols, setCols] = useState(1)
@@ -526,7 +527,7 @@ const Proxies: React.FC = () => {
           runningList.splice(runningList.indexOf(running), 1)
         })
         runningList.push(running)
-        if (runningList.length >= (delayTestConcurrency || 50)) {
+        if (runningList.length >= (delayTestConcurrency || DEFAULT_DELAY_TEST_CONCURRENCY)) {
           await Promise.race(runningList)
         }
       }

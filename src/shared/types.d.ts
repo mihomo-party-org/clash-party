@@ -323,6 +323,8 @@ interface IAppConfig {
   pauseSSID?: string[]
   disableDnsOnPauseSSID?: boolean
   controlDnsBeforePause?: boolean
+  // 当前的直连模式是否由 pauseSSID 设置，离开这些网络时据此恢复规则模式（重启后也有效）
+  pausedBySSID?: boolean
   ssidProfileMap?: Record<string, string>
   ssidProfileRestore?: boolean
   mihomoCoreCardStatus?: CardStatus

@@ -2,7 +2,12 @@ import { exec, spawn } from 'child_process'
 import { networkInterfaces } from 'os'
 import { promisify } from 'util'
 import { ipcMain, net } from 'electron'
-import { getAppConfig, patchAppConfig, patchControledMihomoConfig } from '../config'
+import {
+  getAppConfig,
+  getControledMihomoConfig,
+  patchAppConfig,
+  patchControledMihomoConfig
+} from '../config'
 import { changeCurrentProfile, getProfileConfig } from '../config/profile'
 import { patchMihomoConfig } from '../core/mihomoApi'
 import { mainWindow } from '../window'
@@ -38,6 +43,9 @@ export async function getCurrentSSID(): Promise<string | undefined> {
 }
 
 let lastSSID: string | undefined
+// 启动后是否已经完成过一次检查。没连无线时 SSID 一直是 undefined，和 lastSSID 的初始值相同，
+// 第一次检查不能因此跳过，否则重启后在有线网络下永远恢复不了暂停前的模式
+let ssidChecked = false
 let ssidCheckInterval: NodeJS.Timeout | null = null
 let networkWatcher: ReturnType<typeof spawn> | null = null
 let watcherDebounce: NodeJS.Timeout | null = null
@@ -47,6 +55,15 @@ let lastSSIDProbeAt = 0
 
 // 读不到 SSID 时的兜底重试间隔
 const unknownSSIDRetryInterval = 300000
+// 按 SSID 切换模式失败（如内核还在启动）后的重试。macOS 只在网络变化时检查，不重试就再也不会切；
+// 次数有上限：内核起不来时每次重试都会尝试启动内核，Windows 上还会再调一次 netsh
+const ssidSwitchRetryDelay = 15000
+const maxSSIDSwitchRetries = 6
+let ssidRetryTimer: NodeJS.Timeout | null = null
+let ssidRetryCount = 0
+let ssidRetryPending = false
+let ssidCheckRunning = false
+let ssidCheckAgain = false
 
 // Windows 11 把 SSID 当作位置信息：每次 `netsh wlan show interfaces` 都会让
 // 「网络命令外壳」向系统申请一次定位，托盘上因此每个轮询周期闪一次定位图标。
@@ -65,57 +82,128 @@ function networkFingerprint(): string {
     .join(';')
 }
 
+function scheduleSSIDRetry(): void {
+  if (ssidRetryTimer) clearTimeout(ssidRetryTimer)
+  ssidRetryTimer = setTimeout(() => {
+    ssidRetryTimer = null
+    ssidRetryPending = true
+    void handleSSIDChange()
+  }, ssidSwitchRetryDelay)
+}
+
+async function notifyModeChanged(): Promise<void> {
+  mainWindow?.webContents.send('controledMihomoConfigUpdated')
+  mainWindow?.webContents.send('appConfigUpdated')
+  ipcMain.emit('updateTrayMenu')
+  await updateTrayIcon()
+}
+
+// 轮询、网络监听和失败重试可能同时触发，同一时间只跑一次；跑的过程中又有触发就再跑一轮
 async function handleSSIDChange(): Promise<void> {
+  if (ssidCheckRunning) {
+    ssidCheckAgain = true
+    return
+  }
+  ssidCheckRunning = true
+  try {
+    do {
+      ssidCheckAgain = false
+      await checkSSID()
+    } while (ssidCheckAgain)
+  } finally {
+    ssidCheckRunning = false
+  }
+}
+
+async function checkSSID(): Promise<void> {
   try {
     const {
       pauseSSID = [],
       disableDnsOnPauseSSID = false,
       controlDns,
+      controlDnsBeforePause,
+      pausedBySSID = false,
       ssidProfileMap = {},
       ssidProfileRestore = false
     } = await getAppConfig()
+    // 清空 pauseSSID 后不会再按网络切回规则模式，留着标记只会在以后某次检查时改掉用户自己选的模式
+    if (pauseSSID.length === 0 && pausedBySSID) {
+      await patchAppConfig({ pausedBySSID: undefined })
+    }
     if (pauseSSID.length === 0 && Object.keys(ssidProfileMap).length === 0) return
     const fingerprint = networkFingerprint()
     const now = Date.now()
+    const retrying = ssidRetryPending
+    ssidRetryPending = false
     // 指纹没变就跳过；上次没读到 SSID（无线还没连上、没有无线网卡）时留一条慢速兜底重试
     if (
+      !retrying &&
       fingerprint === lastNetworkFingerprint &&
       (lastSSID !== undefined || now - lastSSIDProbeAt < unknownSSIDRetryInterval)
     ) {
       return
     }
+    if (fingerprint !== lastNetworkFingerprint) ssidRetryCount = 0
     lastNetworkFingerprint = fingerprint
     lastSSIDProbeAt = now
     const currentSSID = await getCurrentSSID()
-    if (currentSSID === lastSSID) return
+    if (ssidChecked && currentSSID === lastSSID) return
     const previousSSID = lastSSID
-    lastSSID = currentSSID
+    const onPauseSSID = currentSSID !== undefined && pauseSSID.includes(currentSSID)
+    // 是否处于按 SSID 暂停的状态要落盘：重启后 lastSSID 为空，只靠它判断的话暂停时写下的直连永远恢复不了
+    const wasPaused =
+      pausedBySSID || (previousSSID !== undefined && pauseSSID.includes(previousSSID))
 
-    if (currentSSID && pauseSSID.includes(currentSSID)) {
-      if (disableDnsOnPauseSSID) {
-        await patchAppConfig({ controlDnsBeforePause: controlDns, controlDns: false })
+    // lastSSID 只在切换成功后更新。内核还在启动时热更新会失败，提前更新的话之后每次检查都当作没变化，
+    // 配置文件写着直连、内核却还是规则模式，直到重启应用
+    try {
+      if (onPauseSSID) {
+        await patchAppConfig({
+          pausedBySSID: true,
+          // 在两个暂停网络之间切换或重试时，第一次保存的 DNS 设置不能被已经关掉的值覆盖
+          ...(disableDnsOnPauseSSID && controlDnsBeforePause === undefined
+            ? { controlDnsBeforePause: controlDns, controlDns: false }
+            : {})
+        })
+        await patchControledMihomoConfig({ mode: 'direct' })
+        await patchMihomoConfig({ mode: 'direct' })
+      } else if (wasPaused) {
+        // 暂停期间用户自己换过模式（托盘、设置页、MCP）就不再改回规则模式
+        const { mode } = await getControledMihomoConfig()
+        if (mode === 'direct') {
+          await patchControledMihomoConfig({ mode: 'rule' })
+        }
+        // patchControledMihomoConfig 先落盘、热更新失败只记日志，所以重试时配置已经是 rule 而内核可能还在直连，
+        // 这时仍要把 rule 发给内核；用户自己选的就是 rule 的话，重发一次没有影响
+        if (mode === 'direct' || mode === 'rule') {
+          await patchMihomoConfig({ mode: 'rule' })
+        }
+        await patchAppConfig({ pausedBySSID: undefined })
       }
-      await patchControledMihomoConfig({ mode: 'direct' })
-      await patchMihomoConfig({ mode: 'direct' })
-      mainWindow?.webContents.send('controledMihomoConfigUpdated')
-      mainWindow?.webContents.send('appConfigUpdated')
-      ipcMain.emit('updateTrayMenu')
-      await updateTrayIcon()
+    } catch (error) {
+      if (ssidRetryCount < maxSSIDSwitchRetries) {
+        ssidRetryCount++
+        ssidLogger.warn(
+          `Failed to switch mode for SSID change, retry ${ssidRetryCount}/${maxSSIDSwitchRetries} in ${ssidSwitchRetryDelay}ms`,
+          error
+        )
+        scheduleSSIDRetry()
+      } else {
+        ssidLogger.warn(
+          'Failed to switch mode for SSID change, waiting for a network change',
+          error
+        )
+      }
       return
     }
+    ssidRetryCount = 0
+    lastSSID = currentSSID
+    ssidChecked = true
 
-    if (
-      previousSSID &&
-      pauseSSID.includes(previousSSID) &&
-      (!currentSSID || !pauseSSID.includes(currentSSID))
-    ) {
-      await patchControledMihomoConfig({ mode: 'rule' })
-      await patchMihomoConfig({ mode: 'rule' })
-      mainWindow?.webContents.send('controledMihomoConfigUpdated')
-      mainWindow?.webContents.send('appConfigUpdated')
-      ipcMain.emit('updateTrayMenu')
-      await updateTrayIcon()
+    if (onPauseSSID || wasPaused) {
+      await notifyModeChanged()
     }
+    if (onPauseSSID) return
 
     if (currentSSID && currentSSID in ssidProfileMap) {
       const targetProfileId = ssidProfileMap[currentSSID]
@@ -220,6 +308,10 @@ export async function startSSIDCheck(): Promise<void> {
 export function stopSSIDCheck(): void {
   lastNetworkFingerprint = undefined
   lastSSIDProbeAt = 0
+  if (ssidRetryTimer) {
+    clearTimeout(ssidRetryTimer)
+    ssidRetryTimer = null
+  }
   stopNetworkWatcher()
   if (ssidCheckInterval) {
     clearInterval(ssidCheckInterval)
