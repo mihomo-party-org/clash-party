@@ -133,7 +133,7 @@ const MihomoConfig: React.FC = () => {
     )
   }
   return (
-    <SettingCard>
+    <SettingCard title={t('mihomo.title')}>
       <SettingItem title={t('mihomo.userAgent')} divider>
         <Input
           size="sm"

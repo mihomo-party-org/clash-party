@@ -74,6 +74,8 @@
   "common.generateSecret": "生成密钥",
   "common.refresh": "刷新",
   "settings.general": "通用设置",
+  "settings.appearance": "外观设置",
+  "settings.advanced": "更多设置",
   "settings.mihomo": "Mihomo 设置",
   "settings.language": "语言",
   "settings.theme": "主题",
